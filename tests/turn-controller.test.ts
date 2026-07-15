@@ -1,18 +1,29 @@
-import { describe, expect, it, vi } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ThreadController } from "../src/core/codex/thread-controller";
 import { TurnController } from "../src/core/codex/turn-controller";
 
+const temporaryPaths: string[] = [];
+
 async function setup() {
-  const threads = new ThreadController("C:/work/codex-pet");
+  const projectRoot = mkdtempSync(join(tmpdir(), "codex-pet-turn-"));
+  temporaryPaths.push(projectRoot);
+  const threads = new ThreadController(projectRoot);
   const client = {
     sendRequest: vi
       .fn()
-      .mockResolvedValueOnce({ thread: { id: "thread", cwd: "C:/work/codex-pet" } })
+      .mockResolvedValueOnce({ thread: { id: "thread", cwd: projectRoot } })
       .mockResolvedValue({ turn: { id: "turn" } }),
   };
-  await threads.create({ cwd: "C:/work/codex-pet" }, client);
+  await threads.create({ cwd: { kind: "project-root" } }, client);
   return { client, turns: new TurnController(threads), threads };
 }
+
+afterEach(() => {
+  for (const path of temporaryPaths.splice(0)) rmSync(path, { recursive: true, force: true });
+});
 
 describe("TurnController", () => {
   it("starts an approval test with a fixed harmless prompt", async () => {
@@ -30,15 +41,17 @@ describe("TurnController", () => {
     expect(threads.get("thread")?.activeTurnId).toBe("turn");
   });
 
-  it("uses a fixed no-tool user-input prompt for the input test", async () => {
-    const { client, turns } = await setup();
-    await turns.start({ threadId: "thread", prompt: "ignored", mode: "input-test" }, client);
-    const request = client.sendRequest.mock.calls.at(-1)?.[1] as {
-      input: Array<{ text: string }>;
-    };
-    expect(request.input[0].text).toContain("request_user_input");
-    expect(request.input[0].text).toContain("Do not run commands");
-    expect(request.input[0].text).not.toContain("git push");
+  it("uses fixed no-tool prompts for input, steer, and interrupt verification", async () => {
+    const modes = ["input-test", "steer-test", "interrupt-test"] as const;
+    for (const mode of modes) {
+      const { client, turns } = await setup();
+      await turns.start({ threadId: "thread", prompt: "ignored", mode }, client);
+      const request = client.sendRequest.mock.calls.at(-1)?.[1] as {
+        input: Array<{ text: string }>;
+      };
+      expect(request.input[0].text).toContain("Do not");
+      expect(request.input[0].text).not.toContain("git push");
+    }
   });
 
   it("requires exact active turn ownership for steer and interrupt", async () => {

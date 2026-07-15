@@ -30,6 +30,8 @@ const api: DesktopApi = {
   selectThread: (threadId) => ipcRenderer.invoke(IPC_CHANNELS.selectThread, threadId),
   runApprovalTest: () => ipcRenderer.invoke(IPC_CHANNELS.runApprovalTest),
   runUserInputTest: () => ipcRenderer.invoke(IPC_CHANNELS.runUserInputTest),
+  startVerification: () => ipcRenderer.invoke(IPC_CHANNELS.startVerification),
+  runVerification: (kind) => ipcRenderer.invoke(IPC_CHANNELS.runVerification, kind),
   quit: () => ipcRenderer.invoke(IPC_CHANNELS.quit),
 };
 

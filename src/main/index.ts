@@ -89,6 +89,8 @@ async function startApplication(): Promise<void> {
     selectThread: (threadId) => runtime.selectThread(threadId),
     runApprovalTest: () => runtime.runApprovalTest(),
     runUserInputTest: () => runtime.runUserInputTest(),
+    startVerification: () => runtime.startVerification(),
+    runVerification: (kind) => runtime.runVerification(kind),
   });
   await runtime.start();
   if (smokeOutput && !smokeReal) {

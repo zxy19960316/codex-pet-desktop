@@ -1,6 +1,10 @@
-import { isAbsolute, relative, resolve, sep } from "node:path";
-import { mkdirSync } from "node:fs";
-import type { CodexRpcClient, CodexThreadSnapshot, CreateThreadRequest } from "./control-types";
+import { SafePathResolver } from "../security/safe-path";
+import type {
+  CodexRpcClient,
+  CodexThreadSnapshot,
+  CreateThreadRequest,
+  DeveloperCwdSelection,
+} from "./control-types";
 
 interface ThreadLike {
   id?: unknown;
@@ -32,18 +36,26 @@ function statusFromServer(status: unknown): CodexThreadSnapshot["status"] {
 
 export class ThreadController {
   readonly #projectRoot: string;
-  readonly #e2eRoot: string;
+  readonly #safePaths: SafePathResolver;
   readonly #threads = new Map<string, CodexThreadSnapshot>();
   #selectedThreadId?: string;
   #lastActiveThreadId?: string;
 
   constructor(projectRoot: string) {
-    this.#projectRoot = resolve(projectRoot);
-    this.#e2eRoot = resolve(this.#projectRoot, "tmp", "e2e");
+    this.#safePaths = new SafePathResolver(projectRoot);
+    this.#projectRoot = this.#safePaths.projectRoot;
   }
 
   get selectedThreadId(): string | undefined {
     return this.#selectedThreadId;
+  }
+
+  get projectRoot(): string {
+    return this.#projectRoot;
+  }
+
+  get e2eRoot(): string {
+    return this.#safePaths.resolve({ kind: "e2e-root" });
   }
 
   get currentCwd(): string {
@@ -70,32 +82,19 @@ export class ThreadController {
     return thread && { ...thread };
   }
 
-  validateCwd(candidate: string): string {
-    if (!candidate || candidate.includes("\0") || !isAbsolute(candidate))
-      throw new Error("A non-empty absolute cwd is required");
-    const cwd = resolve(candidate);
-    const permitted = [this.#projectRoot, this.#e2eRoot].some((root) => {
-      const path = relative(root, cwd);
-      return path === "" || (!path.startsWith(`..${sep}`) && path !== ".." && !isAbsolute(path));
-    });
-    if (!permitted) throw new Error("Developer controls only allow the project or tmp/e2e cwd");
-    return cwd;
+  validateCwd(selection: DeveloperCwdSelection): string {
+    return this.#safePaths.resolve(selection);
   }
 
   async create(request: CreateThreadRequest, client: CodexRpcClient): Promise<CodexThreadSnapshot> {
-    const cwd = this.validateCwd(request.cwd);
-    if (cwd === this.#e2eRoot || cwd.startsWith(`${this.#e2eRoot}${sep}`))
-      mkdirSync(cwd, { recursive: true });
-    const result = await client.sendRequest<{ thread?: ThreadLike }>("thread/start", {
-      cwd,
-      ephemeral: true,
-      approvalPolicy: "untrusted",
-      approvalsReviewer: "user",
-      sandbox: "workspace-write",
-    });
-    if (!result.thread || typeof result.thread.id !== "string")
-      throw new Error("App Server did not return a thread ID");
-    return this.#upsert(result.thread, "created-by-pet", cwd);
+    return this.#create(this.validateCwd(request.cwd), client);
+  }
+
+  async createE2eThread(
+    directoryName: string,
+    client: CodexRpcClient,
+  ): Promise<CodexThreadSnapshot> {
+    return this.#create(this.#safePaths.resolveE2eChild(directoryName), client);
   }
 
   select(threadId: string): void {
@@ -146,6 +145,14 @@ export class ThreadController {
     thread.updatedAt = Date.now();
   }
 
+  clearTransient(): void {
+    for (const thread of this.#threads.values()) {
+      if (thread.status === "running" || thread.status === "waiting") thread.status = "idle";
+      thread.activeTurnId = undefined;
+      thread.updatedAt = Date.now();
+    }
+  }
+
   remove(threadId: string): void {
     this.#threads.delete(threadId);
     if (this.#selectedThreadId === threadId) this.#selectedThreadId = undefined;
@@ -163,6 +170,19 @@ export class ThreadController {
     const candidate = asObject(source?.thread) ?? source;
     if (!candidate || typeof candidate.id !== "string") return;
     this.#upsert(candidate, "observed");
+  }
+
+  async #create(cwd: string, client: CodexRpcClient): Promise<CodexThreadSnapshot> {
+    const result = await client.sendRequest<{ thread?: ThreadLike }>("thread/start", {
+      cwd,
+      ephemeral: true,
+      approvalPolicy: "untrusted",
+      approvalsReviewer: "user",
+      sandbox: "workspace-write",
+    });
+    if (!result.thread || typeof result.thread.id !== "string")
+      throw new Error("App Server did not return a thread ID");
+    return this.#upsert(result.thread, "created-by-pet", cwd);
   }
 
   #upsert(

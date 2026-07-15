@@ -90,4 +90,67 @@ describe("ServerRequestRegistry", () => {
       error: { message: "Request rejected" },
     });
   });
+
+  it("does not route old-client requests after a replacement client is registered", () => {
+    const approvals = new ApprovalRouter({ respond: async () => undefined });
+    const registry = new ServerRequestRegistry({
+      approvalRouter: approvals,
+      inputRouter: new InputRouter(),
+    });
+    const oldClient = new JsonRpcClient(new MockTransport());
+    const newClient = new JsonRpcClient(new MockTransport());
+    registry.register(oldClient);
+    registry.register(newClient);
+
+    oldClient.handleIncomingLine(
+      JSON.stringify({
+        jsonrpc: "2.0",
+        id: 10,
+        method: "item/commandExecution/requestApproval",
+        params: {
+          threadId: "old-thread",
+          turnId: "old-turn",
+          itemId: "old-item",
+          availableDecisions: ["accept"],
+        },
+      }),
+    );
+    expect(approvals.getQueue()).toEqual([]);
+  });
+
+  it("settles an approval response once when disconnect cleanup is re-entrant", async () => {
+    const transport = new MockTransport();
+    const holder: { registry?: ServerRequestRegistry } = {};
+    const approvals = new ApprovalRouter({
+      respond: async (id, decision, request) => {
+        holder.registry?.respondApproval(id, decision, request);
+        holder.registry?.clearAll("disconnect");
+      },
+    });
+    const registry = new ServerRequestRegistry({
+      approvalRouter: approvals,
+      inputRouter: new InputRouter(),
+    });
+    holder.registry = registry;
+    const client = new JsonRpcClient(transport);
+    registry.register(client);
+    client.handleIncomingLine(
+      JSON.stringify({
+        jsonrpc: "2.0",
+        id: 11,
+        method: "item/commandExecution/requestApproval",
+        params: {
+          threadId: "thread",
+          turnId: "turn",
+          itemId: "item",
+          availableDecisions: ["accept"],
+        },
+      }),
+    );
+
+    await approvals.respond("11", "accept");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const responses = transport.lines.map((line) => JSON.parse(line) as { id?: number });
+    expect(responses.filter((response) => response.id === 11)).toHaveLength(1);
+  });
 });

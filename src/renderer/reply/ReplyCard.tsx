@@ -6,9 +6,11 @@ import { createReplyDraft, validateReplyDraft, type ReplyDraft } from "./reply-v
 export function ReplyCard({
   request,
   queueSize,
+  verificationLabel,
 }: {
   request: UserInputRequest;
   queueSize: number;
+  verificationLabel?: string;
 }) {
   const [draft, setDraft] = useState<ReplyDraft>(() => createReplyDraft(request));
   const [sending, setSending] = useState(false);
@@ -34,7 +36,7 @@ export function ReplyCard({
   return (
     <section className="panel reply-card no-drag" aria-label="User input request">
       <div className="panel-title">
-        <span>{request.isMock ? "Mock request" : "Reply requested"}</span>
+        <span>{verificationLabel ?? (request.isMock ? "Mock request" : "Reply requested")}</span>
         <small>{queueSize > 1 ? `1 of ${queueSize}` : request.threadId.slice(0, 8)}</small>
       </div>
       {expired ? <p className="unavailable">This request has expired.</p> : null}

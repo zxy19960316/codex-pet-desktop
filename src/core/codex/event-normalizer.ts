@@ -14,7 +14,13 @@ export type DomainEvent =
   | { type: "rate-limits"; rateLimits: unknown }
   | { type: "approval-resolved"; requestId: string; threadId?: string }
   | { type: "thread-ended"; threadId: string }
-  | { type: "turn-completed"; threadId: string; turnId?: string }
+  | {
+      type: "turn-completed";
+      threadId: string;
+      turnId?: string;
+      terminalStatus: "completed" | "interrupted" | "cancelled" | "failed" | "unknown";
+    }
+  | { type: "agent-message"; threadId: string; turnId?: string; containsSteered: boolean }
   | { type: "diagnostic"; code: "unknown-notification"; method: string };
 
 function petEvent(state: PetState, method: string, params: unknown): DomainEvent {
@@ -47,6 +53,13 @@ export class EventNormalizer {
     if (method === "turn/completed") {
       const turn = isObject(params) && isObject(params.turn) ? params.turn : {};
       const status = turn.status;
+      const terminalStatus =
+        status === "completed" ||
+        status === "interrupted" ||
+        status === "cancelled" ||
+        status === "failed"
+          ? status
+          : "unknown";
       return [
         petEvent(
           status === "failed"
@@ -61,6 +74,19 @@ export class EventNormalizer {
           type: "turn-completed",
           threadId: stringField(params, ["threadId"]) ?? "unknown",
           turnId: stringField(params, ["turnId"], ["turn", "id"]),
+          terminalStatus,
+        },
+      ];
+    }
+    if (method === "item/completed") {
+      const item = isObject(params) && isObject(params.item) ? params.item : {};
+      if (item.type !== "agentMessage" || typeof item.text !== "string") return [];
+      return [
+        {
+          type: "agent-message",
+          threadId: stringField(params, ["threadId"]) ?? "unknown",
+          turnId: stringField(params, ["turnId"]),
+          containsSteered: /\bSTEERED\b/.test(item.text),
         },
       ];
     }

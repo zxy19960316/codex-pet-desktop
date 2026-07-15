@@ -78,4 +78,20 @@ describe("InputRouter", () => {
     expect(resolve).toHaveBeenCalledWith({ answers: {} });
     await expect(router.respond("a", { answers: [] })).rejects.toThrow("not found");
   });
+
+  it("settles submit and server resolution exactly once when they race", async () => {
+    const router = new InputRouter();
+    const resolve = vi.fn(() => router.resolveFromServer("race"));
+    const reject = vi.fn();
+    router.enqueue("race", "item/tool/requestUserInput", params(), resolve, reject);
+
+    await expect(
+      router.respond("race", {
+        answers: [{ questionId: "answer", selectedOptionIds: ["Yes"] }],
+      }),
+    ).resolves.toBeUndefined();
+    expect(resolve).toHaveBeenCalledTimes(1);
+    expect(reject).not.toHaveBeenCalled();
+    expect(router.snapshot()).toEqual([]);
+  });
 });

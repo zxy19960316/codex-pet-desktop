@@ -22,6 +22,8 @@ describe("renderer security boundary", () => {
       const source = await readFile(file, "utf8");
       if (/from\s+["'](?:electron|node:|fs["']|path["'])|\brequire\s*\(|\bprocess\./.test(source))
         violations.push(file);
+      expect(source).not.toMatch(/[A-Za-z]:[\\/](?:Users|Windows)[\\/]/);
+      expect(source).not.toMatch(/snapshot\.currentCwd(?!Label)/);
     }
     expect(violations).toEqual([]);
   });

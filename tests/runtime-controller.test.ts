@@ -61,7 +61,7 @@ describe("RuntimeController", () => {
     expect(publish).toHaveBeenCalled();
   });
 
-  it("keeps mock input pending only until shutdown or App Server disconnect/stopped state", async () => {
+  it("cleans request and transient pet state for error, stopped, and reconnecting status", async () => {
     let appServerOptions: AppServerProcessOptions | undefined;
     const controller = new RuntimeController({
       logger: new SafeLogger(),
@@ -87,5 +87,13 @@ describe("RuntimeController", () => {
     controller.enqueueMockUserInput();
     appServerOptions?.onStatus?.("stopped", "test stopped");
     expect(controller.getSnapshot().userInputs).toEqual([]);
+    controller.enqueueMockUserInput();
+    controller.setDebugPetState("working");
+    appServerOptions?.onStatus?.("reconnecting", "test reconnect");
+    expect(controller.getSnapshot()).toMatchObject({
+      petState: "idle",
+      approvals: [],
+      userInputs: [],
+    });
   });
 });

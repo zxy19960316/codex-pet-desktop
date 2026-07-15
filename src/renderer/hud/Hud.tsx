@@ -30,7 +30,7 @@ export function Hud({ snapshot }: { snapshot: DesktopSnapshot }) {
         </div>
         <div className="metric-wide">
           <dt>Project</dt>
-          <dd title={snapshot.currentCwd}>{snapshot.currentCwd ?? "Unavailable"}</dd>
+          <dd>{snapshot.currentCwdLabel}</dd>
         </div>
       </dl>
       <div className="quota-list">

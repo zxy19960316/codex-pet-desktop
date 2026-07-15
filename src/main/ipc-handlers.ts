@@ -6,10 +6,12 @@ import { IPC_CHANNELS, type DesktopSnapshot } from "../shared/ipc-contract";
 import type { LocalSettings } from "../shared/settings";
 import type {
   CreateThreadRequest,
+  E2EVerificationKind,
   InterruptTurnRequest,
   StartTurnRequest,
   SteerTurnRequest,
 } from "../core/codex/control-types";
+import { parseDeveloperCwdSelection, parseVerificationKind } from "./ipc-validation";
 
 export interface IpcActions {
   getSnapshot(): DesktopSnapshot;
@@ -25,13 +27,15 @@ export interface IpcActions {
   respondUserInput(requestId: string, answers: UserInputAnswers): Promise<void>;
   cancelUserInput(requestId: string): Promise<void>;
   enqueueMockUserInput(): void;
-  createThread(request: CreateThreadRequest): Promise<DesktopSnapshot["threads"][number]>;
+  createThread(request: CreateThreadRequest): Promise<void>;
   startTurn(request: StartTurnRequest): Promise<string>;
   steerTurn(request: SteerTurnRequest): Promise<void>;
   interruptTurn(request: InterruptTurnRequest): Promise<void>;
   selectThread(threadId: string): void;
   runApprovalTest(): Promise<string>;
   runUserInputTest(): Promise<string>;
+  startVerification(): void;
+  runVerification(kind: E2EVerificationKind): Promise<string>;
 }
 
 const DECISIONS = new Set<ApprovalDecision>(["accept", "acceptForSession", "decline", "cancel"]);
@@ -97,13 +101,12 @@ export function registerIpcHandlers(actions: IpcActions): () => void {
   ipcMain.handle(IPC_CHANNELS.enqueueMockUserInput, () => actions.enqueueMockUserInput());
   ipcMain.handle(IPC_CHANNELS.createThread, (_event, request: unknown) => {
     if (!isRecord(request)) throw new Error("Invalid create-thread request");
-    return actions.createThread({ cwd: requiredText(request.cwd, "cwd") });
+    return actions.createThread({ cwd: parseDeveloperCwdSelection(request.cwd) });
   });
   ipcMain.handle(IPC_CHANNELS.startTurn, (_event, request: unknown) => {
     if (!isRecord(request)) throw new Error("Invalid start-turn request");
     const mode = request.mode;
-    if (mode !== "normal" && mode !== "approval-test" && mode !== "input-test")
-      throw new Error("Invalid start-turn mode");
+    if (mode !== "normal") throw new Error("Invalid start-turn mode");
     return actions.startTurn({
       threadId: requiredText(request.threadId, "thread ID"),
       prompt: requiredText(request.prompt, "prompt"),
@@ -130,6 +133,10 @@ export function registerIpcHandlers(actions: IpcActions): () => void {
   );
   ipcMain.handle(IPC_CHANNELS.runApprovalTest, () => actions.runApprovalTest());
   ipcMain.handle(IPC_CHANNELS.runUserInputTest, () => actions.runUserInputTest());
+  ipcMain.handle(IPC_CHANNELS.startVerification, () => actions.startVerification());
+  ipcMain.handle(IPC_CHANNELS.runVerification, (_event, kind: unknown) => {
+    return actions.runVerification(parseVerificationKind(kind));
+  });
   ipcMain.handle(IPC_CHANNELS.quit, () => app.quit());
   return () => {
     for (const channel of Object.values(IPC_CHANNELS)) ipcMain.removeHandler(channel);

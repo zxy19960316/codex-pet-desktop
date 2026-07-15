@@ -58,6 +58,7 @@ export class ServerRequestRegistry {
   }
 
   register(client: JsonRpcClient): void {
+    this.clearAll("App Server client replaced");
     this.unregister();
     for (const method of APPROVAL_METHODS) {
       this.#unregister.push(

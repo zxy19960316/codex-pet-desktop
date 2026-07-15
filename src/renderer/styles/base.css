@@ -371,3 +371,44 @@ details {
   color: #aaa5c1;
   font-size: 10px;
 }
+.verification-guide {
+  display: grid;
+  gap: 7px;
+  margin-top: 3px;
+  padding-top: 9px;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+}
+.verification-heading,
+.verification-step > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.verification-heading strong,
+.verification-step strong {
+  font-size: 11px;
+}
+.verification-step {
+  display: grid;
+  gap: 5px;
+  padding: 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.035);
+}
+.verification-step small {
+  color: #918cae;
+  font-size: 9px;
+}
+.verification-step p {
+  margin: 0;
+  color: #aaa5c1;
+  font-size: 10px;
+  line-height: 1.35;
+}
+.verification-step--passed {
+  border: 1px solid rgba(112, 230, 174, 0.35);
+}
+.verification-step--failed {
+  border: 1px solid rgba(255, 109, 134, 0.35);
+}

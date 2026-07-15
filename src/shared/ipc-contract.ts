@@ -9,6 +9,8 @@ import type {
   CodexThreadSnapshot,
   CreateThreadRequest,
   E2EVerificationRecord,
+  E2EVerificationKind,
+  E2EVerificationStep,
   InterruptTurnRequest,
   StartTurnRequest,
   SteerTurnRequest,
@@ -36,8 +38,16 @@ export const IPC_CHANNELS = {
   selectThread: "desktop:select-thread",
   runApprovalTest: "desktop:run-approval-test",
   runUserInputTest: "desktop:run-user-input-test",
+  startVerification: "desktop:start-verification",
+  runVerification: "desktop:run-verification",
   quit: "desktop:quit",
 } as const;
+
+export type CwdLabel = "Project root" | "Disposable tmp/e2e" | "Project-relative folder";
+
+export type DesktopThreadSnapshot = Omit<CodexThreadSnapshot, "cwd"> & {
+  cwdLabel: CwdLabel;
+};
 
 export interface DesktopSnapshot {
   connectionStatus: AppServerStatus;
@@ -45,16 +55,17 @@ export interface DesktopSnapshot {
   petState: PetState;
   threadStates: PetStateChange[];
   activeThreadCount: number;
-  currentCwd?: string;
+  currentCwdLabel: CwdLabel;
   approvals: ApprovalRequest[];
   userInputs: UserInputRequest[];
   rateLimits: RateLimitBucket[] | null;
   dailyUsage: DailyUsage | null;
   threadTokenUsage: ThreadTokenUsage[];
   selectedThreadId?: string;
-  selectedThread?: CodexThreadSnapshot;
-  threads: CodexThreadSnapshot[];
+  selectedThread?: DesktopThreadSnapshot;
+  threads: DesktopThreadSnapshot[];
   e2eRecords: E2EVerificationRecord[];
+  e2eSteps: E2EVerificationStep[];
   currentThreadTokens: number | null;
   settings: LocalSettings;
   protocolSource: "codex-app-server" | "mock" | "unavailable";
@@ -75,12 +86,14 @@ export interface DesktopApi {
   respondUserInput(requestId: string, answers: UserInputAnswers): Promise<void>;
   cancelUserInput(requestId: string): Promise<void>;
   enqueueMockUserInput(): Promise<void>;
-  createThread(request: CreateThreadRequest): Promise<CodexThreadSnapshot>;
+  createThread(request: CreateThreadRequest): Promise<void>;
   startTurn(request: StartTurnRequest): Promise<string>;
   steerTurn(request: SteerTurnRequest): Promise<void>;
   interruptTurn(request: InterruptTurnRequest): Promise<void>;
   selectThread(threadId: string): Promise<void>;
   runApprovalTest(): Promise<string>;
   runUserInputTest(): Promise<string>;
+  startVerification(): Promise<void>;
+  runVerification(kind: E2EVerificationKind): Promise<string>;
   quit(): Promise<void>;
 }

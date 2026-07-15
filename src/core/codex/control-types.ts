@@ -1,6 +1,24 @@
 export type ThreadStatus = "idle" | "running" | "waiting" | "completed" | "error" | "closed";
 export type ThreadSource = "created-by-pet" | "observed";
-export type TurnMode = "normal" | "approval-test" | "input-test";
+export type TurnMode = "normal" | "approval-test" | "input-test" | "steer-test" | "interrupt-test";
+
+export type DeveloperCwdSelection =
+  | { kind: "project-root" }
+  | { kind: "e2e-root" }
+  | { kind: "project-relative"; relativePath: string };
+
+export type E2EVerificationKind =
+  "approval-allow" | "approval-deny" | "user-input" | "steer" | "interrupt";
+
+export type E2EVerificationStepState =
+  "not-run" | "waiting-for-user" | "waiting-for-codex" | "passed" | "failed";
+
+export interface E2EVerificationStep {
+  kind: E2EVerificationKind;
+  state: E2EVerificationStepState;
+  recordId?: string;
+  failureCode?: string;
+}
 
 export interface CodexThreadSnapshot {
   threadId: string;
@@ -14,7 +32,7 @@ export interface CodexThreadSnapshot {
 }
 
 export interface CreateThreadRequest {
-  cwd: string;
+  cwd: DeveloperCwdSelection;
 }
 
 export interface StartTurnRequest {
@@ -35,14 +53,16 @@ export interface InterruptTurnRequest {
 }
 
 export interface E2EVerificationRecord {
-  kind: "approval-allow" | "approval-deny" | "user-input";
-  threadIdHash: string;
+  id: string;
+  kind: E2EVerificationKind;
+  threadIdHash?: string;
   turnIdHash?: string;
   requestIdHash?: string;
   startedAt: number;
   completedAt?: number;
-  result: "passed" | "failed" | "not-run";
+  result: "running" | "passed" | "failed" | "not-run";
   failureCode?: string;
+  protocolEvidence?: string[];
 }
 
 export interface CodexRpcClient {

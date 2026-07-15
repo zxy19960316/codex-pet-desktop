@@ -18,6 +18,17 @@ const INPUT_TEST_PROMPT = [
   "Do not run commands, access the network, modify files, use Git, or read credentials.",
 ].join(" ");
 
+const STEER_TEST_PROMPT = [
+  "Developer verification task. Work through a multi-step plain-text outline.",
+  "Wait for a steer instruction before the final reply and include the exact word STEERED.",
+  "Do not use tools, access files or the network, modify files, use Git, or read credentials.",
+].join(" ");
+
+const INTERRUPT_TEST_PROMPT = [
+  "Developer verification task. Produce a long multi-section plain-text outline.",
+  "Do not use tools, access files or the network, modify files, use Git, or read credentials.",
+].join(" ");
+
 function safeText(value: string, label: string): string {
   if (!value || !value.trim() || value.includes("\0"))
     throw new Error(`${label} must not be empty`);
@@ -53,7 +64,11 @@ export class TurnController {
         ? APPROVAL_TEST_PROMPT
         : request.mode === "input-test"
           ? INPUT_TEST_PROMPT
-          : safeText(request.prompt, "Prompt");
+          : request.mode === "steer-test"
+            ? STEER_TEST_PROMPT
+            : request.mode === "interrupt-test"
+              ? INTERRUPT_TEST_PROMPT
+              : safeText(request.prompt, "Prompt");
     this.#sending.add(request.threadId);
     try {
       const result = await client.sendRequest<{ turn?: { id?: unknown } }>("turn/start", {
@@ -100,5 +115,9 @@ export class TurnController {
     } finally {
       this.#sending.delete(request.threadId);
     }
+  }
+
+  clearSending(): void {
+    this.#sending.clear();
   }
 }

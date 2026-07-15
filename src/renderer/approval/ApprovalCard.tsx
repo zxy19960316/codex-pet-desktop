@@ -4,15 +4,17 @@ import { approvalDecisionOptions, summarizePaths } from "./approval-view-model";
 export function ApprovalCard({
   request,
   queueSize,
+  verificationLabel,
 }: {
   request: ApprovalRequest;
   queueSize: number;
+  verificationLabel?: string;
 }) {
   const paths = summarizePaths(request.paths);
   return (
     <section className="panel approval-card no-drag" aria-label="Approval request">
       <div className="panel-title">
-        <span>{request.title}</span>
+        <span>{verificationLabel ?? request.title}</span>
         <small>{queueSize > 1 ? `1 of ${queueSize}` : "Action required"}</small>
       </div>
       {request.reason && <p>{request.reason}</p>}

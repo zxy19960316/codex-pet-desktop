@@ -36,4 +36,14 @@ describe("EventNormalizer", () => {
       { type: "diagnostic", code: "unknown-notification", method: "future/unknown" },
     ]);
   });
+
+  it("reduces agent replies to the fixed steer assertion without retaining reply text", () => {
+    expect(
+      normalizer.normalizeNotification("item/completed", {
+        threadId: "t",
+        turnId: "turn",
+        item: { type: "agentMessage", text: "The requested result is STEERED." },
+      }),
+    ).toEqual([{ type: "agent-message", threadId: "t", turnId: "turn", containsSteered: true }]);
+  });
 });
