@@ -78,6 +78,51 @@ export function CodexControlPanel({ snapshot }: { snapshot: DesktopSnapshot }) {
         <span>Developer controls</span>
         <small>{snapshot.connectionStatus}</small>
       </div>
+      <div className="verification-guide">
+        <div className="verification-heading">
+          <strong>M2.6 verification</strong>
+          <button
+            disabled={!availability.canStart}
+            onClick={() => void run("Start M2.6 verification", window.codexPet.startVerification)}
+          >
+            Start M2.6 verification
+          </button>
+        </div>
+        {!availability.canStart ? <p className="unavailable">{availability.reason}</p> : null}
+        {VERIFICATION_STEPS.map((metadata) => {
+          const step =
+            snapshot.e2eSteps.find((candidate) => candidate.kind === metadata.kind) ??
+            ({ kind: metadata.kind, state: "not-run" } as E2EVerificationStep);
+          const cardAction =
+            step.state === "waiting-for-user" &&
+            metadata.kind !== "steer" &&
+            metadata.kind !== "interrupt";
+          const disabled =
+            !availability.canStart ||
+            step.state === "passed" ||
+            step.state === "waiting-for-codex" ||
+            cardAction;
+          return (
+            <div
+              className={"verification-step verification-step--" + step.state}
+              key={metadata.kind}
+            >
+              <div>
+                <strong>{metadata.label}</strong>
+                <small>{step.state}</small>
+              </div>
+              <p>{metadata.instruction}</p>
+              {step.failureCode ? <p className="reply-error">{step.failureCode}</p> : null}
+              <button
+                disabled={disabled}
+                onClick={() => void run(metadata.label, () => runVerificationStep(metadata.kind))}
+              >
+                {stepActionLabel(step)}
+              </button>
+            </div>
+          );
+        })}
+      </div>
       <label className="control-field">
         <span>Developer cwd</span>
         <select value={cwdKind} onChange={(event) => setCwdKind(event.target.value as CwdKind)}>
@@ -138,51 +183,6 @@ export function CodexControlPanel({ snapshot }: { snapshot: DesktopSnapshot }) {
       >
         Start normal turn
       </button>
-      <div className="verification-guide">
-        <div className="verification-heading">
-          <strong>M2.6 verification</strong>
-          <button
-            disabled={!availability.canStart}
-            onClick={() => void run("Start M2.6 verification", window.codexPet.startVerification)}
-          >
-            Start M2.6 verification
-          </button>
-        </div>
-        {!availability.canStart ? <p className="unavailable">{availability.reason}</p> : null}
-        {VERIFICATION_STEPS.map((metadata) => {
-          const step =
-            snapshot.e2eSteps.find((candidate) => candidate.kind === metadata.kind) ??
-            ({ kind: metadata.kind, state: "not-run" } as E2EVerificationStep);
-          const cardAction =
-            step.state === "waiting-for-user" &&
-            metadata.kind !== "steer" &&
-            metadata.kind !== "interrupt";
-          const disabled =
-            !availability.canStart ||
-            step.state === "passed" ||
-            step.state === "waiting-for-codex" ||
-            cardAction;
-          return (
-            <div
-              className={"verification-step verification-step--" + step.state}
-              key={metadata.kind}
-            >
-              <div>
-                <strong>{metadata.label}</strong>
-                <small>{step.state}</small>
-              </div>
-              <p>{metadata.instruction}</p>
-              {step.failureCode ? <p className="reply-error">{step.failureCode}</p> : null}
-              <button
-                disabled={disabled}
-                onClick={() => void run(metadata.label, () => runVerificationStep(metadata.kind))}
-              >
-                {stepActionLabel(step)}
-              </button>
-            </div>
-          );
-        })}
-      </div>
       <label className="control-field">
         <span>Steer active turn</span>
         <input value={steer} onChange={(event) => setSteer(event.target.value)} />

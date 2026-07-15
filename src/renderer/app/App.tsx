@@ -50,8 +50,8 @@ export function App() {
       {snapshot.settings.hudVisible && <Hud snapshot={snapshot} />}
       {snapshot.settings.debugVisible && (
         <>
-          <DebugPanel snapshot={snapshot} />
           <CodexControlPanel snapshot={snapshot} />
+          <DebugPanel snapshot={snapshot} />
         </>
       )}
     </main>
