@@ -38,6 +38,9 @@ export function DebugPanel({ snapshot }: { snapshot: DesktopSnapshot }) {
       <button onClick={() => void window.codexPet.enqueueMockApproval()}>
         Queue Mock approval card
       </button>
+      <button onClick={() => void window.codexPet.enqueueMockUserInput()}>
+        Enqueue Mock User Input
+      </button>
       <button onClick={() => void window.codexPet.reconnectCodex()}>
         Reconnect real App Server
       </button>

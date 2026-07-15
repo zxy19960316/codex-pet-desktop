@@ -2,6 +2,7 @@ import { ApprovalCard } from "../approval/ApprovalCard";
 import { DebugPanel } from "../debug/DebugPanel";
 import { Hud } from "../hud/Hud";
 import { Pet } from "../pet/Pet";
+import { ReplyCard } from "../reply/ReplyCard";
 import { useDesktopApi } from "./use-desktop-api";
 
 export function App() {
@@ -24,6 +25,9 @@ export function App() {
       <Pet state={snapshot.petState} />
       {snapshot.approvals[0] && (
         <ApprovalCard request={snapshot.approvals[0]} queueSize={snapshot.approvals.length} />
+      )}
+      {!snapshot.approvals.length && snapshot.userInputs[0] && (
+        <ReplyCard request={snapshot.userInputs[0]} queueSize={snapshot.userInputs.length} />
       )}
       {snapshot.settings.hudVisible && <Hud snapshot={snapshot} />}
       {snapshot.settings.debugVisible && <DebugPanel snapshot={snapshot} />}
