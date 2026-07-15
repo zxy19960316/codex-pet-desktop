@@ -406,7 +406,9 @@ export class RuntimeController {
     if (this.#connectionStatus !== "connected")
       throw new Error("Codex App Server is not connected");
     const directoryName = kind + "-" + randomUUID().slice(0, 8);
-    const thread = await this.#threadController.createE2eThread(directoryName, this.#client());
+    const thread = await this.#threadController.createE2eThread(directoryName, this.#client(), {
+      forceHumanApproval: kind === "approval-allow" || kind === "approval-deny",
+    });
     this.#threadController.select(thread.threadId);
     const record = this.#e2eStore.start(kind, { threadId: thread.threadId });
     try {

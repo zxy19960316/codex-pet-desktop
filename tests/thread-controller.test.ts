@@ -105,4 +105,20 @@ describe("ThreadController", () => {
       "required approval policy",
     );
   });
+
+  it("adds a fixed escalation instruction only to approval verification threads", async () => {
+    const projectRoot = projectDirectory();
+    const client = {
+      sendRequest: vi.fn().mockResolvedValue({ thread: { id: "approval", cwd: projectRoot } }),
+    };
+    const controller = new ThreadController(projectRoot);
+
+    await controller.createE2eThread("approval", client, { forceHumanApproval: true });
+    expect(client.sendRequest).toHaveBeenCalledWith(
+      "thread/start",
+      expect.objectContaining({
+        developerInstructions: expect.stringContaining("sandbox_permissions to require_escalated"),
+      }),
+    );
+  });
 });
