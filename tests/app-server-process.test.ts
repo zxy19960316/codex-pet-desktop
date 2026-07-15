@@ -76,6 +76,31 @@ describe("AppServerProcess", () => {
     expect(shouldUseWindowsVerbatimArguments("linux", "cmd.exe")).toBe(false);
   });
 
+  it("forces safe child-process defaults only for guided verification", () => {
+    expect(resolveAppServerLaunch("linux", {}, () => false, true)).toEqual({
+      command: "codex",
+      args: [
+        "app-server",
+        "--listen",
+        "stdio://",
+        "-c",
+        "approval_policy='untrusted'",
+        "-c",
+        "approvals_reviewer='user'",
+        "-c",
+        "sandbox_mode='workspace-write'",
+      ],
+    });
+    expect(
+      resolveAppServerLaunch(
+        "win32",
+        { APPDATA: "C:\\Users\\example\\AppData\\Roaming", ComSpec: "cmd.exe" },
+        () => true,
+        true,
+      ).args.at(-1),
+    ).toContain("approval_policy='untrusted'");
+  });
+
   it("initializes once, handles fragmented stdout, and routes notifications", async () => {
     const child = new FakeChild(true);
     const spawnProcess = asSpawn(() => child);

@@ -16,6 +16,13 @@ interface ThreadLike {
   updatedAt?: unknown;
 }
 
+interface ThreadStartLike {
+  thread?: ThreadLike;
+  approvalPolicy?: unknown;
+  approvalsReviewer?: unknown;
+  sandbox?: unknown;
+}
+
 function asObject(value: unknown): Record<string, unknown> | undefined {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -173,13 +180,20 @@ export class ThreadController {
   }
 
   async #create(cwd: string, client: CodexRpcClient): Promise<CodexThreadSnapshot> {
-    const result = await client.sendRequest<{ thread?: ThreadLike }>("thread/start", {
+    const result = await client.sendRequest<ThreadStartLike>("thread/start", {
       cwd,
       ephemeral: true,
       approvalPolicy: "untrusted",
       approvalsReviewer: "user",
       sandbox: "workspace-write",
     });
+    if (result.approvalPolicy !== undefined && result.approvalPolicy !== "untrusted")
+      throw new Error("App Server did not apply the required approval policy");
+    if (result.approvalsReviewer !== undefined && result.approvalsReviewer !== "user")
+      throw new Error("App Server did not route approvals to the human reviewer");
+    const sandboxType = asObject(result.sandbox)?.type;
+    if (sandboxType !== undefined && sandboxType !== "workspaceWrite")
+      throw new Error("App Server did not apply the required workspace sandbox");
     if (!result.thread || typeof result.thread.id !== "string")
       throw new Error("App Server did not return a thread ID");
     return this.#upsert(result.thread, "created-by-pet", cwd);

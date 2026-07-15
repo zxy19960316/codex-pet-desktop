@@ -19,6 +19,7 @@ export interface AppServerProcessOptions {
   onNotification?: (method: string, params: unknown) => void;
   onClient?: (client: JsonRpcClient) => void;
   onDiagnostic?: (code: string) => void;
+  safeVerificationDefaults?: boolean;
 }
 
 export interface AppServerLaunch {
@@ -30,8 +31,19 @@ export function resolveAppServerLaunch(
   platform = process.platform,
   environment: NodeJS.ProcessEnv = process.env,
   pathExists: (path: string) => boolean = existsSync,
+  safeVerificationDefaults = false,
 ): AppServerLaunch {
-  const args = ["app-server", "--listen", "stdio://"];
+  const safeConfig = safeVerificationDefaults
+    ? [
+        "-c",
+        "approval_policy='untrusted'",
+        "-c",
+        "approvals_reviewer='user'",
+        "-c",
+        "sandbox_mode='workspace-write'",
+      ]
+    : [];
+  const args = ["app-server", "--listen", "stdio://", ...safeConfig];
   const override = environment.CODEX_PET_CODEX_PATH?.trim();
   if (override && !/\.(?:cmd|bat)$/i.test(override)) return { command: override, args };
   if (platform !== "win32") return { command: override || "codex", args };
@@ -41,7 +53,12 @@ export function resolveAppServerLaunch(
   if (npmShim && pathExists(npmShim)) {
     return {
       command: environment.ComSpec || "cmd.exe",
-      args: ["/d", "/s", "/c", `"${npmShim}" app-server --listen stdio://`],
+      args: [
+        "/d",
+        "/s",
+        "/c",
+        `"${npmShim}" app-server --listen stdio://${safeConfig.length ? ` ${safeConfig.join(" ")}` : ""}`,
+      ],
     };
   }
   return { command: "codex.exe", args };
@@ -95,7 +112,12 @@ export class AppServerProcess {
   #reconnectTimer?: ReturnType<typeof setTimeout>;
 
   constructor(options: AppServerProcessOptions = {}) {
-    const launch = resolveAppServerLaunch();
+    const launch = resolveAppServerLaunch(
+      process.platform,
+      process.env,
+      existsSync,
+      options.safeVerificationDefaults,
+    );
     this.#options = {
       command: options.command ?? launch.command,
       args: options.args ?? (options.command ? APP_SERVER_ARGS : launch.args),

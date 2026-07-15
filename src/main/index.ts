@@ -4,6 +4,7 @@ import { SafeLogger } from "../core/logging/logger";
 import type { PetState } from "../core/pet/pet-state";
 import { IPC_CHANNELS } from "../shared/ipc-contract";
 import { type LocalSettings } from "../shared/settings";
+import { AppServerProcess } from "../core/codex/app-server-process";
 import { registerIpcHandlers } from "./ipc-handlers";
 import { LocalSettingsStore } from "./position-store";
 import { RuntimeController } from "./runtime-controller";
@@ -84,6 +85,9 @@ async function startApplication(): Promise<void> {
       windowManager.setClickThrough(next.clickThrough);
       rebuildTray(next);
     },
+    createAppServer: guidedE2E
+      ? (options) => new AppServerProcess({ ...options, safeVerificationDefaults: true })
+      : undefined,
   });
   await windowManager.create(settings);
   rebuildTray(settings);

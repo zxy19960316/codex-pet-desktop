@@ -88,4 +88,21 @@ describe("ThreadController", () => {
     expect(controller.selected()).toBeUndefined();
     expect(controller.currentCwd).toBe(e2eRoot);
   });
+
+  it("rejects a thread when the server reports weaker effective permissions", async () => {
+    const projectRoot = projectDirectory();
+    const controller = new ThreadController(projectRoot);
+    const client = {
+      sendRequest: vi.fn().mockResolvedValue({
+        thread: { id: "unsafe", cwd: projectRoot },
+        approvalPolicy: "never",
+        approvalsReviewer: "user",
+        sandbox: { type: "dangerFullAccess" },
+      }),
+    };
+
+    await expect(controller.createE2eThread("unsafe", client)).rejects.toThrow(
+      "required approval policy",
+    );
+  });
 });
