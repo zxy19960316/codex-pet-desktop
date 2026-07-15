@@ -8,7 +8,7 @@
   "main": "dist/main/index.cjs",
   "scripts": {
     "dev": "npm run build && electron .",
-    "dev:e2e": "npm run build && electron .",
+    "dev:e2e": "npm run build && electron . --m2-6-e2e",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",

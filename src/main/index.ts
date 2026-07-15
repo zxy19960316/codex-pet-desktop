@@ -8,6 +8,7 @@ import { registerIpcHandlers } from "./ipc-handlers";
 import { LocalSettingsStore } from "./position-store";
 import { RuntimeController } from "./runtime-controller";
 import { runSmokeValidation } from "./smoke-validation";
+import { writeE2EResult } from "./e2e-result-writer";
 import { TrayManager } from "./tray-manager";
 import { WindowManager } from "./window-manager";
 
@@ -39,6 +40,8 @@ async function startApplication(): Promise<void> {
   const smokeOutput = process.env.CODEX_PET_SMOKE_OUTPUT;
   const smokeReal = process.env.CODEX_PET_SMOKE_REAL === "1";
   const smokeInputOnly = process.env.CODEX_PET_SMOKE_INPUT === "1";
+  const guidedE2E = process.argv.includes("--m2-6-e2e");
+  const guidedE2EResult = join(process.cwd(), "tmp", "e2e", "results", "latest.json");
   if (smokeOutput) {
     settings = {
       ...settings,
@@ -54,7 +57,18 @@ async function startApplication(): Promise<void> {
   runtime = new RuntimeController({
     logger,
     initialSettings: settings,
-    publish: (snapshot) => windowManager.send(IPC_CHANNELS.snapshot, snapshot),
+    publish: (snapshot) => {
+      windowManager.send(IPC_CHANNELS.snapshot, snapshot);
+      if (guidedE2E) {
+        try {
+          writeE2EResult(guidedE2EResult, snapshot);
+        } catch (error) {
+          logger.write("error", "e2e-result-write-failed", {
+            errorName: error instanceof Error ? error.name : "unknown",
+          });
+        }
+      }
+    },
     persistSettings: (patch) => settingsStore.patch(patch),
     onSettingsChanged: (next) => {
       windowManager.setAlwaysOnTop(next.alwaysOnTop);
