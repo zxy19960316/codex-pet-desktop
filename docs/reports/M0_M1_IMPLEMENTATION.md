@@ -135,5 +135,6 @@ request/thread/turn routing guarantees.
 ## GitHub publication
 
 The public repository was created at
-`https://github.com/zxy19960316/codex-pet-desktop`. Final commit and push verification are pending
-at the time of this initial implementation report entry.
+`https://github.com/zxy19960316/codex-pet-desktop`. The initial implementation commit
+`0cab5b17d5a90874592fff9ce5ecbff2b5c9e4ef` (`feat: bootstrap Codex desktop pet`) was pushed to
+`origin/main`, and `git ls-remote origin HEAD` returned the same full SHA.
