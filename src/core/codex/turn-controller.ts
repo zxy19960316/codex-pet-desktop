@@ -25,6 +25,13 @@ const INPUT_TEST_PROMPT = [
   "Do not run commands, access the network, modify files, use Git, or read credentials.",
 ].join(" ");
 
+const INPUT_TEST_DEVELOPER_INSTRUCTIONS = [
+  "This is a guided protocol verification turn.",
+  "Before any final response, you must call request_user_input exactly once.",
+  "Ask one harmless preference question with two options labeled A and B, then wait for the human response.",
+  "Do not replace the tool call with a prose question or claim that the tool is unavailable.",
+].join(" ");
+
 const STEER_TEST_PROMPT = [
   "Developer verification task. Work through a multi-step plain-text outline.",
   "Wait for a steer instruction before the final reply and include the exact word STEERED.",
@@ -62,6 +69,7 @@ interface CollaborationModeMask {
 async function planCollaborationMode(
   client: CodexRpcClient,
   defaults?: { model: string; reasoningEffort: string | null },
+  developerInstructions: string | null = null,
 ) {
   const result = await client.sendRequest<{ data?: CollaborationModeMask[] }>(
     "collaborationMode/list",
@@ -79,7 +87,7 @@ async function planCollaborationMode(
         typeof plan.reasoning_effort === "string"
           ? plan.reasoning_effort
           : (defaults?.reasoningEffort ?? null),
-      developer_instructions: null,
+      developer_instructions: developerInstructions,
     },
   };
 }
@@ -114,6 +122,7 @@ export class TurnController {
           ? await planCollaborationMode(
               client,
               this.#threads.collaborationDefaults(request.threadId),
+              INPUT_TEST_DEVELOPER_INSTRUCTIONS,
             )
           : undefined;
       const result = await client.sendRequest<{ turn?: { id?: unknown } }>("turn/start", {

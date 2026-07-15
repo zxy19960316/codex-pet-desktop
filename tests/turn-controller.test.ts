@@ -76,7 +76,11 @@ describe("TurnController", () => {
         expect(request).toMatchObject({
           collaborationMode: {
             mode: "plan",
-            settings: { model: "gpt-thread", reasoning_effort: "high" },
+            settings: {
+              model: "gpt-thread",
+              reasoning_effort: "high",
+              developer_instructions: expect.stringContaining("must call request_user_input"),
+            },
           },
         });
     }
