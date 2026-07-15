@@ -14,10 +14,15 @@ async function setup() {
   const threads = new ThreadController(projectRoot);
   const sendRequest = vi.fn(async (method: string, params?: unknown): Promise<unknown> => {
     void params;
-    if (method === "thread/start") return { thread: { id: "thread", cwd: projectRoot } };
+    if (method === "thread/start")
+      return {
+        thread: { id: "thread", cwd: projectRoot },
+        model: "gpt-thread",
+        reasoningEffort: "high",
+      };
     if (method === "collaborationMode/list")
       return {
-        data: [{ name: "Plan", mode: "plan", model: "gpt-test", reasoning_effort: "medium" }],
+        data: [{ name: "Plan", mode: "plan", model: null, reasoning_effort: null }],
       };
     return { turn: { id: "turn" } };
   });
@@ -71,7 +76,7 @@ describe("TurnController", () => {
         expect(request).toMatchObject({
           collaborationMode: {
             mode: "plan",
-            settings: { model: "gpt-test", reasoning_effort: "medium" },
+            settings: { model: "gpt-thread", reasoning_effort: "high" },
           },
         });
     }

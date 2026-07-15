@@ -59,19 +59,26 @@ interface CollaborationModeMask {
   reasoning_effort?: unknown;
 }
 
-async function planCollaborationMode(client: CodexRpcClient) {
+async function planCollaborationMode(
+  client: CodexRpcClient,
+  defaults?: { model: string; reasoningEffort: string | null },
+) {
   const result = await client.sendRequest<{ data?: CollaborationModeMask[] }>(
     "collaborationMode/list",
     {},
   );
   const plan = result.data?.find((candidate) => candidate.mode === "plan");
-  if (!plan || typeof plan.model !== "string" || !plan.model)
-    throw new Error("Plan collaboration mode is unavailable");
+  if (!plan) throw new Error("Plan collaboration mode is unavailable");
+  const model = typeof plan.model === "string" && plan.model ? plan.model : defaults?.model;
+  if (!model) throw new Error("Plan collaboration mode has no model");
   return {
     mode: "plan",
     settings: {
-      model: plan.model,
-      reasoning_effort: typeof plan.reasoning_effort === "string" ? plan.reasoning_effort : null,
+      model,
+      reasoning_effort:
+        typeof plan.reasoning_effort === "string"
+          ? plan.reasoning_effort
+          : (defaults?.reasoningEffort ?? null),
       developer_instructions: null,
     },
   };
@@ -103,7 +110,12 @@ export class TurnController {
     this.#sending.add(request.threadId);
     try {
       const collaborationMode =
-        request.mode === "input-test" ? await planCollaborationMode(client) : undefined;
+        request.mode === "input-test"
+          ? await planCollaborationMode(
+              client,
+              this.#threads.collaborationDefaults(request.threadId),
+            )
+          : undefined;
       const result = await client.sendRequest<{ turn?: { id?: unknown } }>("turn/start", {
         threadId: request.threadId,
         input: input(prompt),

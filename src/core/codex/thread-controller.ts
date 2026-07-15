@@ -18,6 +18,8 @@ interface ThreadLike {
 
 interface ThreadStartLike {
   thread?: ThreadLike;
+  model?: unknown;
+  reasoningEffort?: unknown;
   approvalPolicy?: unknown;
   approvalsReviewer?: unknown;
   sandbox?: unknown;
@@ -45,6 +47,10 @@ export class ThreadController {
   readonly #projectRoot: string;
   readonly #safePaths: SafePathResolver;
   readonly #threads = new Map<string, CodexThreadSnapshot>();
+  readonly #collaborationDefaults = new Map<
+    string,
+    { model: string; reasoningEffort: string | null }
+  >();
   #selectedThreadId?: string;
   #lastActiveThreadId?: string;
 
@@ -87,6 +93,13 @@ export class ThreadController {
   get(threadId: string): CodexThreadSnapshot | undefined {
     const thread = this.#threadFor(threadId);
     return thread && { ...thread };
+  }
+
+  collaborationDefaults(
+    threadId: string,
+  ): { model: string; reasoningEffort: string | null } | undefined {
+    const defaults = this.#collaborationDefaults.get(threadId);
+    return defaults && { ...defaults };
   }
 
   validateCwd(selection: DeveloperCwdSelection): string {
@@ -162,6 +175,7 @@ export class ThreadController {
 
   remove(threadId: string): void {
     this.#threads.delete(threadId);
+    this.#collaborationDefaults.delete(threadId);
     if (this.#selectedThreadId === threadId) this.#selectedThreadId = undefined;
     if (this.#lastActiveThreadId === threadId) this.#lastActiveThreadId = undefined;
   }
@@ -196,7 +210,13 @@ export class ThreadController {
       throw new Error("App Server did not apply the required workspace sandbox");
     if (!result.thread || typeof result.thread.id !== "string")
       throw new Error("App Server did not return a thread ID");
-    return this.#upsert(result.thread, "created-by-pet", cwd);
+    const snapshot = this.#upsert(result.thread, "created-by-pet", cwd);
+    if (typeof result.model === "string" && result.model)
+      this.#collaborationDefaults.set(snapshot.threadId, {
+        model: result.model,
+        reasoningEffort: typeof result.reasoningEffort === "string" ? result.reasoningEffort : null,
+      });
+    return snapshot;
   }
 
   #upsert(
