@@ -38,6 +38,7 @@ async function startApplication(): Promise<void> {
   let settings = await settingsStore.read();
   const smokeOutput = process.env.CODEX_PET_SMOKE_OUTPUT;
   const smokeReal = process.env.CODEX_PET_SMOKE_REAL === "1";
+  const smokeInputOnly = process.env.CODEX_PET_SMOKE_INPUT === "1";
   if (smokeOutput) {
     settings = {
       ...settings,
@@ -84,8 +85,8 @@ async function startApplication(): Promise<void> {
   });
   await runtime.start();
   if (smokeOutput && !smokeReal) {
-    runtime.enqueueMockApproval();
-    runtime.enqueueMockUserInput();
+    if (smokeInputOnly) runtime.enqueueMockUserInput();
+    else runtime.enqueueMockApproval();
   }
   if (smokeOutput && windowManager.window) {
     void runSmokeValidation({

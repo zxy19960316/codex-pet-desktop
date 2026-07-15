@@ -22,6 +22,7 @@ export async function runSmokeValidation(options: SmokeValidationOptions): Promi
     hud: Boolean(document.querySelector('[aria-label="Codex usage HUD"]')),
     debug: Boolean(document.querySelector('[aria-label="Debug controls"]')),
     approval: Boolean(document.querySelector('[aria-label="Approval request"]')),
+    userInput: Boolean(document.querySelector('[aria-label="User input request"]')),
     connected: Boolean(document.querySelector('.connection--connected')),
     stateButtons: document.querySelectorAll('[aria-label="Debug controls"] .state-grid button').length,
     draggableShell: getComputedStyle(document.querySelector('.shell')).getPropertyValue('-webkit-app-region')
