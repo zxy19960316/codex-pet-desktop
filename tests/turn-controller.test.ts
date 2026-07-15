@@ -37,7 +37,7 @@ describe("TurnController", () => {
         threadId: "thread",
         input: [
           expect.objectContaining({
-            text: expect.stringContaining("node --version"),
+            text: expect.stringContaining("node -e"),
           }),
         ],
       }),
@@ -45,7 +45,7 @@ describe("TurnController", () => {
     const request = client.sendRequest.mock.calls.at(-1)?.[1] as {
       input?: Array<{ text?: string }>;
     };
-    expect(request.input?.[0]?.text).toContain("explicitly request elevated sandbox permission");
+    expect(request.input?.[0]?.text).toContain("normal sandbox flow");
     expect(threads.get("thread")?.activeTurnId).toBe("turn");
   });
 

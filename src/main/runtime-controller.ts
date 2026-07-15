@@ -74,6 +74,7 @@ interface VerificationTurn {
   serverResolved: boolean;
   steerSent: boolean;
   containsSteered: boolean;
+  commandObserved: boolean;
   terminalStatus?: "completed" | "interrupted" | "cancelled" | "failed" | "unknown";
 }
 
@@ -425,6 +426,7 @@ export class RuntimeController {
         serverResolved: false,
         steerSent: false,
         containsSteered: false,
+        commandObserved: false,
       });
       if (kind === "steer" || kind === "interrupt")
         this.#e2eStore.waitForUser(record.id, "turn/start");
@@ -542,6 +544,16 @@ export class RuntimeController {
       }
       return;
     }
+    if (event.type === "command-observed") {
+      if (event.turnId) {
+        const verification = this.#testTurns.get(event.turnId);
+        if (verification) {
+          verification.commandObserved = true;
+          this.#e2eStore.waitForCodex(verification.recordId, ["item/commandExecution/started"]);
+        }
+      }
+      return;
+    }
     if (event.type === "turn-completed") {
       if (event.turnId) this.#serverRequests.clearByTurn(event.threadId, event.turnId);
       this.#threadController.markTurnCompleted(event.threadId, event.turnId);
@@ -642,7 +654,11 @@ export class RuntimeController {
     const terminalEvidence = ["turn/completed"];
     if (verification.kind === "approval-allow" || verification.kind === "approval-deny") {
       if (!verification.requestId)
-        return this.#failVerification(turnId, "approval-not-requested", terminalEvidence);
+        return this.#failVerification(
+          turnId,
+          verification.commandObserved ? "approval-not-requested" : "approval-command-not-observed",
+          terminalEvidence,
+        );
       if (!verification.responseReceived)
         return this.#failVerification(turnId, "approval-not-answered", terminalEvidence);
       if (!verification.serverResolved) return;

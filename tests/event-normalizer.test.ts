@@ -15,6 +15,13 @@ describe("EventNormalizer", () => {
       })[0],
     ).toMatchObject({ state: "working" });
     expect(
+      normalizer.normalizeNotification("item/started", {
+        threadId: "t",
+        turnId: "x",
+        item: { type: "commandExecution" },
+      }),
+    ).toContainEqual({ type: "command-observed", threadId: "t", turnId: "x" });
+    expect(
       normalizer.normalizeNotification("item/fileChange/started", { threadId: "t" })[0],
     ).toMatchObject({ state: "typing" });
     expect(

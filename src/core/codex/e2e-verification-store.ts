@@ -20,6 +20,7 @@ const SAFE_EVIDENCE = new Set([
   "turn/completed",
   "serverRequest/resolved",
   "item/commandExecution/requestApproval",
+  "item/commandExecution/started",
   "item/tool/requestUserInput",
   "final-reply-steered",
   "transport-unavailable",

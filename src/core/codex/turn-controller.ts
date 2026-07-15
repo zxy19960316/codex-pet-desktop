@@ -7,8 +7,8 @@ import type {
 import { ThreadController } from "./thread-controller";
 
 const APPROVAL_TEST_PROMPT = [
-  "Developer verification task. Use the shell tool exactly once to run `node --version` in the current working directory.",
-  "In that tool call, explicitly request elevated sandbox permission so the App Server routes it to the human reviewer. Do not run the command without approval and do not use a fallback command.",
+  'Developer verification task. Use the shell tool exactly once to run `node -e "process.stdout.write(process.version)"` in the current working directory.',
+  "Actually request the command through the normal sandbox flow; do not describe, simulate, bypass, or substitute it. If the App Server requests approval, wait for the human decision.",
   "Do not access the network, install anything, modify files, use Git, read credentials, or access paths outside the current directory.",
   "After the approval result, briefly report whether the command ran.",
 ].join(" ");
