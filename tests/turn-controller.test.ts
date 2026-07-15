@@ -35,7 +35,11 @@ describe("TurnController", () => {
       "turn/start",
       expect.objectContaining({
         threadId: "thread",
-        input: [expect.objectContaining({ text: expect.stringContaining("node --version") })],
+        input: [
+          expect.objectContaining({
+            text: expect.stringContaining("node -e"),
+          }),
+        ],
       }),
     );
     expect(threads.get("thread")?.activeTurnId).toBe("turn");

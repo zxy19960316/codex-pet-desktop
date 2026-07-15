@@ -7,7 +7,7 @@ import type {
 import { ThreadController } from "./thread-controller";
 
 const APPROVAL_TEST_PROMPT = [
-  "Developer verification task. In the current working directory, request approval before running exactly `node --version`.",
+  "Developer verification task. In the current working directory, request approval before running exactly `node -e \"console.log('M2.6 approval verification')\"`.",
   "Do not access the network, install anything, modify files, use Git, read credentials, or access paths outside the current directory.",
   "After the approval result, briefly report whether the command ran.",
 ].join(" ");
