@@ -7,7 +7,8 @@ import type {
 import { ThreadController } from "./thread-controller";
 
 const APPROVAL_TEST_PROMPT = [
-  "Developer verification task. In the current working directory, request approval before running exactly `node -e \"console.log('M2.6 approval verification')\"`.",
+  "Developer verification task. Use the shell tool exactly once to run `node --version` in the current working directory.",
+  "In that tool call, explicitly request elevated sandbox permission so the App Server routes it to the human reviewer. Do not run the command without approval and do not use a fallback command.",
   "Do not access the network, install anything, modify files, use Git, read credentials, or access paths outside the current directory.",
   "After the approval result, briefly report whether the command ran.",
 ].join(" ");
