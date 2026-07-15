@@ -1,0 +1,279 @@
+:root {
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  color: #f7f6ff;
+  background: transparent;
+  font-synthesis: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+  background: transparent;
+}
+button,
+input {
+  font: inherit;
+}
+button {
+  color: inherit;
+}
+
+.shell {
+  width: 100%;
+  min-height: 100vh;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  -webkit-app-region: drag;
+}
+
+.shell.loading {
+  justify-content: center;
+  color: #bcb7d8;
+}
+.no-drag,
+button,
+input,
+details {
+  -webkit-app-region: no-drag;
+}
+.drag-bar {
+  width: 100%;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 6px;
+  color: #c4c0dc;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.drag-bar .icon-button {
+  margin-left: auto;
+}
+.connection {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #77738c;
+  box-shadow: 0 0 8px currentColor;
+}
+.connection--connected {
+  background: #70e6ae;
+  color: #70e6ae;
+}
+.connection--error {
+  background: #ff6d86;
+  color: #ff6d86;
+}
+.connection--starting,
+.connection--initializing,
+.connection--reconnecting {
+  background: #ffd479;
+  color: #ffd479;
+}
+.icon-button {
+  border: 0;
+  background: transparent;
+  padding: 3px 7px;
+  cursor: pointer;
+  color: #c4c0dc;
+}
+.panel {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 17px;
+  padding: 12px;
+  background: linear-gradient(145deg, rgba(27, 27, 45, 0.95), rgba(13, 14, 25, 0.93));
+  box-shadow:
+    0 18px 40px rgba(2, 3, 10, 0.32),
+    inset 0 1px rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(18px);
+}
+.panel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 9px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #d9d5f2;
+}
+.panel-title small {
+  color: #918cae;
+  font-weight: 500;
+}
+.metrics {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.metrics > div {
+  min-width: 0;
+  border-radius: 10px;
+  padding: 7px 9px;
+  background: rgba(255, 255, 255, 0.045);
+}
+.metrics dt {
+  color: #9691ad;
+  font-size: 10px;
+}
+.metrics dd {
+  margin: 2px 0 0;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.metric-wide {
+  grid-column: 1 / -1;
+}
+.quota-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 9px;
+}
+.quota-label,
+.token-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11px;
+}
+.quota-track {
+  height: 6px;
+  overflow: hidden;
+  margin: 4px 0;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.08);
+}
+.quota-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #766cff, #70e6ae);
+}
+.quota small,
+.detail,
+.unavailable {
+  color: #8e89a8;
+  font-size: 10px;
+}
+.unavailable {
+  margin: 0;
+}
+.token-row {
+  margin-top: 7px;
+  color: #aaa5c1;
+}
+.token-row strong {
+  color: #f3f1ff;
+}
+.detail {
+  margin: 8px 0 0;
+  line-height: 1.4;
+}
+.approval-card p {
+  margin: 5px 0 9px;
+  color: #c8c4db;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.approval-card strong,
+.approval-card summary {
+  font-size: 11px;
+  color: #dcd8ef;
+}
+.approval-card ul {
+  margin: 5px 0 8px;
+  padding-left: 18px;
+  font-size: 10px;
+  color: #aaa5bd;
+}
+.approval-card details {
+  margin: 8px 0;
+}
+.approval-card code {
+  display: block;
+  max-height: 72px;
+  overflow: auto;
+  margin-top: 6px;
+  padding: 8px;
+  border-radius: 8px;
+  color: #e9e6f8;
+  background: #0b0c13;
+  font:
+    10px/1.45 ui-monospace,
+    "Cascadia Code",
+    monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.approval-card details small {
+  display: block;
+  margin-top: 5px;
+  color: #8e89a8;
+}
+.approval-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.approval-actions button,
+.debug-panel button {
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.055);
+  padding: 6px 9px;
+  cursor: pointer;
+  font-size: 11px;
+}
+.approval-actions button.primary {
+  background: #776cff;
+  border-color: #9289ff;
+}
+.state-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+}
+.debug-panel button {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.debug-panel button.active {
+  background: #776cff;
+}
+.switch-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 9px 0;
+  color: #b8b3ce;
+  font-size: 11px;
+}
+.debug-panel > button {
+  width: 100%;
+  margin-top: 5px;
+}

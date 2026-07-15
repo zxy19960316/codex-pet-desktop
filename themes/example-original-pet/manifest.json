@@ -1,0 +1,19 @@
+{
+  "id": "example-original-pet",
+  "displayName": "Original Violet Orb",
+  "animations": {
+    "idle": {
+      "frames": 1,
+      "frameWidth": 118,
+      "frameHeight": 112,
+      "durationMs": 3200,
+      "loop": true
+    }
+  },
+  "attribution": [
+    {
+      "name": "Codex Pet Desktop contributors",
+      "license": "MIT"
+    }
+  ]
+}
