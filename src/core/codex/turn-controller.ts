@@ -53,6 +53,30 @@ function input(text: string) {
   return [{ type: "text", text, text_elements: [] }];
 }
 
+interface CollaborationModeMask {
+  mode?: unknown;
+  model?: unknown;
+  reasoning_effort?: unknown;
+}
+
+async function planCollaborationMode(client: CodexRpcClient) {
+  const result = await client.sendRequest<{ data?: CollaborationModeMask[] }>(
+    "collaborationMode/list",
+    {},
+  );
+  const plan = result.data?.find((candidate) => candidate.mode === "plan");
+  if (!plan || typeof plan.model !== "string" || !plan.model)
+    throw new Error("Plan collaboration mode is unavailable");
+  return {
+    mode: "plan",
+    settings: {
+      model: plan.model,
+      reasoning_effort: typeof plan.reasoning_effort === "string" ? plan.reasoning_effort : null,
+      developer_instructions: null,
+    },
+  };
+}
+
 export class TurnController {
   readonly #threads: ThreadController;
   readonly #sending = new Set<string>();
@@ -78,9 +102,12 @@ export class TurnController {
               : safeText(request.prompt, "Prompt");
     this.#sending.add(request.threadId);
     try {
+      const collaborationMode =
+        request.mode === "input-test" ? await planCollaborationMode(client) : undefined;
       const result = await client.sendRequest<{ turn?: { id?: unknown } }>("turn/start", {
         threadId: request.threadId,
         input: input(prompt),
+        ...(collaborationMode ? { collaborationMode } : {}),
       });
       if (!result.turn || typeof result.turn.id !== "string")
         throw new Error("App Server did not return a turn ID");
