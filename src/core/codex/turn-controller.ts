@@ -6,8 +6,14 @@ import type {
 } from "./control-types";
 import { ThreadController } from "./thread-controller";
 
+const APPROVAL_PROBE_COMMAND =
+  process.platform === "win32"
+    ? 'Remove-Item -LiteralPath ".\\m2-6-nonexistent-probe" -Force -ErrorAction SilentlyContinue'
+    : "rm -f ./m2-6-nonexistent-probe";
+
 const APPROVAL_TEST_PROMPT = [
-  "Developer verification task. Use the shell tool exactly once to run `codex --version` in the current working directory.",
+  `Developer verification task. Use the shell tool exactly once to run \`${APPROVAL_PROBE_COMMAND}\` in the current working directory.`,
+  "The fixed target is guaranteed not to exist in this new disposable directory. Do not create it or change the target.",
   "Actually request the command through the normal sandbox flow; do not describe, simulate, bypass, or substitute it. If the App Server requests approval, wait for the human decision.",
   "Do not access the network, install anything, modify files, use Git, read credentials, or access paths outside the current directory.",
   "After the approval result, briefly report whether the command ran.",

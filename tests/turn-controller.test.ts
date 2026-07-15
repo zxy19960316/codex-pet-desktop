@@ -37,7 +37,7 @@ describe("TurnController", () => {
         threadId: "thread",
         input: [
           expect.objectContaining({
-            text: expect.stringContaining("codex --version"),
+            text: expect.stringContaining("m2-6-nonexistent-probe"),
           }),
         ],
       }),
@@ -46,6 +46,7 @@ describe("TurnController", () => {
       input?: Array<{ text?: string }>;
     };
     expect(request.input?.[0]?.text).toContain("normal sandbox flow");
+    expect(request.input?.[0]?.text).toContain("guaranteed not to exist");
     expect(threads.get("thread")?.activeTurnId).toBe("turn");
   });
 
