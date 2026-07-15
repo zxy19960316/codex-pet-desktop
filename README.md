@@ -1,8 +1,8 @@
 # Codex Pet Desktop
 
 Codex Pet Desktop is an independent, open-source Electron desktop companion for visualizing local
-Codex activity. The current release is an early M0/M1 development build: it provides a secure
-desktop shell, a normalized pet-state model, a Codex App Server connection, approval cards, and a
+Codex activity. The current development build provides a secure desktop shell, a normalized
+pet-state model, a Codex App Server connection, approval cards, structured reply cards, and a
 compact usage HUD.
 
 > Screenshot placeholder — a project screenshot will be added after the M1 visual baseline is
@@ -17,8 +17,10 @@ compact usage HUD.
   graceful shutdown, and bounded reconnects.
 - Codex approval routing for command execution, file changes, and permission requests, including a
   queued desktop card that only shows supported decisions.
-- Dynamic rate-limit windows, reset countdowns, daily tokens, and current-thread tokens when the
-  installed App Server exposes those values.
+- Dynamic rate-limit windows, reset countdowns, daily tokens, and thread-aware current-thread
+  tokens when the installed App Server exposes those values.
+- Structured Codex user-input reply cards with typed, allowlisted IPC. Mock cards cover a choice,
+  multiple choices, and free text and are visibly labeled.
 - Clearly labeled Mock usage and approval data for deterministic UI development.
 - Debug controls that can trigger every supported pet state.
 
@@ -26,7 +28,10 @@ compact usage HUD.
 
 - **M0 — Project and desktop shell:** complete for the current development baseline.
 - **M1 — App Server technical loop:** complete for the current development baseline.
-- **M2 — User input and replies:** planned.
+- **M1.5 — Runtime closure, thread tokens, and approval evidence:** implemented; human approval
+  confirmation remains a guided manual check.
+- **M2 — User input and replies:** implemented through request/reply routing and UI; human real
+  App Server confirmation remains a guided manual check.
 - **M3 — Complete quota and token HUD:** planned.
 - **M4 — Pet packs and animation system:** planned.
 - **M5 — Multiple sessions and productization:** planned.
@@ -71,6 +76,11 @@ output, file contents, access tokens, or session files.
 
 When real account usage endpoints are unavailable, the HUD says that data is unavailable. Mock
 values are opt-in and visibly labeled; they are never represented as real Codex account data.
+
+Real protocol, mock, and manual verification status are deliberately separate. See
+[`docs/reports/M1_5_M2_IMPLEMENTATION.md`](docs/reports/M1_5_M2_IMPLEMENTATION.md) and the two
+manual guides under `docs/guides/` before treating an approval or user-input flow as human
+end-to-end verified.
 
 ## Pet assets
 

@@ -1,0 +1,29 @@
+# Real Codex User-Input Test
+
+## Protocol basis
+
+This implementation was checked against local `codex app-server generate-ts --experimental` output from Codex CLI `0.144.4`.
+
+- Request method: `item/tool/requestUserInput`
+- Params: `threadId`, `turnId`, `itemId`, `questions`, and nullable `autoResolutionMs`
+- Question: `id`, `header`, `question`, `isOther`, `isSecret`, and nullable options
+- Response: `{ answers: Record<questionId, { answers: string[] }> }`
+
+Only the normalized request and validated domain answers cross the renderer/main boundary. Full answers are not written to diagnostics.
+
+## Status
+
+- Protocol normalization and response serialization: verified by automated tests.
+- Mock reply cards: available from **Enqueue Mock User Input**; they rotate through one choice, multiple choices, and free text, and are visibly marked **Mock request**.
+- Human end-to-end: not yet verified in this automated environment because it cannot submit a desktop reply card as the user.
+
+## Safe manual reproduction
+
+1. Start `npm run dev` and connect the local App Server.
+2. In a disposable thread, ask Codex to use its `request_user_input` capability for a harmless preference such as “Choose A or B before continuing.”
+3. Confirm the pet enters `waiting_input` and a non-Mock reply card shows the thread short ID and question text.
+4. Submit an offered option or permitted free text. Use Shift+Enter to add a newline; Enter submits.
+5. Confirm the answer is returned for the same JSON-RPC request ID, Codex continues, the turn completes, and the card disappears.
+6. Repeat with cancellation and with a deliberately expired request where available.
+
+Do not use keyboard simulation, do not submit secrets, and do not treat Mock results as real App Server verification.

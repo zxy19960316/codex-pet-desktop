@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- Complete M0 and M1 only; M2-M6 remain future work.
+- M0/M1 are the baseline; M1.5 and M2 add runtime closure, thread tokens, and user-input replies.
 - Windows 10/11 is the primary target; retain low-cost macOS/Linux compatibility.
 - Use stable dependencies only and commit `package-lock.json`.
 - Keep `contextIsolation: true`, `nodeIntegration: false`, and `sandbox: true`.
@@ -211,7 +211,10 @@
 
 - **M0 — Project and desktop shell:** this plan's Tasks 1, 2, 6, 7, and M0 documentation.
 - **M1 — App Server technical loop:** this plan's Tasks 3-5, approvals/usage UI, protocol evidence, Mock fallback, and tests.
-- **M2 — User input and replies:** future; not implemented in this change.
+- **M1.5 — Runtime closure and real-verification guides:** RuntimeController, request registry,
+  thread-aware token snapshots, CI repair, and explicit manual approval evidence.
+- **M2 — User input and replies:** normalized request routing, strict IPC, typed reply cards, and
+  mock verification; human real-App-Server confirmation remains a manual guide.
 - **M3 — Complete quota and Token HUD:** future; M1 supplies only provider/UI foundations.
 - **M4 — Pet packs and animation system:** future; M1 supplies only a safe manifest skeleton and original placeholder.
 - **M5 — Multiple sessions and productization:** future; M1 tracks independent thread state only.

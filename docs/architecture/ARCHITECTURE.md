@@ -4,8 +4,9 @@
 
 Codex Pet Desktop has four deliberate boundaries:
 
-1. `src/main` owns Electron lifecycle, windows, tray state, local settings, child processes, and
-   IPC handlers.
+1. `src/main/index.ts` owns Electron lifecycle, windows, tray composition, and IPC composition;
+   `src/main/runtime-controller.ts` owns App Server lifecycle, snapshots, normalized state,
+   request queues, usage refresh, and runtime cleanup.
 2. `src/preload` exposes a frozen, typed API over a fixed channel allowlist.
 3. `src/core` implements protocol and domain logic without React or Electron UI dependencies.
 4. `src/renderer` is a sandboxed React client that consumes `DesktopSnapshot`; it never receives
@@ -32,6 +33,12 @@ usage provider and child process to stop before Electron quits.
 `EventNormalizer` converts protocol notifications into domain events. Unknown methods create only
 a payload-free diagnostic code and never alter pet state.
 
+`ServerRequestRegistry` installs the three approval methods and
+`item/tool/requestUserInput` on each connected client. It retains only pending request resolvers
+and redacted approval metadata. `InputRouter` owns explicit request/thread/turn/item binding,
+timeouts, cancellation, and answer validation; the renderer receives a serializable normalized
+request and has no general JSON-RPC IPC channel.
+
 ## Approval safety
 
 Approval cards are keyed by the App Server request ID and retain explicit thread, turn, and item
@@ -42,6 +49,10 @@ known decisions offered by the server and cannot widen permission scope through 
 For permission approvals, the response matches the installed protocol's
 `{ permissions, scope }` shape. Deny and cancel return an empty granted-permission profile. Null or
 unknown capabilities are never promoted into grants.
+
+Thread token notifications are normalized into a `Map<string, ThreadTokenUsage>`. The renderer
+receives an array plus an optional selected thread ID, while `currentThreadTokens` is derived from
+that selected thread or the last active thread. Token payloads are never sent to diagnostics.
 
 ## Security and storage
 

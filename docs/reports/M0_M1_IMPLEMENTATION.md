@@ -129,8 +129,8 @@ Final measured values after the complete quality and desktop launch pass:
 - Installer packaging, auto-update, richer pet packs, multi-session product UI, and user-input
   replies are outside this milestone.
 
-Recommended next milestone: M2 user-input requests and reply windows, while retaining the same
-request/thread/turn routing guarantees.
+M1.5 and M2 are now documented separately in `docs/reports/M1_5_M2_IMPLEMENTATION.md`; that
+report distinguishes protocol/mock verification from the still-required manual real-app checks.
 
 ## GitHub publication
 
