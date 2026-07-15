@@ -14,6 +14,16 @@ export interface DailyUsage {
   source: "codex-app-server" | "mock";
 }
 
+export interface ThreadTokenUsage {
+  threadId: string;
+  inputTokens?: number;
+  cachedInputTokens?: number;
+  outputTokens?: number;
+  reasoningOutputTokens?: number;
+  totalTokens: number;
+  updatedAt: number;
+}
+
 export interface UsageProvider {
   readRateLimits(): Promise<RateLimitBucket[]>;
   readDailyUsage(): Promise<DailyUsage | null>;
@@ -106,6 +116,30 @@ function numberValue(value: unknown): number | null {
   const converted =
     typeof value === "string" || typeof value === "number" ? Number(value) : Number.NaN;
   return Number.isFinite(converted) ? converted : null;
+}
+
+export function normalizeThreadTokenUsage(
+  threadId: string,
+  raw: unknown,
+  updatedAt = Date.now(),
+): ThreadTokenUsage | null {
+  const usage = object(raw);
+  const total = object(usage.total);
+  const value = (key: string): number | undefined => {
+    const parsed = numberValue(total[key]);
+    return parsed !== null && parsed >= 0 ? parsed : undefined;
+  };
+  const totalTokens = value("totalTokens");
+  if (!threadId || totalTokens === undefined) return null;
+  return {
+    threadId,
+    inputTokens: value("inputTokens"),
+    cachedInputTokens: value("cachedInputTokens"),
+    outputTokens: value("outputTokens"),
+    reasoningOutputTokens: value("reasoningOutputTokens"),
+    totalTokens,
+    updatedAt,
+  };
 }
 
 function snapshotBuckets(snapshotValue: unknown, prefix: string): RateLimitBucket[] {

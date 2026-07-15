@@ -1,6 +1,8 @@
 import type { ApprovalDecision, ApprovalRequest } from "../core/codex/approval-router";
 import type { AppServerStatus } from "../core/codex/app-server-process";
 import type { DailyUsage, RateLimitBucket } from "../core/codex/usage-provider";
+import type { ThreadTokenUsage } from "../core/codex/usage-provider";
+import type { UserInputAnswers, UserInputRequest } from "../core/input/input-types";
 import type { PetState, PetStateChange } from "../core/pet/pet-state";
 import type { LocalSettings } from "./settings";
 
@@ -16,6 +18,9 @@ export const IPC_CHANNELS = {
   reconnectCodex: "desktop:reconnect-codex",
   patchSettings: "desktop:patch-settings",
   enqueueMockApproval: "desktop:enqueue-mock-approval",
+  respondUserInput: "desktop:respond-user-input",
+  cancelUserInput: "desktop:cancel-user-input",
+  enqueueMockUserInput: "desktop:enqueue-mock-user-input",
   quit: "desktop:quit",
 } as const;
 
@@ -27,8 +32,11 @@ export interface DesktopSnapshot {
   activeThreadCount: number;
   currentCwd?: string;
   approvals: ApprovalRequest[];
+  userInputs: UserInputRequest[];
   rateLimits: RateLimitBucket[] | null;
   dailyUsage: DailyUsage | null;
+  threadTokenUsage: ThreadTokenUsage[];
+  selectedThreadId?: string;
   currentThreadTokens: number | null;
   settings: LocalSettings;
   protocolSource: "codex-app-server" | "mock" | "unavailable";
@@ -46,5 +54,8 @@ export interface DesktopApi {
   reconnectCodex(): Promise<void>;
   patchSettings(patch: Partial<LocalSettings>): Promise<void>;
   enqueueMockApproval(): Promise<void>;
+  respondUserInput(requestId: string, answers: UserInputAnswers): Promise<void>;
+  cancelUserInput(requestId: string): Promise<void>;
+  enqueueMockUserInput(): Promise<void>;
   quit(): Promise<void>;
 }

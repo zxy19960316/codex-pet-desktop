@@ -1,5 +1,6 @@
 import { app, ipcMain } from "electron";
 import type { ApprovalDecision } from "../core/codex/approval-router";
+import type { UserInputAnswers } from "../core/input/input-types";
 import { isPetState } from "../core/pet/pet-state";
 import { IPC_CHANNELS, type DesktopSnapshot } from "../shared/ipc-contract";
 import type { LocalSettings } from "../shared/settings";
@@ -15,9 +16,25 @@ export interface IpcActions {
   reconnectCodex(): Promise<void>;
   patchSettings(patch: Partial<LocalSettings>): Promise<void>;
   enqueueMockApproval(): void;
+  respondUserInput(requestId: string, answers: UserInputAnswers): Promise<void>;
+  cancelUserInput(requestId: string): Promise<void>;
+  enqueueMockUserInput(): void;
 }
 
 const DECISIONS = new Set<ApprovalDecision>(["accept", "acceptForSession", "decline", "cancel"]);
+
+function isUserInputAnswers(value: unknown): value is UserInputAnswers {
+  if (!value || typeof value !== "object" || !Array.isArray((value as UserInputAnswers).answers))
+    return false;
+  return (value as UserInputAnswers).answers.every(
+    (answer) =>
+      answer &&
+      typeof answer.questionId === "string" &&
+      (!answer.selectedOptionIds ||
+        answer.selectedOptionIds.every((id) => typeof id === "string")) &&
+      (answer.freeText === undefined || typeof answer.freeText === "string"),
+  );
+}
 
 export function registerIpcHandlers(actions: IpcActions): () => void {
   ipcMain.handle(IPC_CHANNELS.getSnapshot, () => actions.getSnapshot());
@@ -39,6 +56,22 @@ export function registerIpcHandlers(actions: IpcActions): () => void {
     actions.patchSettings(patch),
   );
   ipcMain.handle(IPC_CHANNELS.enqueueMockApproval, () => actions.enqueueMockApproval());
+  ipcMain.handle(IPC_CHANNELS.respondUserInput, (_event, requestId: unknown, answers: unknown) => {
+    if (typeof requestId !== "string" || !isUserInputAnswers(answers))
+      throw new Error("Invalid user-input response");
+    return actions.respondUserInput(requestId, {
+      answers: answers.answers.map((answer) => ({
+        questionId: answer.questionId,
+        selectedOptionIds: answer.selectedOptionIds ? [...answer.selectedOptionIds] : undefined,
+        freeText: answer.freeText,
+      })),
+    });
+  });
+  ipcMain.handle(IPC_CHANNELS.cancelUserInput, (_event, requestId: unknown) => {
+    if (typeof requestId !== "string") throw new Error("Invalid user-input request ID");
+    return actions.cancelUserInput(requestId);
+  });
+  ipcMain.handle(IPC_CHANNELS.enqueueMockUserInput, () => actions.enqueueMockUserInput());
   ipcMain.handle(IPC_CHANNELS.quit, () => app.quit());
   return () => {
     for (const channel of Object.values(IPC_CHANNELS)) ipcMain.removeHandler(channel);

@@ -13,6 +13,8 @@ export type DomainEvent =
   | { type: "token-usage"; threadId: string; turnId?: string; tokenUsage: unknown }
   | { type: "rate-limits"; rateLimits: unknown }
   | { type: "approval-resolved"; requestId: string; threadId?: string }
+  | { type: "thread-ended"; threadId: string }
+  | { type: "turn-completed"; threadId: string; turnId?: string }
   | { type: "diagnostic"; code: "unknown-notification"; method: string };
 
 function petEvent(state: PetState, method: string, params: unknown): DomainEvent {
@@ -55,11 +57,18 @@ export class EventNormalizer {
           method,
           params,
         ),
+        {
+          type: "turn-completed",
+          threadId: stringField(params, ["threadId"]) ?? "unknown",
+          turnId: stringField(params, ["turnId"], ["turn", "id"]),
+        },
       ];
     }
     if (method === "error") return [petEvent("error", method, params)];
-    if (method === "thread/closed" || method === "thread/deleted")
-      return [petEvent("idle", method, params)];
+    if (method === "thread/closed" || method === "thread/deleted") {
+      const threadId = stringField(params, ["threadId"]) ?? "unknown";
+      return [petEvent("idle", method, params), { type: "thread-ended", threadId }];
+    }
     if (method === "thread/tokenUsage/updated") {
       return [
         {

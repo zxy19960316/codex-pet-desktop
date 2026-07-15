@@ -3,6 +3,7 @@ import {
   CodexUsageProvider,
   formatResetCountdown,
   normalizeRateLimitBucket,
+  normalizeThreadTokenUsage,
   sortRateLimitBuckets,
 } from "../src/core/codex/usage-provider";
 
@@ -73,5 +74,14 @@ describe("usage helpers", () => {
     await expect(provider.readDailyUsage()).resolves.toEqual(
       expect.objectContaining({ tokens: 42, source: "codex-app-server" }),
     );
+  });
+
+  it("clamps invalid thread token fields without letting threads overwrite each other", () => {
+    expect(
+      normalizeThreadTokenUsage("thread-a", {
+        total: { totalTokens: 20, inputTokens: 10, cachedInputTokens: -1, outputTokens: 10 },
+      }),
+    ).toMatchObject({ threadId: "thread-a", totalTokens: 20, cachedInputTokens: undefined });
+    expect(normalizeThreadTokenUsage("thread-b", { total: { totalTokens: -1 } })).toBeNull();
   });
 });

@@ -58,6 +58,19 @@ export class PetStateMachine {
     return change ? { ...change } : undefined;
   }
 
+  remove(threadId: string): void {
+    const record = this.#threads.get(threadId);
+    if (!record) return;
+    if (record.timer) clearTimeout(record.timer);
+    this.#threads.delete(threadId);
+    this.#onChange?.(this.getGlobalState(), {
+      threadId,
+      state: "idle",
+      source: "thread-removed",
+      timestamp: Date.now(),
+    });
+  }
+
   getGlobalState(): PetState {
     return highestPriority([...this.#threads.values()].map(({ change }) => change.state));
   }

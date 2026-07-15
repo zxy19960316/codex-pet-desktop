@@ -19,6 +19,10 @@ const api: DesktopApi = {
   reconnectCodex: () => ipcRenderer.invoke(IPC_CHANNELS.reconnectCodex),
   patchSettings: (patch) => ipcRenderer.invoke(IPC_CHANNELS.patchSettings, patch),
   enqueueMockApproval: () => ipcRenderer.invoke(IPC_CHANNELS.enqueueMockApproval),
+  respondUserInput: (requestId, answers) =>
+    ipcRenderer.invoke(IPC_CHANNELS.respondUserInput, requestId, answers),
+  cancelUserInput: (requestId) => ipcRenderer.invoke(IPC_CHANNELS.cancelUserInput, requestId),
+  enqueueMockUserInput: () => ipcRenderer.invoke(IPC_CHANNELS.enqueueMockUserInput),
   quit: () => ipcRenderer.invoke(IPC_CHANNELS.quit),
 };
 
