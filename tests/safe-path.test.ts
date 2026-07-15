@@ -61,4 +61,19 @@ describe("SafePathResolver", () => {
       resolver.resolve({ kind: "project-relative", relativePath: "escape/child" }),
     ).toThrow("Selected folder is not allowed");
   });
+
+  it("canonicalizes a trusted project beneath an aliased temporary-directory ancestor", () => {
+    const realParent = temporaryDirectory("codex-pet-real-parent-");
+    const aliasParent = temporaryDirectory("codex-pet-alias-parent-");
+    const alias = join(aliasParent, "trusted-alias");
+    const projectRoot = join(realParent, "project");
+    mkdirSync(projectRoot);
+    symlinkSync(realParent, alias, process.platform === "win32" ? "junction" : "dir");
+
+    const resolver = new SafePathResolver(join(alias, "project"));
+    expect(resolver.projectRoot).toBe(projectRoot);
+    expect(resolver.resolve({ kind: "project-relative", relativePath: "safe-child" })).toBe(
+      join(projectRoot, "safe-child"),
+    );
+  });
 });

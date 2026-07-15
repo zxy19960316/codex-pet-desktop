@@ -52,8 +52,15 @@ export class SafePathResolver {
       throw invalidFolder();
     const candidate = resolve(projectRoot);
     if (!this.#operations.existsSync(candidate)) throw invalidFolder();
-    this.#assertSafeDirectory(candidate, candidate);
+    let rootStat: DirectoryStat;
+    try {
+      rootStat = this.#operations.lstatSync(candidate);
+    } catch {
+      throw invalidFolder();
+    }
+    if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) throw disallowedFolder();
     const canonicalRoot = this.#canonical(candidate);
+    this.#assertSafeDirectory(canonicalRoot, canonicalRoot);
     this.#assertNotSensitiveRoot(canonicalRoot);
     this.#projectRoot = canonicalRoot;
     this.#e2eRoot = resolve(canonicalRoot, "tmp", "e2e");
