@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, rmSync, symlinkSync } from "node:fs";
+import { mkdtempSync, mkdirSync, realpathSync, rmSync, symlinkSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
@@ -36,16 +36,17 @@ describe("SafePathResolver", () => {
   it("creates a missing safe child and forces test mode into tmp/e2e", () => {
     const projectRoot = temporaryDirectory("codex-pet-safe-path-");
     const resolver = new SafePathResolver(projectRoot);
+    const canonicalRoot = realpathSync.native(projectRoot);
 
     expect(resolver.resolve({ kind: "project-relative", relativePath: "examples/demo" })).toBe(
-      join(projectRoot, "examples", "demo"),
+      join(canonicalRoot, "examples", "demo"),
     );
-    expect(resolver.resolve({ kind: "e2e-root" })).toBe(join(projectRoot, "tmp", "e2e"));
+    expect(resolver.resolve({ kind: "e2e-root" })).toBe(join(canonicalRoot, "tmp", "e2e"));
     expect(() => resolver.resolve({ kind: "project-root" }, { testOnly: true })).toThrow(
       "Verification must use the disposable folder",
     );
     expect(resolver.resolve({ kind: "e2e-root" }, { testOnly: true })).toBe(
-      join(projectRoot, "tmp", "e2e"),
+      join(canonicalRoot, "tmp", "e2e"),
     );
   });
 
@@ -71,9 +72,10 @@ describe("SafePathResolver", () => {
     symlinkSync(realParent, alias, process.platform === "win32" ? "junction" : "dir");
 
     const resolver = new SafePathResolver(join(alias, "project"));
-    expect(resolver.projectRoot).toBe(projectRoot);
+    const canonicalRoot = realpathSync.native(projectRoot);
+    expect(resolver.projectRoot).toBe(canonicalRoot);
     expect(resolver.resolve({ kind: "project-relative", relativePath: "safe-child" })).toBe(
-      join(projectRoot, "safe-child"),
+      join(canonicalRoot, "safe-child"),
     );
   });
 });

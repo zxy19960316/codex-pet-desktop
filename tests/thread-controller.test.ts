@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -23,6 +23,7 @@ describe("ThreadController", () => {
       sendRequest: vi.fn().mockResolvedValue({ thread: { id: "t1", cwd: projectRoot } }),
     };
     const controller = new ThreadController(projectRoot);
+    const canonicalRoot = realpathSync.native(projectRoot);
     await expect(
       controller.create({ cwd: { kind: "project-root" } }, client),
     ).resolves.toMatchObject({
@@ -33,7 +34,7 @@ describe("ThreadController", () => {
     expect(client.sendRequest).toHaveBeenCalledWith(
       "thread/start",
       expect.objectContaining({
-        cwd: projectRoot,
+        cwd: canonicalRoot,
         ephemeral: true,
         approvalPolicy: "untrusted",
         approvalsReviewer: "user",
@@ -48,6 +49,7 @@ describe("ThreadController", () => {
       sendRequest: vi.fn().mockResolvedValue({ thread: { id: "test", cwd: projectRoot } }),
     };
     const controller = new ThreadController(projectRoot);
+    const canonicalRoot = realpathSync.native(projectRoot);
     expect(() => controller.validateCwd({ kind: "project-relative", relativePath: ".." })).toThrow(
       "not allowed",
     );
@@ -61,7 +63,9 @@ describe("ThreadController", () => {
     await controller.createE2eThread("approval-allow-run", client);
     expect(client.sendRequest).toHaveBeenCalledWith(
       "thread/start",
-      expect.objectContaining({ cwd: join(projectRoot, "tmp", "e2e", "approval-allow-run") }),
+      expect.objectContaining({
+        cwd: join(canonicalRoot, "tmp", "e2e", "approval-allow-run"),
+      }),
     );
   });
 
