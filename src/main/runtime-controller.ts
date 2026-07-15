@@ -17,6 +17,17 @@ import {
 } from "../core/codex/usage-provider";
 import { InputRouter } from "../core/input/input-router";
 import type { UserInputAnswers, UserInputRequest } from "../core/input/input-types";
+import {
+  type CodexThreadSnapshot,
+  type CreateThreadRequest,
+  type E2EVerificationRecord,
+  type InterruptTurnRequest,
+  type StartTurnRequest,
+  type SteerTurnRequest,
+} from "../core/codex/control-types";
+import { ThreadController } from "../core/codex/thread-controller";
+import { TurnController } from "../core/codex/turn-controller";
+import { createHash } from "node:crypto";
 import { SafeLogger } from "../core/logging/logger";
 import { PetStateMachine } from "../core/pet/state-machine";
 import type { PetState, PetStateChange } from "../core/pet/pet-state";
@@ -63,6 +74,10 @@ export class RuntimeController {
   readonly #inputRouter: InputRouter;
   readonly #serverRequests: ServerRequestRegistry;
   readonly #appServer: AppServerProcess;
+  readonly #threadController = new ThreadController(process.cwd());
+  readonly #turnController = new TurnController(this.#threadController);
+  readonly #e2eRecords: E2EVerificationRecord[] = [];
+  readonly #testTurns = new Map<string, "approval" | "input">();
   #settings: LocalSettings;
   #usageProvider?: UsageProvider;
   #rateLimits: RateLimitBucket[] | null = null;
@@ -70,7 +85,6 @@ export class RuntimeController {
   #connectionStatus: AppServerStatus = "stopped";
   #connectionDetail?: string;
   #protocolSource: DesktopSnapshot["protocolSource"] = "unavailable";
-  #selectedThreadId?: string;
   #lastActiveThreadId?: string;
   #mockInputIndex = 0;
 
@@ -136,7 +150,7 @@ export class RuntimeController {
   }
 
   getSnapshot(): DesktopSnapshot {
-    const selected = this.#selectedThreadId ?? this.#lastActiveThreadId;
+    const selected = this.#threadController.selectedThreadId ?? this.#lastActiveThreadId;
     const current = selected ? (this.#threadTokenUsage.get(selected)?.totalTokens ?? null) : null;
     return {
       connectionStatus: this.#connectionStatus,
@@ -144,13 +158,16 @@ export class RuntimeController {
       petState: this.#petStateMachine.getGlobalState(),
       threadStates: this.#petStateMachine.snapshot(),
       activeThreadCount: this.#petStateMachine.getActiveThreadCount(),
-      currentCwd: process.cwd(),
+      currentCwd: this.#threadController.currentCwd,
       approvals: this.#approvalRouter.getQueue(),
       userInputs: this.#inputRouter.snapshot(),
       rateLimits: this.#rateLimits,
       dailyUsage: this.#dailyUsage,
       threadTokenUsage: [...this.#threadTokenUsage.values()].map((usage) => ({ ...usage })),
-      selectedThreadId: this.#selectedThreadId,
+      selectedThreadId: this.#threadController.selectedThreadId,
+      selectedThread: this.#threadController.selected(),
+      threads: this.#threadController.snapshot(),
+      e2eRecords: this.#e2eRecords.map((record) => ({ ...record })),
       currentThreadTokens: current,
       settings: { ...this.#settings },
       protocolSource: this.#protocolSource,
@@ -168,11 +185,26 @@ export class RuntimeController {
   }
 
   async respondApproval(requestId: string, decision: ApprovalDecision): Promise<void> {
+    const request = this.#approvalRouter.getQueue().find((item) => item.requestId === requestId);
     await this.#approvalRouter.respond(requestId, decision);
+    if (request?.turnId && this.#testTurns.get(request.turnId) === "approval") {
+      this.#recordE2e(
+        decision === "accept" || decision === "acceptForSession"
+          ? "approval-allow"
+          : "approval-deny",
+        request.threadId,
+        request.turnId,
+        requestId,
+        "passed",
+      );
+    }
   }
 
   async respondUserInput(requestId: string, answers: UserInputAnswers): Promise<void> {
+    const request = this.#inputRouter.snapshot().find((item) => item.requestId === requestId);
     await this.#inputRouter.respond(requestId, answers);
+    if (request?.turnId && this.#testTurns.get(request.turnId) === "input")
+      this.#recordE2e("user-input", request.threadId, request.turnId, requestId, "passed");
   }
 
   async cancelUserInput(requestId: string): Promise<void> {
@@ -270,9 +302,45 @@ export class RuntimeController {
     this.#applyRequestState(request.threadId);
   }
 
-  setSelectedThreadId(threadId: string | undefined): void {
-    this.#selectedThreadId = threadId;
+  async createThread(request: CreateThreadRequest): Promise<CodexThreadSnapshot> {
+    const thread = await this.#threadController.create(request, this.#client());
     this.#emit();
+    return thread;
+  }
+
+  async startTurn(request: StartTurnRequest): Promise<string> {
+    const turnId = await this.#turnController.start(request, this.#client());
+    if (request.mode === "approval-test") this.#testTurns.set(turnId, "approval");
+    if (request.mode === "input-test") this.#testTurns.set(turnId, "input");
+    this.#emit();
+    return turnId;
+  }
+
+  async steerTurn(request: SteerTurnRequest): Promise<void> {
+    await this.#turnController.steer(request, this.#client());
+    this.#emit();
+  }
+
+  async interruptTurn(request: InterruptTurnRequest): Promise<void> {
+    await this.#turnController.interrupt(request, this.#client());
+    this.#emit();
+  }
+
+  selectThread(threadId: string): void {
+    this.#threadController.select(threadId);
+    this.#emit();
+  }
+
+  setSelectedThreadId(threadId: string | undefined): void {
+    if (threadId) this.selectThread(threadId);
+  }
+
+  async runApprovalTest(): Promise<string> {
+    return this.#runTestTurn("approval-test");
+  }
+
+  async runUserInputTest(): Promise<string> {
+    return this.#runTestTurn("input-test");
   }
 
   async #connectCodex(): Promise<void> {
@@ -314,23 +382,27 @@ export class RuntimeController {
   #updateStatus(status: AppServerStatus, detail?: string): void {
     this.#connectionStatus = status;
     this.#connectionDetail = detail;
-    if (status === "error") this.#serverRequests.clearAll("App Server disconnected");
+    if (status === "error" || status === "stopped")
+      this.#serverRequests.clearAll("App Server disconnected");
     this.#emit();
   }
 
   #applyNotification(method: string, params: unknown): void {
+    this.#threadController.observe(method, params);
     for (const event of this.#normalizer.normalizeNotification(method, params))
       this.#applyEvent(event);
   }
 
   #applyEvent(event: DomainEvent): void {
     if (event.type === "pet-state") {
+      this.#threadController.touch(event.threadId);
       this.#actualStates.set(event.threadId, event);
       this.#lastActiveThreadId = event.threadId;
       this.#applyRequestState(event.threadId);
       return;
     }
     if (event.type === "token-usage") {
+      this.#threadController.touch(event.threadId);
       const usage = normalizeThreadTokenUsage(event.threadId, event.tokenUsage);
       if (usage) {
         this.#threadTokenUsage.set(event.threadId, usage);
@@ -349,6 +421,9 @@ export class RuntimeController {
     }
     if (event.type === "turn-completed") {
       if (event.turnId) this.#serverRequests.clearByTurn(event.threadId, event.turnId);
+      this.#threadController.markTurnCompleted(event.threadId, event.turnId);
+      if (event.turnId) this.#testTurns.delete(event.turnId);
+      this.#emit();
       return;
     }
     if (event.type === "thread-ended") {
@@ -356,7 +431,7 @@ export class RuntimeController {
       this.#actualStates.delete(event.threadId);
       this.#serverRequests.clearByThread(event.threadId);
       this.#petStateMachine.remove(event.threadId);
-      if (this.#selectedThreadId === event.threadId) this.#selectedThreadId = undefined;
+      this.#threadController.remove(event.threadId);
       return;
     }
     if (event.type === "diagnostic")
@@ -374,6 +449,7 @@ export class RuntimeController {
   }
 
   #applyRequestState(threadId: string): void {
+    this.#threadController.touch(threadId);
     const approval = this.#approvalRouter
       .getQueue()
       .some((request) => request.threadId === threadId);
@@ -386,6 +462,47 @@ export class RuntimeController {
       source: approval ? "approval-router" : input ? "input-router" : (actual?.source ?? "runtime"),
       timestamp: Date.now(),
     });
+    if (approval || input) this.#threadController.markWaiting(threadId);
+    else if (actual?.state === "error") this.#threadController.markError(threadId);
+  }
+
+  #client() {
+    const client = this.#appServer.client;
+    if (!client) throw new Error("Codex App Server is not connected");
+    return client;
+  }
+
+  async #runTestTurn(mode: "approval-test" | "input-test"): Promise<string> {
+    const cwd = this.#threadController.validateCwd(`${process.cwd()}/tmp/e2e`);
+    const thread = await this.#threadController.create({ cwd }, this.#client());
+    const turnId = await this.#turnController.start(
+      { threadId: thread.threadId, prompt: "developer test", mode },
+      this.#client(),
+    );
+    this.#testTurns.set(turnId, mode === "approval-test" ? "approval" : "input");
+    this.#emit();
+    return turnId;
+  }
+
+  #recordE2e(
+    kind: E2EVerificationRecord["kind"],
+    threadId: string,
+    turnId: string | undefined,
+    requestId: string,
+    result: E2EVerificationRecord["result"],
+  ): void {
+    const hash = (value: string) => createHash("sha256").update(value).digest("hex").slice(0, 12);
+    this.#e2eRecords.unshift({
+      kind,
+      threadIdHash: hash(threadId),
+      turnIdHash: turnId ? hash(turnId) : undefined,
+      requestIdHash: hash(requestId),
+      startedAt: Date.now(),
+      completedAt: Date.now(),
+      result,
+    });
+    this.#e2eRecords.splice(20);
+    this.#emit();
   }
 
   #emit(): void {

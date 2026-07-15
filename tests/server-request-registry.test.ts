@@ -59,4 +59,35 @@ describe("ServerRequestRegistry", () => {
     ]);
     expect(JSON.stringify(diagnostics)).not.toContain("private command body");
   });
+
+  it("rejects a pending approval when its turn completes", async () => {
+    const transport = new MockTransport();
+    const approvals = new ApprovalRouter({ respond: async () => undefined });
+    const registry = new ServerRequestRegistry({
+      approvalRouter: approvals,
+      inputRouter: new InputRouter(),
+    });
+    const client = new JsonRpcClient(transport);
+    registry.register(client);
+    client.handleIncomingLine(
+      JSON.stringify({
+        jsonrpc: "2.0",
+        id: 9,
+        method: "item/commandExecution/requestApproval",
+        params: {
+          threadId: "thread-a",
+          turnId: "turn-a",
+          itemId: "item-a",
+          availableDecisions: ["accept"],
+        },
+      }),
+    );
+    registry.clearByTurn("thread-a", "turn-a");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(approvals.getQueue()).toEqual([]);
+    expect(JSON.parse(transport.lines.at(-1) ?? "{}")).toMatchObject({
+      id: 9,
+      error: { message: "Request rejected" },
+    });
+  });
 });

@@ -12,6 +12,10 @@
 2. Use a disposable project copy. Create only Git-ignored `tmp/approval-test.txt` if a file-change check is needed.
 3. Do not use deletion, system settings, downloads, software installation, administrator commands, history rewrites, or force pushes.
 
+For M2.5, enable Debug controls and select **Run real approval test**. The app creates an ephemeral
+thread under Git-ignored `tmp/e2e/` and sends the fixed harmless `node --version` request; do not
+substitute a project, home, or system cwd for this test.
+
 ## Command allow path
 
 Ask the connected Codex thread to request approval for the harmless command `node --version`.

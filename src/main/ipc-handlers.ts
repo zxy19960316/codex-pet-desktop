@@ -4,6 +4,12 @@ import type { UserInputAnswers } from "../core/input/input-types";
 import { isPetState } from "../core/pet/pet-state";
 import { IPC_CHANNELS, type DesktopSnapshot } from "../shared/ipc-contract";
 import type { LocalSettings } from "../shared/settings";
+import type {
+  CreateThreadRequest,
+  InterruptTurnRequest,
+  StartTurnRequest,
+  SteerTurnRequest,
+} from "../core/codex/control-types";
 
 export interface IpcActions {
   getSnapshot(): DesktopSnapshot;
@@ -19,6 +25,13 @@ export interface IpcActions {
   respondUserInput(requestId: string, answers: UserInputAnswers): Promise<void>;
   cancelUserInput(requestId: string): Promise<void>;
   enqueueMockUserInput(): void;
+  createThread(request: CreateThreadRequest): Promise<DesktopSnapshot["threads"][number]>;
+  startTurn(request: StartTurnRequest): Promise<string>;
+  steerTurn(request: SteerTurnRequest): Promise<void>;
+  interruptTurn(request: InterruptTurnRequest): Promise<void>;
+  selectThread(threadId: string): void;
+  runApprovalTest(): Promise<string>;
+  runUserInputTest(): Promise<string>;
 }
 
 const DECISIONS = new Set<ApprovalDecision>(["accept", "acceptForSession", "decline", "cancel"]);
@@ -34,6 +47,16 @@ function isUserInputAnswers(value: unknown): value is UserInputAnswers {
         answer.selectedOptionIds.every((id) => typeof id === "string")) &&
       (answer.freeText === undefined || typeof answer.freeText === "string"),
   );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function requiredText(value: unknown, label: string): string {
+  if (typeof value !== "string" || !value.trim() || value.includes("\0"))
+    throw new Error(`Invalid ${label}`);
+  return value;
 }
 
 export function registerIpcHandlers(actions: IpcActions): () => void {
@@ -72,6 +95,41 @@ export function registerIpcHandlers(actions: IpcActions): () => void {
     return actions.cancelUserInput(requestId);
   });
   ipcMain.handle(IPC_CHANNELS.enqueueMockUserInput, () => actions.enqueueMockUserInput());
+  ipcMain.handle(IPC_CHANNELS.createThread, (_event, request: unknown) => {
+    if (!isRecord(request)) throw new Error("Invalid create-thread request");
+    return actions.createThread({ cwd: requiredText(request.cwd, "cwd") });
+  });
+  ipcMain.handle(IPC_CHANNELS.startTurn, (_event, request: unknown) => {
+    if (!isRecord(request)) throw new Error("Invalid start-turn request");
+    const mode = request.mode;
+    if (mode !== "normal" && mode !== "approval-test" && mode !== "input-test")
+      throw new Error("Invalid start-turn mode");
+    return actions.startTurn({
+      threadId: requiredText(request.threadId, "thread ID"),
+      prompt: requiredText(request.prompt, "prompt"),
+      mode,
+    });
+  });
+  ipcMain.handle(IPC_CHANNELS.steerTurn, (_event, request: unknown) => {
+    if (!isRecord(request)) throw new Error("Invalid steer-turn request");
+    return actions.steerTurn({
+      threadId: requiredText(request.threadId, "thread ID"),
+      expectedTurnId: requiredText(request.expectedTurnId, "turn ID"),
+      message: requiredText(request.message, "message"),
+    });
+  });
+  ipcMain.handle(IPC_CHANNELS.interruptTurn, (_event, request: unknown) => {
+    if (!isRecord(request)) throw new Error("Invalid interrupt-turn request");
+    return actions.interruptTurn({
+      threadId: requiredText(request.threadId, "thread ID"),
+      turnId: requiredText(request.turnId, "turn ID"),
+    });
+  });
+  ipcMain.handle(IPC_CHANNELS.selectThread, (_event, threadId: unknown) =>
+    actions.selectThread(requiredText(threadId, "thread ID")),
+  );
+  ipcMain.handle(IPC_CHANNELS.runApprovalTest, () => actions.runApprovalTest());
+  ipcMain.handle(IPC_CHANNELS.runUserInputTest, () => actions.runUserInputTest());
   ipcMain.handle(IPC_CHANNELS.quit, () => app.quit());
   return () => {
     for (const channel of Object.values(IPC_CHANNELS)) ipcMain.removeHandler(channel);

@@ -23,6 +23,8 @@ compact usage HUD.
   multiple choices, and free text and are visibly labeled.
 - Clearly labeled Mock usage and approval data for deterministic UI development.
 - Debug controls that can trigger every supported pet state.
+- Debug-only Developer controls for ephemeral threads, real turns, steer, interrupt, and safe real
+  approval/user-input test entry points.
 
 ## Status and roadmap
 
@@ -32,6 +34,8 @@ compact usage HUD.
   confirmation remains a guided manual check.
 - **M2 — User input and replies:** implemented through request/reply routing and UI; human real
   App Server confirmation remains a guided manual check.
+- **M2.5 — Thread and turn control:** implemented with explicit thread/turn ownership, restricted
+  developer-test cwd, and real-request entry points; human desktop E2E remains guided/manual.
 - **M3 — Complete quota and token HUD:** planned.
 - **M4 — Pet packs and animation system:** planned.
 - **M5 — Multiple sessions and productization:** planned.
@@ -78,8 +82,9 @@ When real account usage endpoints are unavailable, the HUD says that data is una
 values are opt-in and visibly labeled; they are never represented as real Codex account data.
 
 Real protocol, mock, and manual verification status are deliberately separate. See
-[`docs/reports/M1_5_M2_IMPLEMENTATION.md`](docs/reports/M1_5_M2_IMPLEMENTATION.md) and the two
-manual guides under `docs/guides/` before treating an approval or user-input flow as human
+[`docs/reports/M1_5_M2_IMPLEMENTATION.md`](docs/reports/M1_5_M2_IMPLEMENTATION.md),
+[`docs/reports/M2_5_IMPLEMENTATION.md`](docs/reports/M2_5_IMPLEMENTATION.md), and the manual
+guides under `docs/guides/` before treating an approval or user-input flow as human
 end-to-end verified.
 
 ## Pet assets

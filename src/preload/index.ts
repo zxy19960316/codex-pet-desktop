@@ -23,6 +23,13 @@ const api: DesktopApi = {
     ipcRenderer.invoke(IPC_CHANNELS.respondUserInput, requestId, answers),
   cancelUserInput: (requestId) => ipcRenderer.invoke(IPC_CHANNELS.cancelUserInput, requestId),
   enqueueMockUserInput: () => ipcRenderer.invoke(IPC_CHANNELS.enqueueMockUserInput),
+  createThread: (request) => ipcRenderer.invoke(IPC_CHANNELS.createThread, request),
+  startTurn: (request) => ipcRenderer.invoke(IPC_CHANNELS.startTurn, request),
+  steerTurn: (request) => ipcRenderer.invoke(IPC_CHANNELS.steerTurn, request),
+  interruptTurn: (request) => ipcRenderer.invoke(IPC_CHANNELS.interruptTurn, request),
+  selectThread: (threadId) => ipcRenderer.invoke(IPC_CHANNELS.selectThread, threadId),
+  runApprovalTest: () => ipcRenderer.invoke(IPC_CHANNELS.runApprovalTest),
+  runUserInputTest: () => ipcRenderer.invoke(IPC_CHANNELS.runUserInputTest),
   quit: () => ipcRenderer.invoke(IPC_CHANNELS.quit),
 };
 

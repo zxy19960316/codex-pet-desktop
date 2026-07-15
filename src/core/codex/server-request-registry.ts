@@ -101,6 +101,9 @@ export class ServerRequestRegistry {
   }
 
   clearByTurn(threadId: string, turnId: string): void {
+    for (const [id, pending] of this.#pendingApprovals)
+      if (pending.request.threadId === threadId && pending.request.turnId === turnId)
+        this.#rejectApproval(id, "The turn completed before approval was submitted");
     this.#inputRouter.clearByTurn(threadId, turnId);
   }
 

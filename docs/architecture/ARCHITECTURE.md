@@ -54,6 +54,22 @@ Thread token notifications are normalized into a `Map<string, ThreadTokenUsage>`
 receives an array plus an optional selected thread ID, while `currentThreadTokens` is derived from
 that selected thread or the last active thread. Token payloads are never sent to diagnostics.
 
+## Thread and turn control
+
+`ThreadController` owns developer-created thread metadata, selection, and cwd validation. It accepts
+only absolute paths in the repository root or Git-ignored `tmp/e2e/` subtree, and creates ephemeral
+threads with fixed `untrusted` approval policy, `workspace-write` sandbox mode, and `user` approval
+reviewer. It never accepts renderer-selected sandbox or approval settings.
+
+`TurnController` owns `turn/start`, `turn/steer`, and `turn/interrupt` parameters. Steer requires
+the supplied `expectedTurnId` to match the active turn; interrupt requires the active thread/turn
+pair. The renderer has only seven typed control actions: create, start, steer, interrupt, select,
+approval test, and user-input test; it cannot make arbitrary JSON-RPC calls.
+
+Developer controls render only while `debugVisible` is true. Fixed test prompts prohibit network,
+Git, credentials, installation, and source changes. In-memory E2E records hold only short hashes of
+request IDs and never command, answer, prompt, or path bodies.
+
 ## Security and storage
 
 Browser windows use `contextIsolation: true`, `nodeIntegration: false`, and `sandbox: true`.

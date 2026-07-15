@@ -215,6 +215,10 @@
   thread-aware token snapshots, CI repair, and explicit manual approval evidence.
 - **M2 — User input and replies:** normalized request routing, strict IPC, typed reply cards, and
   mock verification; human real-App-Server confirmation remains a manual guide.
+- **M2.5 — Codex conversation control:** explicit `thread/start`, `turn/start`, `turn/steer`, and
+  `turn/interrupt` controllers; debug-only safe developer controls; selected-thread cwd; lifecycle
+  cleanup; and separate protocol/mock/human verification records. M3 HUD and M4 pet packs follow
+  only after guided real desktop approval and input checks are recorded.
 - **M3 — Complete quota and Token HUD:** future; M1 supplies only provider/UI foundations.
 - **M4 — Pet packs and animation system:** future; M1 supplies only a safe manifest skeleton and original placeholder.
 - **M5 — Multiple sessions and productization:** future; M1 tracks independent thread state only.

@@ -5,6 +5,14 @@ import type { ThreadTokenUsage } from "../core/codex/usage-provider";
 import type { UserInputAnswers, UserInputRequest } from "../core/input/input-types";
 import type { PetState, PetStateChange } from "../core/pet/pet-state";
 import type { LocalSettings } from "./settings";
+import type {
+  CodexThreadSnapshot,
+  CreateThreadRequest,
+  E2EVerificationRecord,
+  InterruptTurnRequest,
+  StartTurnRequest,
+  SteerTurnRequest,
+} from "../core/codex/control-types";
 
 export const IPC_CHANNELS = {
   getSnapshot: "desktop:get-snapshot",
@@ -21,6 +29,13 @@ export const IPC_CHANNELS = {
   respondUserInput: "desktop:respond-user-input",
   cancelUserInput: "desktop:cancel-user-input",
   enqueueMockUserInput: "desktop:enqueue-mock-user-input",
+  createThread: "desktop:create-thread",
+  startTurn: "desktop:start-turn",
+  steerTurn: "desktop:steer-turn",
+  interruptTurn: "desktop:interrupt-turn",
+  selectThread: "desktop:select-thread",
+  runApprovalTest: "desktop:run-approval-test",
+  runUserInputTest: "desktop:run-user-input-test",
   quit: "desktop:quit",
 } as const;
 
@@ -37,6 +52,9 @@ export interface DesktopSnapshot {
   dailyUsage: DailyUsage | null;
   threadTokenUsage: ThreadTokenUsage[];
   selectedThreadId?: string;
+  selectedThread?: CodexThreadSnapshot;
+  threads: CodexThreadSnapshot[];
+  e2eRecords: E2EVerificationRecord[];
   currentThreadTokens: number | null;
   settings: LocalSettings;
   protocolSource: "codex-app-server" | "mock" | "unavailable";
@@ -57,5 +75,12 @@ export interface DesktopApi {
   respondUserInput(requestId: string, answers: UserInputAnswers): Promise<void>;
   cancelUserInput(requestId: string): Promise<void>;
   enqueueMockUserInput(): Promise<void>;
+  createThread(request: CreateThreadRequest): Promise<CodexThreadSnapshot>;
+  startTurn(request: StartTurnRequest): Promise<string>;
+  steerTurn(request: SteerTurnRequest): Promise<void>;
+  interruptTurn(request: InterruptTurnRequest): Promise<void>;
+  selectThread(threadId: string): Promise<void>;
+  runApprovalTest(): Promise<string>;
+  runUserInputTest(): Promise<string>;
   quit(): Promise<void>;
 }

@@ -21,6 +21,7 @@ export async function runSmokeValidation(options: SmokeValidationOptions): Promi
   const dom = (await options.window.webContents.executeJavaScript(`({
     hud: Boolean(document.querySelector('[aria-label="Codex usage HUD"]')),
     debug: Boolean(document.querySelector('[aria-label="Debug controls"]')),
+    developerControls: Boolean(document.querySelector('[aria-label="Developer controls"]')),
     approval: Boolean(document.querySelector('[aria-label="Approval request"]')),
     userInput: Boolean(document.querySelector('[aria-label="User input request"]')),
     connected: Boolean(document.querySelector('.connection--connected')),

@@ -1,5 +1,6 @@
 import { ApprovalCard } from "../approval/ApprovalCard";
 import { DebugPanel } from "../debug/DebugPanel";
+import { CodexControlPanel } from "../control/CodexControlPanel";
 import { Hud } from "../hud/Hud";
 import { Pet } from "../pet/Pet";
 import { ReplyCard } from "../reply/ReplyCard";
@@ -30,7 +31,12 @@ export function App() {
         <ReplyCard request={snapshot.userInputs[0]} queueSize={snapshot.userInputs.length} />
       )}
       {snapshot.settings.hudVisible && <Hud snapshot={snapshot} />}
-      {snapshot.settings.debugVisible && <DebugPanel snapshot={snapshot} />}
+      {snapshot.settings.debugVisible && (
+        <>
+          <DebugPanel snapshot={snapshot} />
+          <CodexControlPanel snapshot={snapshot} />
+        </>
+      )}
     </main>
   );
 }

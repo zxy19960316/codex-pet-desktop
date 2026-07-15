@@ -14,5 +14,6 @@ assets-local/
 pokemon-pets/
 
 .codex-log/
+tmp/e2e/
 .DS_Store
 Thumbs.db

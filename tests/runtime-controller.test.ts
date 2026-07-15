@@ -61,7 +61,7 @@ describe("RuntimeController", () => {
     expect(publish).toHaveBeenCalled();
   });
 
-  it("keeps mock input pending only until shutdown or server disconnect", async () => {
+  it("keeps mock input pending only until shutdown or App Server disconnect/stopped state", async () => {
     let appServerOptions: AppServerProcessOptions | undefined;
     const controller = new RuntimeController({
       logger: new SafeLogger(),
@@ -83,6 +83,9 @@ describe("RuntimeController", () => {
       userInputs: [{ isMock: true }],
     });
     appServerOptions?.onStatus?.("error", "test disconnect");
+    expect(controller.getSnapshot().userInputs).toEqual([]);
+    controller.enqueueMockUserInput();
+    appServerOptions?.onStatus?.("stopped", "test stopped");
     expect(controller.getSnapshot().userInputs).toEqual([]);
   });
 });

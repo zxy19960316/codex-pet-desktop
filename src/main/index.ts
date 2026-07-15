@@ -82,6 +82,13 @@ async function startApplication(): Promise<void> {
     patchSettings: (patch) => runtime.patchSettings(patch),
     enqueueMockApproval: () => runtime.enqueueMockApproval(),
     enqueueMockUserInput: () => runtime.enqueueMockUserInput(),
+    createThread: (request) => runtime.createThread(request),
+    startTurn: (request) => runtime.startTurn(request),
+    steerTurn: (request) => runtime.steerTurn(request),
+    interruptTurn: (request) => runtime.interruptTurn(request),
+    selectThread: (threadId) => runtime.selectThread(threadId),
+    runApprovalTest: () => runtime.runApprovalTest(),
+    runUserInputTest: () => runtime.runUserInputTest(),
   });
   await runtime.start();
   if (smokeOutput && !smokeReal) {

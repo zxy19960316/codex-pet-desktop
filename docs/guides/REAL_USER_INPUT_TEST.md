@@ -27,3 +27,13 @@ Only the normalized request and validated domain answers cross the renderer/main
 6. Repeat with cancellation and with a deliberately expired request where available.
 
 Do not use keyboard simulation, do not submit secrets, and do not treat Mock results as real App Server verification.
+
+## M2.5 controlled entry point and cancellation
+
+Enable Debug controls and select **Run real user-input test** to create an ephemeral `tmp/e2e/`
+thread and send the fixed harmless request for A/B plus Other free text. The generated `0.144.4`
+protocol has no explicit cancellation response for `item/tool/requestUserInput`; its response shape
+is `{ answers: Record<questionId, { answers: string[] }> }`. The current Cancel button therefore
+sends the structurally valid empty mapping `{ answers: {} }` and clears the card. This is
+protocol/automated evidence only: manually verify the App Server's runtime behavior before treating
+it as a successful cancellation result.
