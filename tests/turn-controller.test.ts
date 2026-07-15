@@ -37,7 +37,7 @@ describe("TurnController", () => {
         threadId: "thread",
         input: [
           expect.objectContaining({
-            text: expect.stringContaining("node -e"),
+            text: expect.stringContaining("codex --version"),
           }),
         ],
       }),

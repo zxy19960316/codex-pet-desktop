@@ -23,16 +23,6 @@ interface ThreadStartLike {
   sandbox?: unknown;
 }
 
-interface E2EThreadOptions {
-  forceHumanApproval?: boolean;
-}
-
-const APPROVAL_VERIFICATION_INSTRUCTIONS = [
-  "This is an isolated human approval verification thread.",
-  "For every shell command, set sandbox_permissions to require_escalated and include a short harmless-test justification so the App Server must route the request to the human reviewer before execution.",
-  "If the shell tool cannot request require_escalated, do not execute the command and report that the approval probe is unsupported.",
-].join(" ");
-
 function asObject(value: unknown): Record<string, unknown> | undefined {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -110,13 +100,8 @@ export class ThreadController {
   async createE2eThread(
     directoryName: string,
     client: CodexRpcClient,
-    options: E2EThreadOptions = {},
   ): Promise<CodexThreadSnapshot> {
-    return this.#create(
-      this.#safePaths.resolveE2eChild(directoryName),
-      client,
-      options.forceHumanApproval ? APPROVAL_VERIFICATION_INSTRUCTIONS : undefined,
-    );
+    return this.#create(this.#safePaths.resolveE2eChild(directoryName), client);
   }
 
   select(threadId: string): void {
@@ -194,18 +179,13 @@ export class ThreadController {
     this.#upsert(candidate, "observed");
   }
 
-  async #create(
-    cwd: string,
-    client: CodexRpcClient,
-    developerInstructions?: string,
-  ): Promise<CodexThreadSnapshot> {
+  async #create(cwd: string, client: CodexRpcClient): Promise<CodexThreadSnapshot> {
     const result = await client.sendRequest<ThreadStartLike>("thread/start", {
       cwd,
       ephemeral: true,
       approvalPolicy: "untrusted",
       approvalsReviewer: "user",
       sandbox: "workspace-write",
-      ...(developerInstructions ? { developerInstructions } : {}),
     });
     if (result.approvalPolicy !== undefined && result.approvalPolicy !== "untrusted")
       throw new Error("App Server did not apply the required approval policy");
