@@ -42,6 +42,15 @@ async function startApplication(): Promise<void> {
   const smokeInputOnly = process.env.CODEX_PET_SMOKE_INPUT === "1";
   const guidedE2E = process.argv.includes("--m2-6-e2e");
   const guidedE2EResult = join(process.cwd(), "tmp", "e2e", "results", "latest.json");
+  if (guidedE2E) {
+    settings = {
+      ...settings,
+      debugVisible: true,
+      useMockData: false,
+      autoStartAppServer: true,
+      clickThrough: false,
+    };
+  }
   if (smokeOutput) {
     settings = {
       ...settings,
