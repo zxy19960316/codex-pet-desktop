@@ -30,7 +30,16 @@ export class LocalSettingsStore {
   async read(): Promise<LocalSettings> {
     try {
       const raw = JSON.parse(await readFile(this.#path, "utf8")) as Partial<LocalSettings>;
-      return { ...DEFAULT_SETTINGS, ...raw };
+      const merged = { ...DEFAULT_SETTINGS, ...raw };
+      if (raw.layoutVersion !== DEFAULT_SETTINGS.layoutVersion) {
+        return {
+          ...merged,
+          layoutVersion: DEFAULT_SETTINGS.layoutVersion,
+          hudVisible: false,
+          debugVisible: false,
+        };
+      }
+      return merged;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT" && !(error instanceof SyntaxError))
         throw error;

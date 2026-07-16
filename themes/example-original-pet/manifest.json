@@ -1,14 +1,48 @@
 {
-  "id": "example-original-pet",
-  "displayName": "Original Violet Orb",
+  "id": "pixel-sprout",
+  "displayName": "Pixel Sprout",
   "animations": {
     "idle": {
-      "frames": 1,
-      "frameWidth": 118,
-      "frameHeight": 112,
-      "durationMs": 3200,
+      "row": 0,
+      "frames": 4,
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "durationMs": 900,
       "loop": true
+    },
+    "thinking": {
+      "row": 1,
+      "frames": 4,
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "durationMs": 700,
+      "loop": true
+    },
+    "working": {
+      "row": 2,
+      "frames": 4,
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "durationMs": 520,
+      "loop": true
+    },
+    "success": {
+      "row": 3,
+      "frames": 4,
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "durationMs": 800,
+      "loop": false
     }
+  },
+  "fallbacks": {
+    "typing": "working",
+    "approval": "thinking",
+    "waiting_input": "thinking",
+    "error": "thinking",
+    "sleeping": "idle",
+    "quota_low": "idle",
+    "quota_exhausted": "sleeping"
   },
   "attribution": [
     {

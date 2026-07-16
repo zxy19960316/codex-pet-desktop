@@ -9,6 +9,7 @@ import {
   type AppServerStatus,
 } from "../core/codex/app-server-process";
 import { EventNormalizer, type DomainEvent } from "../core/codex/event-normalizer";
+import { hookEventToPetState, type CodexHookEvent } from "../core/codex/hook-event";
 import { ServerRequestRegistry } from "../core/codex/server-request-registry";
 import {
   CodexUsageProvider,
@@ -264,6 +265,17 @@ export class RuntimeController {
       timestamp: Date.now(),
     };
     this.#actualStates.set(change.threadId, change);
+    this.#applyRequestState(change.threadId);
+  }
+
+  applyHookEvent(event: CodexHookEvent): void {
+    if (this.#settings.useMockData) return;
+    const change = hookEventToPetState(event);
+    this.#actualStates.set(change.threadId, change);
+    this.#lastActiveThreadId = change.threadId;
+    this.#connectionStatus = "connected";
+    this.#connectionDetail = "Codex Hook active";
+    this.#protocolSource = "codex-hooks";
     this.#applyRequestState(change.threadId);
   }
 
@@ -602,6 +614,7 @@ export class RuntimeController {
       state: approval ? "approval" : input ? "waiting_input" : (actual?.state ?? "idle"),
       source: approval ? "approval-router" : input ? "input-router" : (actual?.source ?? "runtime"),
       timestamp: Date.now(),
+      transientReturnState: actual?.transientReturnState,
     });
     if (approval || input) this.#threadController.markWaiting(threadId);
     else if (actual?.state === "error") this.#threadController.markError(threadId);

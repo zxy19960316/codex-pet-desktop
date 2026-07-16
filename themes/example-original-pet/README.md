@@ -1,4 +1,5 @@
-# Original Violet Orb
+# Pixel Sprout
 
-This example describes the original CSS-drawn placeholder pet included in the renderer. It has no
-spritesheet and contains no third-party character artwork, sound, logo, font, or game resource.
+Pixel Sprout is an original code-drawn pixel sprite sheet included for deterministic development.
+It contains no third-party character artwork, sound, logo, font, or game resource. The SVG sheet
+uses only integer-aligned shapes and is rendered with nearest-neighbor scaling.

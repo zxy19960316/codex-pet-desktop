@@ -68,7 +68,7 @@ export interface DesktopSnapshot {
   e2eSteps: E2EVerificationStep[];
   currentThreadTokens: number | null;
   settings: LocalSettings;
-  protocolSource: "codex-app-server" | "mock" | "unavailable";
+  protocolSource: "codex-hooks" | "codex-app-server" | "mock" | "unavailable";
 }
 
 export interface DesktopApi {

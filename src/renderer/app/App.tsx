@@ -1,6 +1,7 @@
 import { ApprovalCard } from "../approval/ApprovalCard";
-import { DebugPanel } from "../debug/DebugPanel";
 import { CodexControlPanel } from "../control/CodexControlPanel";
+import { DebugPanel } from "../debug/DebugPanel";
+import { CompactHud } from "../hud/CompactHud";
 import { Hud } from "../hud/Hud";
 import { Pet } from "../pet/Pet";
 import { ReplyCard } from "../reply/ReplyCard";
@@ -8,7 +9,8 @@ import { useDesktopApi } from "./use-desktop-api";
 
 export function App() {
   const snapshot = useDesktopApi();
-  const waitingStep = snapshot?.e2eSteps.find((step) => step.state === "waiting-for-user");
+  if (!snapshot) return <main className="shell loading">Waking up...</main>;
+  const waitingStep = snapshot.e2eSteps.find((step) => step.state === "waiting-for-user");
   const approvalVerificationLabel =
     waitingStep?.kind === "approval-allow"
       ? "M2.6 Approval Allow Test"
@@ -17,21 +19,15 @@ export function App() {
         : undefined;
   const inputVerificationLabel =
     waitingStep?.kind === "user-input" ? "M2.6 User Input Test" : undefined;
-  if (!snapshot) return <main className="shell loading">Waking up…</main>;
+  const expanded =
+    snapshot.settings.hudVisible ||
+    snapshot.settings.debugVisible ||
+    snapshot.approvals.length > 0 ||
+    snapshot.userInputs.length > 0;
 
   return (
-    <main className="shell" data-state={snapshot.petState}>
-      <header className="drag-bar">
-        <span className={`connection connection--${snapshot.connectionStatus}`} />
-        <span>{snapshot.protocolSource === "mock" ? "Mock" : snapshot.connectionStatus}</span>
-        <button
-          className="icon-button no-drag"
-          onClick={() => void window.codexPet.toggleClickThrough()}
-          title="Toggle click-through"
-        >
-          {snapshot.settings.clickThrough ? "◌" : "●"}
-        </button>
-      </header>
+    <main className={`shell ${expanded ? "shell--expanded" : ""}`} data-state={snapshot.petState}>
+      <CompactHud snapshot={snapshot} />
       <Pet state={snapshot.petState} />
       {snapshot.approvals[0] && (
         <ApprovalCard

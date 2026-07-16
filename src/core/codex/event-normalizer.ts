@@ -9,6 +9,7 @@ export type DomainEvent =
       turnId?: string;
       source: string;
       timestamp: number;
+      transientReturnState?: PetState;
     }
   | { type: "token-usage"; threadId: string; turnId?: string; tokenUsage: unknown }
   | { type: "rate-limits"; rateLimits: unknown }
@@ -24,7 +25,12 @@ export type DomainEvent =
   | { type: "command-observed"; threadId: string; turnId?: string }
   | { type: "diagnostic"; code: "unknown-notification"; method: string };
 
-function petEvent(state: PetState, method: string, params: unknown): DomainEvent {
+function petEvent(
+  state: PetState,
+  method: string,
+  params: unknown,
+  transientReturnState?: PetState,
+): DomainEvent {
   return {
     type: "pet-state",
     state,
@@ -32,6 +38,7 @@ function petEvent(state: PetState, method: string, params: unknown): DomainEvent
     turnId: stringField(params, ["turnId"], ["turn", "id"]),
     source: `codex:${method}`,
     timestamp: Date.now(),
+    transientReturnState,
   };
 }
 
@@ -83,6 +90,7 @@ export class EventNormalizer {
               : "success",
           method,
           params,
+          "idle",
         ),
         {
           type: "turn-completed",

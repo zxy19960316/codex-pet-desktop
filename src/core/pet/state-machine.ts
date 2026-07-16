@@ -27,9 +27,10 @@ export class PetStateMachine {
     if (existing?.timer) clearTimeout(existing.timer);
     const transient = change.state === "success" || change.state === "error";
     const priorStable = transient
-      ? existing?.change.state === "success" || existing?.change.state === "error"
-        ? existing.priorStable
-        : (existing?.change.state ?? "idle")
+      ? (change.transientReturnState ??
+        (existing?.change.state === "success" || existing?.change.state === "error"
+          ? existing.priorStable
+          : (existing?.change.state ?? "idle")))
       : change.state;
     const record: ThreadRecord = { change: { ...change }, priorStable };
     this.#threads.set(change.threadId, record);
@@ -43,6 +44,7 @@ export class PetStateMachine {
           source: "transient-restore",
           timestamp: Date.now(),
           summary: undefined,
+          transientReturnState: undefined,
         };
         this.#threads.set(change.threadId, { change: restored, priorStable: restored.state });
         this.#onChange?.(this.getGlobalState(), restored);

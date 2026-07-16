@@ -21,6 +21,7 @@ export interface PetStateChange {
   source: string;
   timestamp: number;
   summary?: string;
+  transientReturnState?: PetState;
 }
 
 export function isPetState(value: unknown): value is PetState {

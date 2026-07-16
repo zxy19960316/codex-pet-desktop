@@ -15,5 +15,7 @@ pokemon-pets/
 
 .codex-log/
 tmp/e2e/
+tmp/hook-proof/
+tmp/ui-reset/
 .DS_Store
 Thumbs.db

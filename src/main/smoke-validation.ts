@@ -39,6 +39,7 @@ export async function runSmokeValidation(options: SmokeValidationOptions): Promi
     `${JSON.stringify(
       {
         window: {
+          bounds: options.window.getBounds(),
           visible: options.window.isVisible(),
           alwaysOnTop: options.window.isAlwaysOnTop(),
           skipTaskbar: true,

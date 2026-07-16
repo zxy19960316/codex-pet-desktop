@@ -2,12 +2,12 @@ import { BrowserWindow, screen } from "electron";
 import { join } from "node:path";
 import type { LocalSettings } from "../shared/settings";
 import { clampWindowPosition, LocalSettingsStore } from "./position-store";
-
-const WINDOW_SIZE = { width: 420, height: 700 };
+import { initialWindowMode, WINDOW_SIZES, type WindowMode } from "./window-layout";
 
 export class WindowManager {
   readonly #settingsStore: LocalSettingsStore;
   #window?: BrowserWindow;
+  #mode: WindowMode = "compact";
 
   constructor(settingsStore: LocalSettingsStore) {
     this.#settingsStore = settingsStore;
@@ -19,20 +19,22 @@ export class WindowManager {
 
   async create(settings: LocalSettings): Promise<BrowserWindow> {
     if (this.#window && !this.#window.isDestroyed()) return this.#window;
+    this.#mode = initialWindowMode(settings);
+    const windowSize = WINDOW_SIZES[this.#mode];
     const display = settings.petPosition
       ? screen.getDisplayNearestPoint(settings.petPosition)
       : screen.getPrimaryDisplay();
     const fallback = {
-      x: display.workArea.x + display.workArea.width - WINDOW_SIZE.width - 24,
-      y: display.workArea.y + display.workArea.height - WINDOW_SIZE.height - 24,
+      x: display.workArea.x + display.workArea.width - windowSize.width - 24,
+      y: display.workArea.y + display.workArea.height - windowSize.height - 24,
     };
     const position = clampWindowPosition(
       settings.petPosition ?? fallback,
       display.workArea,
-      WINDOW_SIZE,
+      windowSize,
     );
     const window = new BrowserWindow({
-      ...WINDOW_SIZE,
+      ...windowSize,
       ...position,
       frame: false,
       transparent: true,
@@ -63,6 +65,21 @@ export class WindowManager {
     await window.loadFile(join(__dirname, "../renderer/index.html"));
     window.once("ready-to-show", () => window.showInactive());
     return window;
+  }
+
+  setMode(mode: WindowMode): void {
+    const window = this.#window;
+    if (!window || window.isDestroyed() || mode === this.#mode) return;
+    const current = window.getBounds();
+    const nextSize = WINDOW_SIZES[mode];
+    const display = screen.getDisplayNearestPoint({ x: current.x, y: current.y });
+    const anchoredPosition = {
+      x: current.x + current.width - nextSize.width,
+      y: current.y + current.height - nextSize.height,
+    };
+    const position = clampWindowPosition(anchoredPosition, display.workArea, nextSize);
+    this.#mode = mode;
+    window.setBounds({ ...nextSize, ...position }, true);
   }
 
   showOrHide(): void {

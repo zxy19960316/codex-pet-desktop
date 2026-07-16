@@ -1,4 +1,7 @@
+import type { CSSProperties } from "react";
 import type { PetState } from "../../core/pet/pet-state";
+import { BUILTIN_PIXEL_THEME } from "./builtin-theme";
+import { resolvePetAnimation, spriteStyle } from "./pet-animation";
 
 const STATE_LABELS: Record<PetState, string> = {
   sleeping: "Sleeping",
@@ -15,20 +18,19 @@ const STATE_LABELS: Record<PetState, string> = {
 };
 
 export function Pet({ state }: { state: PetState }) {
+  const resolved = resolvePetAnimation(BUILTIN_PIXEL_THEME, state);
+  const style = spriteStyle(BUILTIN_PIXEL_THEME, resolved.animation) as CSSProperties;
   return (
     <section className="pet-stage" aria-label={`Pet state: ${STATE_LABELS[state]}`}>
       <div className="pet-shadow" />
-      <div className="pet" data-pet-state={state}>
-        <div className="pet-ear pet-ear--left" />
-        <div className="pet-ear pet-ear--right" />
-        <div className="pet-face">
-          <span className="pet-eye pet-eye--left" />
-          <span className="pet-eye pet-eye--right" />
-          <span className="pet-mouth" />
-        </div>
-        <div className="pet-spark">✦</div>
-      </div>
-      <div className="state-pill">{STATE_LABELS[state]}</div>
+      <div
+        className="pet-sprite"
+        data-pet-state={state}
+        data-animation-state={resolved.state}
+        style={style}
+        aria-hidden="true"
+      />
+      <span className="visually-hidden">{STATE_LABELS[state]}</span>
     </section>
   );
 }

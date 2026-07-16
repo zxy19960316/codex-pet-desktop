@@ -8,6 +8,7 @@ export interface TrayActions {
   toggleAlwaysOnTop(): void;
   toggleClickThrough(): void;
   reconnectCodex(): void;
+  connectCodexHook(): void;
 }
 
 export class TrayManager {
@@ -42,7 +43,8 @@ export class TrayManager {
           checked: settings.clickThrough,
           click: actions.toggleClickThrough,
         },
-        { label: "Reconnect Codex", click: actions.reconnectCodex },
+        { label: "Connect Codex activity…", click: actions.connectCodexHook },
+        { label: "Reconnect App Server", click: actions.reconnectCodex },
         { type: "separator" },
         { label: "About", click: () => app.showAboutPanel() },
         { label: "Quit", click: () => app.quit() },

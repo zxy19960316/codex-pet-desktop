@@ -1,4 +1,4 @@
-import { app } from "electron";
+import { app, dialog } from "electron";
 import { join } from "node:path";
 import { SafeLogger } from "../core/logging/logger";
 import type { PetState } from "../core/pet/pet-state";
@@ -6,11 +6,14 @@ import { IPC_CHANNELS } from "../shared/ipc-contract";
 import { type LocalSettings } from "../shared/settings";
 import { AppServerProcess } from "../core/codex/app-server-process";
 import { registerIpcHandlers } from "./ipc-handlers";
+import { HookEventBridge } from "./hook-event-bridge";
+import { installCodexPetHooks } from "./hook-installer";
 import { LocalSettingsStore } from "./position-store";
 import { RuntimeController } from "./runtime-controller";
 import { runSmokeValidation } from "./smoke-validation";
 import { writeE2EResult } from "./e2e-result-writer";
 import { TrayManager } from "./tray-manager";
+import { windowModeForSnapshot } from "./window-layout";
 import { WindowManager } from "./window-manager";
 
 const logger = new SafeLogger();
@@ -18,6 +21,32 @@ let settingsStore: LocalSettingsStore;
 let windowManager: WindowManager;
 let trayManager: TrayManager;
 let runtime: RuntimeController;
+let hookBridge: HookEventBridge;
+let hookEventsPath: string;
+
+async function connectCodexHook(): Promise<void> {
+  try {
+    await installCodexPetHooks({
+      hooksPath: join(app.getPath("home"), ".codex", "hooks.json"),
+      receiverPath: join(__dirname, "../hook/codex-pet-hook.cjs"),
+      eventPath: hookEventsPath,
+    });
+    await dialog.showMessageBox({
+      type: "info",
+      title: "Codex activity connected",
+      message: "The local activity hook is installed.",
+      detail:
+        "Open /hooks in Codex, review this hook, and choose Trust. Codex requires that final trust step before the pet can receive activity.",
+    });
+  } catch (error) {
+    await dialog.showMessageBox({
+      type: "error",
+      title: "Could not connect Codex activity",
+      message: "The hook configuration was not changed.",
+      detail: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+}
 let disposeIpc: (() => void) | undefined;
 
 function rebuildTray(settings: LocalSettings): void {
@@ -32,6 +61,7 @@ function rebuildTray(settings: LocalSettings): void {
     toggleClickThrough: () =>
       void runtime.patchSettings({ clickThrough: !runtime.getSnapshot().settings.clickThrough }),
     reconnectCodex: () => void runtime.reconnect().catch(() => undefined),
+    connectCodexHook: () => void connectCodexHook(),
   });
 }
 
@@ -41,6 +71,7 @@ async function startApplication(): Promise<void> {
   const smokeOutput = process.env.CODEX_PET_SMOKE_OUTPUT;
   const smokeReal = process.env.CODEX_PET_SMOKE_REAL === "1";
   const smokeInputOnly = process.env.CODEX_PET_SMOKE_INPUT === "1";
+  const smokeCompact = process.env.CODEX_PET_SMOKE_COMPACT === "1";
   const guidedE2E = process.argv.includes("--m2-6-e2e");
   const guidedE2EResult = join(process.cwd(), "tmp", "e2e", "results", "latest.json");
   if (guidedE2E) {
@@ -55,8 +86,8 @@ async function startApplication(): Promise<void> {
   if (smokeOutput) {
     settings = {
       ...settings,
-      hudVisible: true,
-      debugVisible: true,
+      hudVisible: !smokeCompact,
+      debugVisible: !smokeCompact,
       useMockData: !smokeReal,
       autoStartAppServer: smokeReal,
       clickThrough: false,
@@ -68,6 +99,7 @@ async function startApplication(): Promise<void> {
     logger,
     initialSettings: settings,
     publish: (snapshot) => {
+      windowManager.setMode(windowModeForSnapshot(snapshot));
       windowManager.send(IPC_CHANNELS.snapshot, snapshot);
       if (guidedE2E) {
         try {
@@ -89,7 +121,10 @@ async function startApplication(): Promise<void> {
       ? (options) => new AppServerProcess({ ...options, safeVerificationDefaults: true })
       : undefined,
   });
+  hookEventsPath = join(app.getPath("userData"), "hook-events.jsonl");
+  hookBridge = new HookEventBridge(hookEventsPath, (event) => runtime.applyHookEvent(event));
   await windowManager.create(settings);
+  hookBridge.start();
   rebuildTray(settings);
   disposeIpc = registerIpcHandlers({
     getSnapshot: () => runtime.getSnapshot(),
@@ -120,7 +155,7 @@ async function startApplication(): Promise<void> {
     runVerification: (kind) => runtime.runVerification(kind),
   });
   await runtime.start();
-  if (smokeOutput && !smokeReal) {
+  if (smokeOutput && !smokeReal && !smokeCompact) {
     if (smokeInputOnly) runtime.enqueueMockUserInput();
     else runtime.enqueueMockApproval();
   }
@@ -168,6 +203,7 @@ else {
     if (cleanupStarted) return;
     cleanupStarted = true;
     disposeIpc?.();
+    hookBridge?.stop();
     trayManager?.destroy();
     void runtime
       ?.stop()

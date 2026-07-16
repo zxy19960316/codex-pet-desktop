@@ -4,6 +4,7 @@ export interface WindowPosition {
 }
 
 export interface LocalSettings {
+  layoutVersion: number;
   petPosition?: WindowPosition;
   alwaysOnTop: boolean;
   clickThrough: boolean;
@@ -16,12 +17,13 @@ export interface LocalSettings {
 }
 
 export const DEFAULT_SETTINGS: Readonly<LocalSettings> = {
+  layoutVersion: 1,
   alwaysOnTop: true,
   clickThrough: false,
-  hudVisible: true,
+  hudVisible: false,
   debugVisible: false,
   useMockData: false,
-  autoStartAppServer: true,
+  autoStartAppServer: false,
   soundEnabled: false,
   quotaWarningPercent: 20,
 };

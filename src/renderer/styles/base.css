@@ -35,13 +35,91 @@ button {
 .shell {
   width: 100%;
   min-height: 100vh;
-  padding: 10px;
+  padding: 10px 12px 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 0;
   overflow: hidden;
   -webkit-app-region: drag;
+}
+
+.compact-hud {
+  width: 268px;
+  min-height: 68px;
+  display: grid;
+  grid-template-columns: 1fr 34px;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border: 2px solid #17233b;
+  border-radius: 8px;
+  background: rgba(243, 228, 180, 0.96);
+  color: #17233b;
+  box-shadow: 0 5px 0 rgba(23, 35, 59, 0.2);
+  -webkit-app-region: drag;
+}
+
+.compact-quotas {
+  display: grid;
+  gap: 7px;
+}
+
+.compact-quota {
+  display: grid;
+  grid-template-columns: 42px 1fr 34px;
+  align-items: center;
+  gap: 6px;
+  font:
+    700 10px/1 ui-monospace,
+    "Cascadia Mono",
+    monospace;
+}
+
+.compact-quota__label {
+  text-transform: uppercase;
+}
+
+.compact-quota__track {
+  height: 9px;
+  overflow: hidden;
+  border: 2px solid #17233b;
+  background: #fff8d8;
+}
+
+.compact-quota__track > span {
+  display: block;
+  height: 100%;
+  background: #4f8a55;
+}
+
+.compact-quota__value {
+  text-align: right;
+}
+
+.expand-control {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 2px solid #17233b;
+  border-radius: 50%;
+  padding: 0;
+  background: #d96d3b;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+.expand-control > span {
+  width: 8px;
+  height: 8px;
+  border-right: 3px solid #fff8d8;
+  border-bottom: 3px solid #fff8d8;
+  transform: translateY(-2px) rotate(45deg);
+}
+
+.expand-control--open > span {
+  transform: translateY(2px) rotate(225deg);
 }
 
 .shell.loading {

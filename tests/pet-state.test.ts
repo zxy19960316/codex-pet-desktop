@@ -47,4 +47,17 @@ describe("pet state", () => {
     await vi.advanceTimersByTimeAsync(101);
     expect(machine.getThreadState("thread-a")?.state).toBe("working");
   });
+
+  it("can return a completed turn to idle after its success animation", async () => {
+    vi.useFakeTimers();
+    const machine = new PetStateMachine({ transientDurationMs: 100 });
+    machine.update(change("thread-a", "working"));
+    machine.update({
+      ...change("thread-a", "success", 2),
+      transientReturnState: "idle",
+    });
+    await vi.advanceTimersByTimeAsync(101);
+    expect(machine.getThreadState("thread-a")?.state).toBe("idle");
+    expect(machine.getActiveThreadCount()).toBe(0);
+  });
 });
