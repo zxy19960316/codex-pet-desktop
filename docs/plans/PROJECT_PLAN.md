@@ -1,5 +1,10 @@
 # Codex Pet Desktop M0/M1 Implementation Plan
 
+> **2026-07-16 product reset:** The remaining milestone order below is superseded by the
+> pixel-pet-first baseline. The current source of truth is
+> `docs/reports/2026-07-16_PRODUCT_RESET_AUDIT.md` and the first executable plan is
+> `docs/superpowers/plans/2026-07-16-pixel-pet-shell.md`. M2.6 no longer gates pet rendering.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: use an execution workflow that implements this plan task-by-task, with each task reviewed against its tests before continuing. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build an independent, secure Electron desktop pet that completes the M0 desktop shell and an M1 Codex App Server integration loop with deterministic Mock fallback.
@@ -223,6 +228,24 @@
 - **M4 — Pet packs and animation system:** future; M1 supplies only a safe manifest skeleton and original placeholder.
 - **M5 — Multiple sessions and productization:** future; M1 tracks independent thread state only.
 - **M6 — Installers, updates, and releases:** future; no packaging or release automation in this change.
+
+## M2.6 extension
+
+- Native realpath cwd boundaries and renderer-safe cwd selections.
+- Five-kind in-memory verification state and unified request cleanup.
+- Guided human Allow, Deny, User Input, Steer, and Interrupt checks.
+- M2.6 remains a development verification track and does not gate the pixel pet product shell.
+
+## Product-first milestone order (current)
+
+- **P1 — Pixel pet shell:** compact/expanded window, original raster sprite theme, state animation
+  fallback, and sketch-shaped two-row quota HUD.
+- **P2 — Real Codex observation:** official lifecycle hook installer, local event bridge, session
+  aggregation, hook health, and App Server as an optional control path rather than the only sensor.
+- **P3 — Human action surfaces:** approval and user-input cards opened progressively from the pet.
+- **P4 — User pet packs:** safe local theme discovery, validation, preview, and attribution.
+- **P5 — Productization:** click hit-window hardening, settings, startup behavior, installers, and
+  releases.
 
 ## Self-Review
 

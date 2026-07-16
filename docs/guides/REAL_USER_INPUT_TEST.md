@@ -28,7 +28,7 @@ Only the normalized request and validated domain answers cross the renderer/main
 
 Do not use keyboard simulation, do not submit secrets, and do not treat Mock results as real App Server verification.
 
-## M2.5 controlled entry point and cancellation
+## M2.6 guided entry and cancellation
 
 Enable Debug controls and select **Run real user-input test** to create an ephemeral `tmp/e2e/`
 thread and send the fixed harmless request for A/B plus Other free text. The generated `0.144.4`
@@ -37,3 +37,8 @@ is `{ answers: Record<questionId, { answers: string[] }> }`. The current Cancel 
 sends the structurally valid empty mapping `{ answers: {} }` and clears the card. This is
 protocol/automated evidence only: manually verify the App Server's runtime behavior before treating
 it as a successful cancellation result.
+
+The M2.6 panel replaces manual prompt construction: select **Start M2.6 verification**, then
+**Run this step** under User Input. A normal answer requires the real request, same-ID response,
+server resolution, and turn completion. Run one extra retry with Cancel to record the live empty-map
+behavior separately; cancellation does not count as the main User Input pass.

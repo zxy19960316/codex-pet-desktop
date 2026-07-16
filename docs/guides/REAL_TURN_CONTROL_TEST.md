@@ -26,6 +26,13 @@
 2. Start another safe active turn, select **Interrupt active turn**, and wait for a real
    `turn/completed`/interruption notification. The UI must not claim completion before that event.
 
+## M2.6 guided entry
+
+The Steer step starts a fixed safe text-only turn. When waiting-for-user appears, select
+**Send fixed steer**; the step requires the same expected turn ID and an agent message containing
+STEERED. The Interrupt step similarly exposes **Interrupt now** and requires a real interrupted or
+cancelled terminal status. Neither client request alone marks the step passed.
+
 ## Cleanup
 
 1. Confirm completed, closed, and deleted threads clear their pending approval/input cards.

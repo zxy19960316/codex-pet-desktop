@@ -42,6 +42,12 @@ Request an approval only for `tmp/approval-test.txt` in the disposable project c
 2. Allow or deny it deliberately, then verify the matching outcome.
 3. Remove the disposable file manually only if it was created and is known to be safe to remove.
 
+## M2.6 guided entry
+
+Use **Start M2.6 verification** and run Approval Allow and Approval Deny as separate steps. Each
+step uses its own ephemeral tmp/e2e thread and card title. A response click moves the step to
+waiting-for-codex; only matching server resolution and turn completion can mark it passed.
+
 ## Redacted diagnostics
 
 The runtime records only the request method, a 12-character SHA-256 request-ID hash, whether thread/turn/item IDs are present, offered decision names, and response success or failure. It never records command text, file content, answer text, token values, credentials, cookies, authorization, or user paths.

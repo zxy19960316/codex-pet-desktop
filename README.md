@@ -1,112 +1,66 @@
 # Codex Pet Desktop
 
-Codex Pet Desktop is an independent, open-source Electron desktop companion for visualizing local
-Codex activity. The current development build provides a secure desktop shell, a normalized
-pet-state model, a Codex App Server connection, approval cards, structured reply cards, and a
-compact usage HUD.
+Codex Pet Desktop is an independent, open-source 2D pixel companion for local Codex activity. The
+default view follows the product sketch: two compact quota rows, one expand button, and an
+expressive creature. Approval, reply, quota details, and developer tools appear only when opened or
+needed.
 
-> Screenshot placeholder — a project screenshot will be added after the M1 visual baseline is
-> finalized.
+## Current product baseline
 
-## Current features
+- Original manifest-driven pixel creature with idle, thinking, working, and success sprite rows,
+  plus safe state fallbacks.
+- Compact `300 x 360` transparent window; details and human requests expand it to `420 x 700` while
+  preserving the lower-right anchor.
+- Two-row `5h` / `weekly` quota strip with unavailable placeholders instead of invented data.
+- Official Codex lifecycle hooks as the primary activity sensor. Only session ID, turn ID, event
+  name, and timestamp are retained; prompt text and transcripts are not read.
+- Optional App Server integration for explicit bidirectional developer actions. It is no longer
+  auto-started or presented as proof that the user's existing Codex session is connected.
+- Typed preload/IPC, sandboxed renderer, redacted diagnostics, local settings, approval and
+  structured-input routing, and a guided development-only M2.6 verifier.
 
-- Frameless, transparent, always-on-top pet window with drag, position persistence, click-through,
-  multi-display clamping, tray controls, and a CSS-only original placeholder pet.
-- Per-thread state tracking with priority aggregation and transient success/error restoration.
-- Line-buffered JSON-RPC client with timeouts, notifications, server requests, safe diagnostics,
-  graceful shutdown, and bounded reconnects.
-- Codex approval routing for command execution, file changes, and permission requests, including a
-  queued desktop card that only shows supported decisions.
-- Dynamic rate-limit windows, reset countdowns, daily tokens, and thread-aware current-thread
-  tokens when the installed App Server exposes those values.
-- Structured Codex user-input reply cards with typed, allowlisted IPC. Mock cards cover a choice,
-  multiple choices, and free text and are visibly labeled.
-- Clearly labeled Mock usage and approval data for deterministic UI development.
-- Debug controls that can trigger every supported pet state.
-- Debug-only Developer controls for ephemeral threads, real turns, steer, interrupt, and safe real
-  approval/user-input test entry points.
-
-## Status and roadmap
-
-- **M0 — Project and desktop shell:** complete for the current development baseline.
-- **M1 — App Server technical loop:** complete for the current development baseline.
-- **M1.5 — Runtime closure, thread tokens, and approval evidence:** implemented; human approval
-  confirmation remains a guided manual check.
-- **M2 — User input and replies:** implemented through request/reply routing and UI; human real
-  App Server confirmation remains a guided manual check.
-- **M2.5 — Thread and turn control:** implemented with explicit thread/turn ownership, restricted
-  developer-test cwd, and real-request entry points; human desktop E2E remains guided/manual.
-- **M3 — Complete quota and token HUD:** planned.
-- **M4 — Pet packs and animation system:** planned.
-- **M5 — Multiple sessions and productization:** planned.
-- **M6 — Installers, updates, and releases:** planned.
-
-The milestone details and acceptance boundaries are in
-[`docs/plans/PROJECT_PLAN.md`](docs/plans/PROJECT_PLAN.md).
+The audit that reset the project direction is in
+[`docs/reports/2026-07-16_PRODUCT_RESET_AUDIT.md`](docs/reports/2026-07-16_PRODUCT_RESET_AUDIT.md).
 
 ## Run locally
 
-Requirements:
-
-- Windows 10 or 11 is the primary target. Low-cost macOS and Linux compatibility is retained.
-- Node.js 24 LTS and npm 11.
-- A local `codex` CLI with `codex app-server --listen stdio://` support for real integration.
+Requirements: Windows 10/11, Node.js 24 LTS, npm 11, and a local Codex installation.
 
 ```bash
 npm ci
 npm run dev
 ```
 
-Quality and build commands:
+From the tray, choose **Connect Codex activity…** to install the local lifecycle-hook entries. Codex
+requires a separate trust review: open `/hooks`, inspect the commands, and choose **Trust**. The
+installer preserves unrelated hook entries and never bypasses Codex's trust gate.
+
+Developer verification remains explicit:
 
 ```bash
-npm run format
+npm run dev:e2e
 npm run format:check
 npm run lint
 npm test
 npm run build
 ```
 
-On Windows, the app safely invokes an installed npm `codex.cmd` through `cmd.exe` because Node.js
-cannot directly spawn command shims. Set `CODEX_PET_CODEX_PATH` to a trusted Codex executable or
-command shim when an explicit local path is required.
-
 ## Privacy and local data
 
-The app has no cloud account of its own, uploads no telemetry or usage data, reads no browser
-cookies, and does not simulate login. Window settings are stored in Electron's local user-data
-directory. Logs redact credential-like values and do not include full user messages, command
-output, file contents, access tokens, or session files.
-
-When real account usage endpoints are unavailable, the HUD says that data is unavailable. Mock
-values are opt-in and visibly labeled; they are never represented as real Codex account data.
-
-Real protocol, mock, and manual verification status are deliberately separate. See
-[`docs/reports/M1_5_M2_IMPLEMENTATION.md`](docs/reports/M1_5_M2_IMPLEMENTATION.md),
-[`docs/reports/M2_5_IMPLEMENTATION.md`](docs/reports/M2_5_IMPLEMENTATION.md), and the manual
-guides under `docs/guides/` before treating an approval or user-input flow as human
-end-to-end verified.
+The app has no cloud account, telemetry uploader, browser-cookie access, or login emulation. The
+hook receiver discards prompt text, tool inputs, tool outputs, transcript paths, and model details.
+Its bounded local event file contains only lifecycle identifiers and timestamps. Window settings
+and event data stay in Electron's local user-data directory.
 
 ## Pet assets
 
-This project does not bundle Pokémon artwork.
+This repository does not bundle Pokémon artwork or other extracted game resources. The included
+`Pixel Sprout` SVG sprite sheet is an original code-drawn placeholder. User-owned packs belong in
+the Git-ignored `user-pets/` directory. See [`ASSET_POLICY.md`](ASSET_POLICY.md).
 
-Only the CSS-drawn original example under `themes/example-original-pet/` is included. User pet
-packs belong in the Git-ignored `user-pets/` directory; a future version may scan `~/.codex/pets/`
-without downloading or copying content. Users are responsible for confirming that they have the
-right to use imported assets. See [`ASSET_POLICY.md`](ASSET_POLICY.md).
+## Independence and license
 
-## License
-
-Source code is available under the [MIT License](LICENSE). Third-party assets retain their own
-terms and are not automatically relicensed under MIT.
-
-## Inspiration
-
-Product experience and interaction ideas were inspired by Clawd on Desk, AgentPet, and Codex
-PokéPets. No source code, tests, artwork, sounds, animations, icons, logos, fonts, or UI files from
-those projects are included.
-
-This is an independent open-source project and is not affiliated with or endorsed by OpenAI,
-Nintendo, Game Freak, Creatures Inc., The Pokémon Company, Clawd on Desk, AgentPet, or Codex
-PokéPets.
+Source code is MIT licensed. Product mechanisms were researched from public projects including
+Clawd on Desk, but no AGPL source, artwork, tests, or assets were copied. This project is not
+affiliated with or endorsed by OpenAI, Nintendo, Game Freak, Creatures Inc., The Pokémon Company,
+Clawd on Desk, AgentPet, or Codex PokéPets.
