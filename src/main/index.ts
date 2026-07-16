@@ -33,8 +33,8 @@ async function connectCodexHook(): Promise<void> {
     });
     await dialog.showMessageBox({
       type: "info",
-      title: "Codex activity connected",
-      message: "The local activity hook is installed.",
+      title: "Codex Hook installed",
+      message: "Review is required before activity is connected.",
       detail:
         "Open /hooks in Codex, review this hook, and choose Trust. Codex requires that final trust step before the pet can receive activity.",
     });
