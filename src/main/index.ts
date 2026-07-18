@@ -21,8 +21,11 @@ import { windowModeForSnapshot } from "./window-layout";
 import { WindowManager } from "./window-manager";
 import { SettingsWindowManager } from "./windows/settings-window-manager";
 import { resolveBuiltinPetsDirectory } from "./pet-resource-path";
+import { parseM32E2EConfiguration, runM32SettingsVerification } from "./m3-2-settings-verifier";
 
 const logger = new SafeLogger();
+const m32E2E = parseM32E2EConfiguration(process.argv, process.env);
+if (m32E2E) app.setPath("userData", m32E2E.userDataDirectory);
 let settingsService: SettingsService;
 let windowManager: WindowManager;
 let settingsWindowManager: SettingsWindowManager;
@@ -152,6 +155,14 @@ async function startApplication(): Promise<void> {
       clickThrough: false,
     };
   }
+  if (m32E2E) {
+    settings = {
+      ...settings,
+      useMockData: true,
+      autoStartAppServer: false,
+      clickThrough: false,
+    };
+  }
   windowManager = new WindowManager(settingsService);
   settingsWindowManager = new SettingsWindowManager({
     preloadPath: join(__dirname, "../preload/settings.cjs"),
@@ -238,10 +249,13 @@ async function startApplication(): Promise<void> {
         publishPetSnapshots();
       },
       importPetPackage: async () => {
-        const selection = await dialog.showOpenDialog({
-          title: "Import Pet Package",
-          properties: ["openDirectory"],
-        });
+        const selection =
+          m32E2E?.phase === "import" && m32E2E.importSource
+            ? { canceled: false, filePaths: [m32E2E.importSource] }
+            : await dialog.showOpenDialog({
+                title: "Import Pet Package",
+                properties: ["openDirectory"],
+              });
         if (selection.canceled || !selection.filePaths[0]) return;
         const imported = await petRegistry.importPetPackage(selection.filePaths[0]);
         await petRegistry.setActivePet(imported.manifest.id);
@@ -258,6 +272,21 @@ async function startApplication(): Promise<void> {
     },
   );
   await runtime.start();
+  if (m32E2E) {
+    const settingsWindow = (await settingsWindowManager.open()) as unknown as BrowserWindow;
+    void runM32SettingsVerification({
+      configuration: m32E2E,
+      window: settingsWindow,
+      packaged: app.isPackaged,
+    })
+      .catch((error) => {
+        process.exitCode = 1;
+        logger.write("error", "m3-2-settings-verification-failed", {
+          errorName: error instanceof Error ? error.name : "unknown",
+        });
+      })
+      .finally(() => app.quit());
+  }
   if (smokeOutput && !smokeReal && !smokeCompact) {
     if (smokeInputOnly) runtime.enqueueMockUserInput();
     else runtime.enqueueMockApproval();

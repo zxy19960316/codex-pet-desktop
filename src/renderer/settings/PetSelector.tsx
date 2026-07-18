@@ -21,7 +21,7 @@ export function PetSelector({
   return (
     <div className="pet-selector">
       {active ? (
-        <article className="current-pet">
+        <article className="current-pet" data-testid="current-pet" data-pet-id={active.manifest.id}>
           <div className="pet-preview-frame">
             <img src={active.previewUrl} alt={`${active.manifest.name} preview`} />
           </div>
@@ -49,13 +49,23 @@ export function PetSelector({
       )}
 
       <div className="pet-actions" aria-label="Pet package actions">
-        <button type="button" disabled={Boolean(pending)} onClick={onImport}>
+        <button
+          type="button"
+          data-testid="pet-import"
+          disabled={Boolean(pending)}
+          onClick={onImport}
+        >
           {pending === "import" ? "Importing..." : "Import package"}
         </button>
         <button type="button" disabled={Boolean(pending)} onClick={onOpenDirectory}>
           Open directory
         </button>
-        <button type="button" disabled={Boolean(pending)} onClick={onRescan}>
+        <button
+          type="button"
+          data-testid="pet-rescan"
+          disabled={Boolean(pending)}
+          onClick={onRescan}
+        >
           {pending === "rescan" ? "Scanning..." : "Rescan"}
         </button>
       </div>
@@ -66,7 +76,12 @@ export function PetSelector({
       </div>
       <div className="pet-card-grid">
         {pets.available.map((pet) => (
-          <article className={`pet-card ${pet.active ? "pet-card--active" : ""}`} key={pet.id}>
+          <article
+            className={`pet-card ${pet.active ? "pet-card--active" : ""}`}
+            data-testid="pet-card"
+            data-pet-id={pet.id}
+            key={pet.id}
+          >
             <img src={pet.previewUrl} alt="" aria-hidden="true" />
             <div>
               <strong>{pet.name}</strong>
@@ -77,6 +92,7 @@ export function PetSelector({
             <span className="pet-card-status">{pet.active ? "Active" : "Available"}</span>
             <button
               type="button"
+              data-testid={`pet-select-${pet.id}`}
               disabled={pet.active || Boolean(pending)}
               onClick={() => onSelect(pet.id)}
             >
