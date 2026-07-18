@@ -47,6 +47,7 @@ const theme: PetPackage = {
       frames: 4,
       sheetWidth: 256,
       sheetHeight: 64,
+      frameRow: 0,
     },
     waiting_input: {
       name: "waiting",
@@ -59,6 +60,7 @@ const theme: PetPackage = {
       frames: 4,
       sheetWidth: 256,
       sheetHeight: 64,
+      frameRow: 0,
     },
   },
 };

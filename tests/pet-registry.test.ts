@@ -133,4 +133,48 @@ describe("PetRegistry", () => {
     await expect(pets.importPetPackage(broken)).rejects.toThrow("preview.png is missing");
     await expect(readFile(join(users, "broken-pet", "manifest.json"), "utf8")).rejects.toThrow();
   });
+
+  it("loads a validated multi-row WebP atlas without changing horizontal PNG behavior", async () => {
+    const path = await packageAt(builtins, "atlas", "atlas-pet");
+    const payload = Buffer.alloc(10);
+    payload.writeUIntLE(1535, 4, 3);
+    payload.writeUIntLE(1871, 7, 3);
+    const webp = Buffer.alloc(30);
+    webp.write("RIFF", 0, "ascii");
+    webp.writeUInt32LE(22, 4);
+    webp.write("WEBP", 8, "ascii");
+    webp.write("VP8X", 12, "ascii");
+    webp.writeUInt32LE(10, 16);
+    payload.copy(webp, 20);
+    await writeFile(join(path, "sprites", "atlas.webp"), webp);
+    const manifestPath = join(path, "manifest.json");
+    const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as Record<string, unknown>;
+    manifest.preview = "sprites/atlas.webp";
+    manifest.assets = { sprites: ["sprites/atlas.webp"] };
+    manifest.animations = {
+      idle: {
+        name: "idle",
+        sprite: "sprites/atlas.webp",
+        format: "webp",
+        frameWidth: 192,
+        frameHeight: 208,
+        frameRow: 8,
+        frames: 6,
+        fps: 6,
+        loop: true,
+      },
+    };
+    await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+
+    const pets = registry("atlas-pet");
+    const snapshot = await pets.scan();
+    expect(snapshot.issues).toEqual([]);
+    expect(snapshot.active?.animations.idle).toMatchObject({
+      frames: 6,
+      frameRow: 8,
+      sheetWidth: 1536,
+      sheetHeight: 1872,
+      format: "webp",
+    });
+  });
 });

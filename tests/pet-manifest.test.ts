@@ -57,4 +57,51 @@ describe("pet manifest schema", () => {
       expect(paths).toContain("capabilities.spriteSheet");
     }
   });
+
+  it("accepts a declared WebP atlas row while preserving PNG defaults", async () => {
+    const manifest = await exampleManifest();
+    manifest.preview = "sprites/atlas.webp";
+    manifest.assets = { sprites: ["sprites/atlas.webp"] };
+    manifest.animations = {
+      idle: {
+        name: "idle",
+        sprite: "sprites/atlas.webp",
+        format: "webp",
+        frameWidth: 192,
+        frameHeight: 208,
+        frameRow: 0,
+        frames: 6,
+        fps: 6,
+        loop: true,
+      },
+    };
+
+    const result = validatePetManifest(manifest);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.animations.idle).toMatchObject({
+        format: "webp",
+        frameRow: 0,
+        frames: 6,
+      });
+    }
+  });
+
+  it("rejects arbitrary image extensions and mismatched declared formats", async () => {
+    const manifest = await exampleManifest();
+    manifest.preview = "preview.svg";
+    const idle = (manifest.animations as Record<string, Record<string, unknown>>).idle;
+    idle.format = "webp";
+
+    const result = validatePetManifest(manifest);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ path: "preview" }),
+          expect.objectContaining({ path: "animations.idle.format" }),
+        ]),
+      );
+    }
+  });
 });
