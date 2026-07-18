@@ -101,12 +101,75 @@ All stopped, error, reconnecting, mock-mode, and shutdown paths call one transpo
 cleanup operation. It settles server requests, clears sending flags and transient thread state,
 and fails any running verification without persisting raw protocol bodies.
 
+## M3.0 Settings Center
+
+The Settings Center is a second, normal framed `BrowserWindow`, separate from the transparent pet
+window. `SettingsWindowManager` owns its single-instance lifecycle: repeated opens show and focus
+the existing window, while a close clears the retained reference. Vite builds `settings.html` as a
+separate renderer entry, and Electron loads a dedicated `settings.cjs` preload. The window keeps
+`contextIsolation: true`, `nodeIntegration: false`, and `sandbox: true`.
+
+The settings preload exposes only three operations: read a settings-safe snapshot, subscribe to
+settings-safe snapshots, and submit a typed patch. It does not expose pet-state controls, approval
+or input replies, Codex turn controls, M2.6 verification actions, Node.js, Electron, or filesystem
+access. Every Settings IPC invocation compares the sender's `webContents.id` with the live Settings
+Window before doing work. Patch parsing in the main process accepts only these exact fields:
+
+- future-syncable preferences: `alwaysOnTop`, `clickThrough`, `soundEnabled`, and
+  `quotaWarningPercent`;
+- device-local connection controls: `useMockData` and `autoStartAppServer`.
+
+Unknown partitions, unknown nested fields, non-boolean switches, non-finite quota values, and quota
+values outside `0..100` are rejected before they reach the runtime. The Settings renderer displays
+six sections: Status, General, Codex connection, Quota, Diagnostics, and About.
+
+Settings changes continue through the existing `RuntimeController.patchSettings()` seam. Its
+existing persistence callback writes through `SettingsService`; its existing settings-changed
+callback applies always-on-top and click-through to the pet window and rebuilds the tray; its
+existing snapshot publication updates both renderers. A quota-warning patch therefore reaches the
+pet snapshot immediately without adding Settings Window, theme, menu, or scaling responsibilities
+to `RuntimeController`. `WindowManager` now depends on the service's narrow `patch()` interface so
+pet-position writes use the same serialized v2 store instead of a second legacy writer.
+
+### Versioned settings and migration
+
+The canonical file is `settings.v2.json` with `schemaVersion: 2`. The document separates
+future-syncable `preferences` from device-local `device` fields:
+
+| Legacy flat field                                                    | v2 destination |
+| -------------------------------------------------------------------- | -------------- |
+| `alwaysOnTop`, `clickThrough`, `soundEnabled`, `quotaWarningPercent` | `preferences`  |
+| `layoutVersion`, `petPosition`, `hudVisible`, `debugVisible`         | `device`       |
+| `useMockData`, `autoStartAppServer`                                  | `device`       |
+
+On startup, a valid v2 file is authoritative. If it is absent, `MigrationRegistry` reads the legacy
+flat `settings.json`, copies only known valid fields, fills missing or invalid values from safe
+defaults, and writes v2 once. The legacy source is preserved. The prior compact-layout behavior is
+also preserved: a legacy file without the current `layoutVersion` resets `hudVisible` and
+`debugVisible` to `false`.
+
+`SettingsStore` writes a complete, newline-terminated temporary file in the destination directory
+with mode `0o600`, then atomically renames it over the v2 path. Writes are serialized by
+`SettingsService`, preventing concurrent pet-position and UI patches from losing fields. A failed
+rename leaves the previous canonical file intact and triggers best-effort cleanup of only the
+temporary file.
+
+Malformed JSON or a structurally invalid v2 document starts with safe defaults and a protected
+diagnostic state; the original file is not deleted or automatically overwritten. A numeric
+`schemaVersion` greater than `2` is treated as a protected future version and is likewise never
+overwritten. Explicit changes can still apply in memory for the current process so the pet remains
+usable, but persistence stays disabled until the protected file is repaired or upgraded by a
+compatible release.
+
+M3.0 does not implement the M3.1 Pet Registry, third-party pet imports, cloud synchronization,
+mobile clients, an online theme marketplace, automatic updates, packaging, or release automation.
+
 ## Security and storage
 
 Browser windows use `contextIsolation: true`, `nodeIntegration: false`, and `sandbox: true`.
-Renderer access is limited to the preload contract. Local settings contain presentation choices
-and window position only; they do not store credentials. Diagnostic metadata passes through
-recursive redaction before reaching the logger.
+Renderer access is limited to its window-specific preload contract. Local settings contain
+presentation choices, local connection toggles, and window position only; they do not store
+credentials. Diagnostic metadata passes through recursive redaction before reaching the logger.
 
 The repository excludes build products, logs, environment files, local themes, and user pet
 assets. There is no browser scraping, cookie access, cloud database, account emulation, or
