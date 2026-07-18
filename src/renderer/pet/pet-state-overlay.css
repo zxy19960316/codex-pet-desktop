@@ -1,0 +1,121 @@
+.pet-state-overlay {
+  position: absolute;
+  z-index: 3;
+  top: 17%;
+  right: 8%;
+  width: 42px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  color: #17233b;
+  font:
+    900 21px/1 ui-monospace,
+    "Cascadia Mono",
+    monospace;
+  text-shadow: 0 2px #fff8d8;
+  transform-origin: center bottom;
+  animation: pet-overlay-float 1.2s ease-in-out infinite alternate;
+}
+
+.pet-state-overlay::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  border: 2px solid #17233b;
+  border-radius: 50%;
+  background: #fff8d8;
+  box-shadow: 3px 3px 0 rgba(23, 35, 59, 0.22);
+  content: "";
+}
+
+.pet-state-overlay--idle {
+  opacity: 0.34;
+}
+
+.pet-state-overlay--typing span {
+  font-size: 11px;
+  letter-spacing: 2px;
+  animation: pet-overlay-pulse 700ms steps(3) infinite;
+}
+
+.pet-state-overlay--working::after {
+  position: absolute;
+  inset: -6px;
+  border: 3px dashed #cf6941;
+  border-radius: 50%;
+  content: "";
+  animation: pet-overlay-spin 1.4s linear infinite;
+}
+
+.pet-state-overlay--approval::before,
+.pet-state-overlay--error::before,
+.pet-state-overlay--quota_empty::before {
+  background: #f6c4ae;
+}
+
+.pet-state-overlay--waiting_input::before {
+  border-radius: 8px;
+}
+
+.pet-state-overlay--waiting_input::after {
+  position: absolute;
+  right: 5px;
+  bottom: -5px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid #17233b;
+  border-bottom: 2px solid #17233b;
+  background: #fff8d8;
+  content: "";
+  transform: rotate(45deg);
+}
+
+.pet-state-overlay--success {
+  color: #4f8a55;
+}
+
+.pet-state-overlay--quota_low,
+.pet-state-overlay--quota_empty {
+  width: 46px;
+  height: 24px;
+  font-size: 16px;
+}
+
+.pet-state-overlay--offline {
+  color: #8e3425;
+}
+
+.pet-state-overlay--sleep {
+  border: 0;
+  font-size: 18px;
+}
+
+@keyframes pet-overlay-float {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes pet-overlay-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes pet-overlay-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pet-state-overlay,
+  .pet-state-overlay::after,
+  .pet-state-overlay span {
+    animation: none;
+  }
+}

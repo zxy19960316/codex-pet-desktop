@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import type { PetState } from "../../core/pet/pet-state";
 import type { PetPackage } from "../../core/pet/pet-manifest";
 import { resolvePetAnimation, spriteStyle } from "./pet-animation";
+import { PetStateOverlay } from "./PetStateOverlay";
 
 const STATE_LABELS: Record<PetState, string> = {
   sleep: "Sleeping",
@@ -31,6 +32,7 @@ export function Pet({ state, pet }: { state: PetState; pet?: PetPackage }) {
         style={style}
         aria-hidden="true"
       />
+      <PetStateOverlay state={state} />
       <span className="visually-hidden">{STATE_LABELS[state]}</span>
     </section>
   );
