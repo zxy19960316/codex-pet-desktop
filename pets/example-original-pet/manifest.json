@@ -1,0 +1,75 @@
+{
+  "id": "pixel-sprout",
+  "name": "Pixel Sprout",
+  "version": "1.0.0",
+  "author": "Codex Pet Desktop contributors",
+  "license": "MIT",
+  "preview": "preview.png",
+  "assets": {
+    "sprites": [
+      "sprites/idle.png",
+      "sprites/thinking.png",
+      "sprites/working.png",
+      "sprites/success.png",
+      "sprites/error.png"
+    ]
+  },
+  "animations": {
+    "idle": {
+      "name": "idle",
+      "sprite": "sprites/idle.png",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "fps": 4,
+      "loop": true
+    },
+    "thinking": {
+      "name": "thinking",
+      "sprite": "sprites/thinking.png",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "fps": 6,
+      "loop": true
+    },
+    "working": {
+      "name": "working",
+      "sprite": "sprites/working.png",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "fps": 8,
+      "loop": true
+    },
+    "success": {
+      "name": "success",
+      "sprite": "sprites/success.png",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "fps": 5,
+      "loop": false
+    },
+    "error": {
+      "name": "error",
+      "sprite": "sprites/error.png",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "fps": 7,
+      "loop": true
+    }
+  },
+  "fallbacks": {
+    "typing": "working",
+    "approval": "thinking",
+    "waiting_input": "thinking",
+    "sleeping": "idle",
+    "quota_low": "idle",
+    "quota_exhausted": "sleeping"
+  },
+  "capabilities": {
+    "spriteSheet": true,
+    "sounds": false
+  },
+  "metadata": {
+    "description": "Original procedural pixel pet bundled for local development",
+    "pixelArt": true
+  }
+}

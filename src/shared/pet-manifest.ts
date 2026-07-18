@@ -1,5 +1,21 @@
 import type { PetState } from "../core/pet/pet-state";
 
+export type {
+  PetAnimationAsset,
+  PetAnimationDefinition,
+  PetAssetManifest,
+  PetCapabilities,
+  PetManifest,
+  PetManifestValidationError,
+  PetManifestValidationResult,
+  PetMetadataValue,
+  PetPackage,
+  PetPackageIssue,
+  PetPackageOrigin,
+  PetRegistrySnapshot,
+  PetSummary,
+} from "../core/pet/pet-manifest";
+
 export interface AnimationDefinition {
   row: number;
   frames: number;
@@ -15,15 +31,13 @@ export interface AttributionEntry {
   source?: string;
 }
 
-export interface PetManifest {
+/** @deprecated M3.0 compatibility type; use PetPackage for registry-backed pets. */
+export interface RuntimePetTheme {
   id: string;
   displayName: string;
   animations: Partial<Record<PetState, AnimationDefinition>>;
   fallbacks: Partial<Record<PetState, PetState>>;
   attribution?: AttributionEntry[];
-}
-
-export interface RuntimePetTheme extends PetManifest {
   imageUrl: string;
   sheetWidth: number;
   sheetHeight: number;
