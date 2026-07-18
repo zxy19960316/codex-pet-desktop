@@ -7,7 +7,7 @@ import { CodexPokePetsAdapter } from "../core/pet/adapters/codex-pokepets-adapte
 import { CodexPokePetsProvider } from "../core/pet/codex-pokepets-provider";
 import { IPC_CHANNELS, type DesktopSnapshot } from "../shared/ipc-contract";
 import { SETTINGS_IPC_CHANNELS, type SettingsWindowSnapshot } from "../shared/ipc/settings-ipc";
-import { settingsDocumentFromLocalSettings, type LocalSettings } from "../shared/settings";
+import { settingsDocumentFromLocalSettings } from "../shared/settings";
 import { AppServerProcess } from "../core/codex/app-server-process";
 import { registerIpcHandlers } from "./ipc-handlers";
 import { HookEventBridge } from "./hook-event-bridge";
@@ -24,6 +24,8 @@ import { WindowManager } from "./window-manager";
 import { SettingsWindowManager } from "./windows/settings-window-manager";
 import { resolveBuiltinPetsDirectory } from "./pet-resource-path";
 import { parseM32E2EConfiguration, runM32SettingsVerification } from "./m3-2-settings-verifier";
+import { buildPetMenuViewModel, type PetMenuAction } from "./menu/menu-view-model";
+import { PetContextMenu } from "./menu/pet-context-menu";
 
 const logger = new SafeLogger();
 const m32E2E = parseM32E2EConfiguration(process.argv, process.env);
@@ -38,6 +40,7 @@ let hookEventsPath: string;
 let petRegistry: PetRegistry;
 let codexPokePetsAdapter: CodexPokePetsAdapter;
 let codexPokePetsProvider: CodexPokePetsProvider;
+const petContextMenu = new PetContextMenu();
 
 async function confirmThirdPartyImport(): Promise<boolean> {
   const result = await dialog.showMessageBox({
@@ -117,22 +120,75 @@ function publishPetSnapshots(): void {
   const snapshot = withPetSnapshot(runtime.getSnapshot());
   windowManager.send(IPC_CHANNELS.snapshot, snapshot);
   settingsWindowManager.send(SETTINGS_IPC_CHANNELS.snapshot, buildSettingsSnapshot(snapshot));
+  rebuildTray(snapshot);
 }
 
-function rebuildTray(settings: LocalSettings): void {
-  trayManager.create(settings, {
-    showOrHide: () => windowManager.showOrHide(),
-    openSettings: () => void settingsWindowManager.open(),
-    toggleHud: () =>
-      void runtime.patchSettings({ hudVisible: !runtime.getSnapshot().settings.hudVisible }),
-    toggleDebug: () =>
-      void runtime.patchSettings({ debugVisible: !runtime.getSnapshot().settings.debugVisible }),
-    toggleAlwaysOnTop: () =>
-      void runtime.patchSettings({ alwaysOnTop: !runtime.getSnapshot().settings.alwaysOnTop }),
-    toggleClickThrough: () =>
-      void runtime.patchSettings({ clickThrough: !runtime.getSnapshot().settings.clickThrough }),
-    reconnectCodex: () => void runtime.reconnect().catch(() => undefined),
-    connectCodexHook: () => void connectCodexHook(),
+function rebuildTray(snapshot: DesktopSnapshot): void {
+  trayManager.create(buildPetMenuViewModel(snapshot), executePetMenuAction);
+}
+
+function executePetMenuAction(action: PetMenuAction): void {
+  void (async () => {
+    switch (action.type) {
+      case "show-or-hide":
+        windowManager.showOrHide();
+        break;
+      case "open-status":
+        await runtime.patchSettings({ hudVisible: true });
+        windowManager.focus();
+        break;
+      case "open-settings":
+        await settingsWindowManager.open(action.section);
+        break;
+      case "select-pet":
+        await petRegistry.setActivePet(action.id);
+        windowManager.setPetPackage(petRegistry.getActivePet());
+        publishPetSnapshots();
+        break;
+      case "set-scale":
+        await runtime.patchSettings({ scalePercent: action.scalePercent });
+        break;
+      case "toggle-hud":
+        await runtime.patchSettings({ hudVisible: !runtime.getSnapshot().settings.hudVisible });
+        break;
+      case "toggle-always-on-top":
+        await runtime.patchSettings({
+          alwaysOnTop: !runtime.getSnapshot().settings.alwaysOnTop,
+        });
+        break;
+      case "toggle-click-through":
+        await runtime.patchSettings({
+          clickThrough: !runtime.getSnapshot().settings.clickThrough,
+        });
+        break;
+      case "new-thread":
+        await runtime.createThread({ cwd: { kind: "project-root" } });
+        break;
+      case "interrupt-turn":
+        await runtime.interruptTurn(action);
+        break;
+      case "open-approval":
+      case "open-reply":
+        windowManager.focus();
+        break;
+      case "connect-codex-hook":
+        await connectCodexHook();
+        break;
+      case "reconnect-codex":
+        await runtime.reconnect();
+        break;
+      case "about":
+        app.showAboutPanel();
+        break;
+      case "quit":
+        app.quit();
+        break;
+    }
+  })().catch((error) => {
+    logger.write("error", "pet-menu-action-failed", {
+      action: action.type,
+      errorName: error instanceof Error ? error.name : "unknown",
+    });
   });
 }
 
@@ -214,6 +270,7 @@ async function startApplication(): Promise<void> {
         SETTINGS_IPC_CHANNELS.snapshot,
         buildSettingsSnapshot(publicSnapshot),
       );
+      rebuildTray(publicSnapshot);
       if (guidedE2E) {
         try {
           writeE2EResult(guidedE2EResult, publicSnapshot);
@@ -229,7 +286,6 @@ async function startApplication(): Promise<void> {
       windowManager.updatePetDisplay(next);
       windowManager.setAlwaysOnTop(next.alwaysOnTop);
       windowManager.setClickThrough(next.clickThrough);
-      rebuildTray(next);
     },
     createAppServer: guidedE2E
       ? (options) => new AppServerProcess({ ...options, safeVerificationDefaults: true })
@@ -238,9 +294,14 @@ async function startApplication(): Promise<void> {
   hookEventsPath = join(app.getPath("userData"), "hook-events.jsonl");
   hookBridge = new HookEventBridge(hookEventsPath, (event) => runtime.applyHookEvent(event));
   windowManager.setPetPackage(petRegistry.getActivePet());
-  await windowManager.create(settings);
+  const petWindow = await windowManager.create(settings);
+  petContextMenu.attach(
+    petWindow,
+    () => buildPetMenuViewModel(withPetSnapshot(runtime.getSnapshot())),
+    executePetMenuAction,
+  );
   hookBridge.start();
-  rebuildTray(settings);
+  rebuildTray(withPetSnapshot(runtime.getSnapshot()));
   disposeIpc = registerIpcHandlers({
     getSnapshot: () => runtime.getSnapshot(),
     setPetState: (state: PetState) => runtime.setDebugPetState(state),

@@ -10,6 +10,9 @@ import type {
 import type { PetRegistrySnapshot } from "../../core/pet/pet-manifest";
 import type { CodexPokePetsDiscoverySnapshot } from "../../core/pet/adapters/codex-pokepets-types";
 
+export type SettingsSection =
+  "status" | "general" | "pets" | "codex" | "quota" | "diagnostics" | "about";
+
 export const SETTINGS_IPC_CHANNELS = {
   getSnapshot: "settings:get-snapshot",
   snapshot: "settings:snapshot",
@@ -21,6 +24,7 @@ export const SETTINGS_IPC_CHANNELS = {
   importDiscoveredCodexPokePet: "settings:pet:import-discovered-codex-pokepet",
   rescanPets: "settings:pet:rescan",
   openPetsDirectory: "settings:pet:open-directory",
+  navigate: "settings:navigate",
 } as const;
 
 export interface SettingsPatch {
@@ -58,6 +62,7 @@ export interface SettingsWindowSnapshot {
 export interface SettingsApi {
   getSnapshot(): Promise<SettingsWindowSnapshot>;
   subscribe(listener: (snapshot: SettingsWindowSnapshot) => void): () => void;
+  subscribeNavigation(listener: (section: SettingsSection) => void): () => void;
   patch(patch: SettingsPatch): Promise<void>;
   setActivePet(id: string): Promise<void>;
   importPetPackage(): Promise<void>;

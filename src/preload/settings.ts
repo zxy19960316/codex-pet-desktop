@@ -13,6 +13,12 @@ const api: SettingsApi = {
     ipcRenderer.on(SETTINGS_IPC_CHANNELS.snapshot, handler);
     return () => ipcRenderer.removeListener(SETTINGS_IPC_CHANNELS.snapshot, handler);
   },
+  subscribeNavigation: (listener) => {
+    const handler = (_event: Electron.IpcRendererEvent, section: Parameters<typeof listener>[0]) =>
+      listener(section);
+    ipcRenderer.on(SETTINGS_IPC_CHANNELS.navigate, handler);
+    return () => ipcRenderer.removeListener(SETTINGS_IPC_CHANNELS.navigate, handler);
+  },
   patch: (patch) => ipcRenderer.invoke(SETTINGS_IPC_CHANNELS.patch, patch),
   setActivePet: (id) => ipcRenderer.invoke(SETTINGS_IPC_CHANNELS.setActivePet, id),
   importPetPackage: () => ipcRenderer.invoke(SETTINGS_IPC_CHANNELS.importPetPackage),

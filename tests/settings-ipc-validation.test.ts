@@ -223,7 +223,7 @@ describe("settings window manager", () => {
     });
 
     const first = await manager.open();
-    const second = await manager.open();
+    const second = await manager.open("pets");
 
     expect(first).toBe(second);
     expect(windows).toHaveLength(1);
@@ -240,6 +240,10 @@ describe("settings window manager", () => {
       },
     });
     expect(manager.senderId).toBe(42);
+    expect(windows[0].webContents.send).toHaveBeenCalledWith(
+      SETTINGS_IPC_CHANNELS.navigate,
+      "pets",
+    );
 
     windows[0].destroy();
     await manager.open();

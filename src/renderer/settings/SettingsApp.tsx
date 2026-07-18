@@ -75,9 +75,14 @@ export function SettingsApp() {
     const unsubscribe = window.codexPetSettings.subscribe((value) => {
       if (active) setSnapshot(value);
     });
+    const unsubscribeNavigation = window.codexPetSettings.subscribeNavigation((section) => {
+      window.location.hash = section;
+      document.getElementById(section)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
     return () => {
       active = false;
       unsubscribe();
+      unsubscribeNavigation();
     };
   }, []);
 
