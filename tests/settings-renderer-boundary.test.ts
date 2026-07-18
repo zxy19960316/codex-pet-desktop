@@ -36,5 +36,9 @@ describe("settings renderer security boundary", () => {
     expect(source).not.toContain("setPetState");
     expect(source).not.toContain("runVerification");
     expect(source).not.toContain("respondApproval");
+    expect(source).toContain("setActivePet");
+    expect(source).toContain("importPetPackage");
+    expect(source).toContain("rescanPets");
+    expect(source).toContain("openPetsDirectory");
   });
 });

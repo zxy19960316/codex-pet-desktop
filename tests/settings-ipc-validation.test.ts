@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   assertSettingsSender,
+  parsePetId,
   parseSettingsPatch,
   registerSettingsIpcHandlers,
   settingsPatchToLocalSettings,
@@ -94,6 +95,13 @@ describe("settings IPC validation", () => {
     expect(() => assertSettingsSender(42, undefined)).toThrow("Unauthorized Settings IPC sender");
   });
 
+  it("accepts canonical pet ids and rejects arbitrary paths or values", () => {
+    expect(parsePetId("pixel-sprout-2")).toBe("pixel-sprout-2");
+    expect(() => parsePetId("../pet")).toThrow("Invalid pet id");
+    expect(() => parsePetId("Pixel Sprout")).toThrow("Invalid pet id");
+    expect(() => parsePetId(7)).toThrow("Invalid pet id");
+  });
+
   it("routes validated live fields immediately and rejects another window", async () => {
     const handlers = new Map<
       string,
@@ -135,6 +143,41 @@ describe("settings IPC validation", () => {
     expect(() =>
       patchHandler({ sender: { id: 7 } }, { preferences: { alwaysOnTop: true } }),
     ).toThrow("Unauthorized Settings IPC sender");
+  });
+
+  it("routes pet management only for the current Settings sender", async () => {
+    const handlers = new Map<
+      string,
+      (event: { sender: { id: number } }, value?: unknown) => unknown
+    >();
+    const actions = {
+      getSnapshot: vi.fn(),
+      patchSettings: vi.fn(async () => undefined),
+      getSettingsSenderId: () => 42,
+      setActivePet: vi.fn(async () => undefined),
+      importPetPackage: vi.fn(async () => undefined),
+      rescanPets: vi.fn(async () => undefined),
+      openPetsDirectory: vi.fn(async () => undefined),
+    };
+    registerSettingsIpcHandlers(
+      {
+        handle: (channel, listener) => handlers.set(channel, listener),
+        removeHandler: (channel) => void handlers.delete(channel),
+      },
+      actions,
+    );
+
+    await handlers.get(SETTINGS_IPC_CHANNELS.setActivePet)!({ sender: { id: 42 } }, "pixel-sprout");
+    await handlers.get(SETTINGS_IPC_CHANNELS.importPetPackage)!({ sender: { id: 42 } });
+    await handlers.get(SETTINGS_IPC_CHANNELS.rescanPets)!({ sender: { id: 42 } });
+    await handlers.get(SETTINGS_IPC_CHANNELS.openPetsDirectory)!({ sender: { id: 42 } });
+    expect(actions.setActivePet).toHaveBeenCalledWith("pixel-sprout");
+    expect(actions.importPetPackage).toHaveBeenCalledOnce();
+    expect(actions.rescanPets).toHaveBeenCalledOnce();
+    expect(actions.openPetsDirectory).toHaveBeenCalledOnce();
+    expect(() => handlers.get(SETTINGS_IPC_CHANNELS.rescanPets)!({ sender: { id: 7 } })).toThrow(
+      "Unauthorized Settings IPC sender",
+    );
   });
 });
 
