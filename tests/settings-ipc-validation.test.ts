@@ -119,6 +119,9 @@ describe("settings IPC validation", () => {
         getSettingsSenderId: () => 42,
         setActivePet: vi.fn(async () => undefined),
         importPetPackage: vi.fn(async () => undefined),
+        importCodexPokePet: vi.fn(async () => undefined),
+        scanCodexPokePets: vi.fn(async () => undefined),
+        importDiscoveredCodexPokePet: vi.fn(async () => undefined),
         rescanPets: vi.fn(async () => undefined),
         openPetsDirectory: vi.fn(async () => undefined),
       },
@@ -156,6 +159,9 @@ describe("settings IPC validation", () => {
       getSettingsSenderId: () => 42,
       setActivePet: vi.fn(async () => undefined),
       importPetPackage: vi.fn(async () => undefined),
+      importCodexPokePet: vi.fn(async () => undefined),
+      scanCodexPokePets: vi.fn(async () => undefined),
+      importDiscoveredCodexPokePet: vi.fn(async () => undefined),
       rescanPets: vi.fn(async () => undefined),
       openPetsDirectory: vi.fn(async () => undefined),
     };
@@ -169,10 +175,19 @@ describe("settings IPC validation", () => {
 
     await handlers.get(SETTINGS_IPC_CHANNELS.setActivePet)!({ sender: { id: 42 } }, "pixel-sprout");
     await handlers.get(SETTINGS_IPC_CHANNELS.importPetPackage)!({ sender: { id: 42 } });
+    await handlers.get(SETTINGS_IPC_CHANNELS.importCodexPokePet)!({ sender: { id: 42 } });
+    await handlers.get(SETTINGS_IPC_CHANNELS.scanCodexPokePets)!({ sender: { id: 42 } });
+    await handlers.get(SETTINGS_IPC_CHANNELS.importDiscoveredCodexPokePet)!(
+      { sender: { id: 42 } },
+      "geo-bot",
+    );
     await handlers.get(SETTINGS_IPC_CHANNELS.rescanPets)!({ sender: { id: 42 } });
     await handlers.get(SETTINGS_IPC_CHANNELS.openPetsDirectory)!({ sender: { id: 42 } });
     expect(actions.setActivePet).toHaveBeenCalledWith("pixel-sprout");
     expect(actions.importPetPackage).toHaveBeenCalledOnce();
+    expect(actions.importCodexPokePet).toHaveBeenCalledOnce();
+    expect(actions.scanCodexPokePets).toHaveBeenCalledOnce();
+    expect(actions.importDiscoveredCodexPokePet).toHaveBeenCalledWith("geo-bot");
     expect(actions.rescanPets).toHaveBeenCalledOnce();
     expect(actions.openPetsDirectory).toHaveBeenCalledOnce();
     expect(() => handlers.get(SETTINGS_IPC_CHANNELS.rescanPets)!({ sender: { id: 7 } })).toThrow(

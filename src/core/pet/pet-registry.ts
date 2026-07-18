@@ -196,6 +196,7 @@ export class PetRegistry {
         previewUrl: pet.previewUrl,
         origin: pet.origin,
         active: pet.manifest.id === this.#activePetId,
+        previewAnimation: pet.animations.idle ? structuredClone(pet.animations.idle) : undefined,
       }))
       .sort(
         (left, right) =>

@@ -20,6 +20,9 @@ export interface SettingsIpcActions {
   getSettingsSenderId(): number | undefined;
   setActivePet(id: string): Promise<void>;
   importPetPackage(): Promise<void>;
+  importCodexPokePet(): Promise<void>;
+  scanCodexPokePets(): Promise<void>;
+  importDiscoveredCodexPokePet(sourcePetId: string): Promise<void>;
   rescanPets(): Promise<void>;
   openPetsDirectory(): Promise<void>;
 }
@@ -116,6 +119,18 @@ export function registerSettingsIpcHandlers(
     assertSettingsSender(event.sender.id, actions.getSettingsSenderId());
     return actions.importPetPackage();
   });
+  registrar.handle(SETTINGS_IPC_CHANNELS.importCodexPokePet, (event) => {
+    assertSettingsSender(event.sender.id, actions.getSettingsSenderId());
+    return actions.importCodexPokePet();
+  });
+  registrar.handle(SETTINGS_IPC_CHANNELS.scanCodexPokePets, (event) => {
+    assertSettingsSender(event.sender.id, actions.getSettingsSenderId());
+    return actions.scanCodexPokePets();
+  });
+  registrar.handle(SETTINGS_IPC_CHANNELS.importDiscoveredCodexPokePet, (event, value) => {
+    assertSettingsSender(event.sender.id, actions.getSettingsSenderId());
+    return actions.importDiscoveredCodexPokePet(parsePetId(value));
+  });
   registrar.handle(SETTINGS_IPC_CHANNELS.rescanPets, (event) => {
     assertSettingsSender(event.sender.id, actions.getSettingsSenderId());
     return actions.rescanPets();
@@ -129,6 +144,9 @@ export function registerSettingsIpcHandlers(
     registrar.removeHandler(SETTINGS_IPC_CHANNELS.patch);
     registrar.removeHandler(SETTINGS_IPC_CHANNELS.setActivePet);
     registrar.removeHandler(SETTINGS_IPC_CHANNELS.importPetPackage);
+    registrar.removeHandler(SETTINGS_IPC_CHANNELS.importCodexPokePet);
+    registrar.removeHandler(SETTINGS_IPC_CHANNELS.scanCodexPokePets);
+    registrar.removeHandler(SETTINGS_IPC_CHANNELS.importDiscoveredCodexPokePet);
     registrar.removeHandler(SETTINGS_IPC_CHANNELS.rescanPets);
     registrar.removeHandler(SETTINGS_IPC_CHANNELS.openPetsDirectory);
   };

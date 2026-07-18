@@ -38,6 +38,8 @@ describe("settings renderer security boundary", () => {
     expect(source).not.toContain("respondApproval");
     expect(source).toContain("setActivePet");
     expect(source).toContain("importPetPackage");
+    expect(source).toContain("importCodexPokePet");
+    expect(source).toContain("scanCodexPokePets");
     expect(source).toContain("rescanPets");
     expect(source).toContain("openPetsDirectory");
   });

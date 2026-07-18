@@ -67,6 +67,7 @@ export interface PetSummary {
   previewUrl: string;
   origin: PetPackageOrigin;
   active: boolean;
+  previewAnimation?: PetAnimationAsset;
 }
 
 export interface PetPackageIssue {

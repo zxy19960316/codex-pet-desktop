@@ -219,12 +219,24 @@ export function SettingsApp() {
           </div>
           <PetSelector
             pets={snapshot.pets}
+            codexPokePets={snapshot.codexPokePets}
             pending={petPending}
             onSelect={(id) =>
               void runPetAction(`select:${id}`, () => window.codexPetSettings.setActivePet(id))
             }
             onImport={() =>
               void runPetAction("import", () => window.codexPetSettings.importPetPackage())
+            }
+            onImportCodexPokePet={() =>
+              void runPetAction("import-codex", () => window.codexPetSettings.importCodexPokePet())
+            }
+            onScanCodexPokePets={() =>
+              void runPetAction("scan-codex", () => window.codexPetSettings.scanCodexPokePets())
+            }
+            onImportDiscovered={(sourcePetId) =>
+              void runPetAction(`import-codex:${sourcePetId}`, () =>
+                window.codexPetSettings.importDiscoveredCodexPokePet(sourcePetId),
+              )
             }
             onOpenDirectory={() =>
               void runPetAction("open", () => window.codexPetSettings.openPetsDirectory())

@@ -16,6 +16,10 @@ const api: SettingsApi = {
   patch: (patch) => ipcRenderer.invoke(SETTINGS_IPC_CHANNELS.patch, patch),
   setActivePet: (id) => ipcRenderer.invoke(SETTINGS_IPC_CHANNELS.setActivePet, id),
   importPetPackage: () => ipcRenderer.invoke(SETTINGS_IPC_CHANNELS.importPetPackage),
+  importCodexPokePet: () => ipcRenderer.invoke(SETTINGS_IPC_CHANNELS.importCodexPokePet),
+  scanCodexPokePets: () => ipcRenderer.invoke(SETTINGS_IPC_CHANNELS.scanCodexPokePets),
+  importDiscoveredCodexPokePet: (sourcePetId) =>
+    ipcRenderer.invoke(SETTINGS_IPC_CHANNELS.importDiscoveredCodexPokePet, sourcePetId),
   rescanPets: () => ipcRenderer.invoke(SETTINGS_IPC_CHANNELS.rescanPets),
   openPetsDirectory: () => ipcRenderer.invoke(SETTINGS_IPC_CHANNELS.openPetsDirectory),
 };

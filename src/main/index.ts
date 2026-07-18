@@ -3,6 +3,8 @@ import { join } from "node:path";
 import { SafeLogger } from "../core/logging/logger";
 import type { PetState } from "../core/pet/pet-state";
 import { PetRegistry } from "../core/pet/pet-registry";
+import { CodexPokePetsAdapter } from "../core/pet/adapters/codex-pokepets-adapter";
+import { CodexPokePetsProvider } from "../core/pet/codex-pokepets-provider";
 import { IPC_CHANNELS, type DesktopSnapshot } from "../shared/ipc-contract";
 import { SETTINGS_IPC_CHANNELS, type SettingsWindowSnapshot } from "../shared/ipc/settings-ipc";
 import { settingsDocumentFromLocalSettings, type LocalSettings } from "../shared/settings";
@@ -34,6 +36,24 @@ let runtime: RuntimeController;
 let hookBridge: HookEventBridge;
 let hookEventsPath: string;
 let petRegistry: PetRegistry;
+let codexPokePetsAdapter: CodexPokePetsAdapter;
+let codexPokePetsProvider: CodexPokePetsProvider;
+
+async function confirmThirdPartyImport(): Promise<boolean> {
+  const result = await dialog.showMessageBox({
+    type: "warning",
+    title: "Import third-party character asset",
+    message:
+      "Third-party character assets remain subject to their original rights and are not covered by this application's MIT license.",
+    detail:
+      "The selected local files will be copied only into this application's managed user-data pet directory. They will not be uploaded or added to the application installer.",
+    buttons: ["Import", "Cancel"],
+    defaultId: 1,
+    cancelId: 1,
+    noLink: true,
+  });
+  return result.response === 0;
+}
 
 async function connectCodexHook(): Promise<void> {
   try {
@@ -81,6 +101,7 @@ function buildSettingsSnapshot(snapshot: DesktopSnapshot): SettingsWindowSnapsho
       version: app.getVersion(),
     },
     pets: snapshot.pet ?? petRegistry.getSnapshot(),
+    codexPokePets: codexPokePetsProvider.getSnapshot(),
   };
 }
 
@@ -123,6 +144,13 @@ async function startApplication(): Promise<void> {
     activePetId: "pixel-sprout",
   });
   await petRegistry.scan();
+  codexPokePetsAdapter = new CodexPokePetsAdapter(petRegistry);
+  codexPokePetsProvider = new CodexPokePetsProvider({
+    sourceDirectory: join(app.getPath("home"), ".codex", "pets"),
+    registry: petRegistry,
+    adapter: codexPokePetsAdapter,
+  });
+  await codexPokePetsProvider.scan();
   settingsService = new SettingsService(
     new SettingsStore({
       legacyPath: join(userData, "settings.json"),
@@ -261,8 +289,30 @@ async function startApplication(): Promise<void> {
         await petRegistry.setActivePet(imported.manifest.id);
         publishPetSnapshots();
       },
+      importCodexPokePet: async () => {
+        const selection = await dialog.showOpenDialog({
+          title: "Import Codex PokéPet",
+          properties: ["openDirectory"],
+        });
+        if (selection.canceled || !selection.filePaths[0]) return;
+        const source = await codexPokePetsAdapter.inspect(selection.filePaths[0]);
+        if (!(await confirmThirdPartyImport())) return;
+        await codexPokePetsAdapter.import(source);
+        await codexPokePetsProvider.scan();
+        publishPetSnapshots();
+      },
+      scanCodexPokePets: async () => {
+        await codexPokePetsProvider.scan();
+        publishPetSnapshots();
+      },
+      importDiscoveredCodexPokePet: async (sourcePetId) => {
+        if (!(await confirmThirdPartyImport())) return;
+        await codexPokePetsProvider.import(sourcePetId);
+        publishPetSnapshots();
+      },
       rescanPets: async () => {
         await petRegistry.scan();
+        await codexPokePetsProvider.scan();
         publishPetSnapshots();
       },
       openPetsDirectory: async () => {
