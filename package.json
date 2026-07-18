@@ -24,6 +24,8 @@
     "build": "tsc --noEmit && vite build && npm run build:electron",
     "assets:icons": "node scripts/generate-app-icons.mjs",
     "package:dir": "npm run build && npm run assets:icons && node scripts/package-app.mjs",
+    "package:installer": "npm run build && npm run assets:icons && electron-builder --config electron-builder.json --win nsis --x64 --publish never && node scripts/write-installer-checksum.mjs",
+    "package:installer:signed": "node scripts/require-windows-signing.mjs && npm run build && npm run assets:icons && electron-builder --config electron-builder.json --win nsis --x64 --publish never --config.win.forceCodeSigning=true && node scripts/write-installer-checksum.mjs",
     "test:e2e:m3-2": "node scripts/run-m3-2-e2e.mjs",
     "verify:m3-2": "npm run package:dir && npm run test:e2e:m3-2"
   },
@@ -39,6 +41,7 @@
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.3",
     "electron": "43.1.1",
+    "electron-builder": "26.15.3",
     "esbuild": "0.28.1",
     "eslint": "10.7.0",
     "globals": "17.7.0",

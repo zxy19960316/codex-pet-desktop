@@ -1,0 +1,47 @@
+{
+  "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
+  "appId": "io.github.zxy19960316.codexpetdesktop",
+  "productName": "Codex Pet Desktop",
+  "asar": true,
+  "compression": "maximum",
+  "npmRebuild": false,
+  "directories": {
+    "output": "release/m3-3",
+    "buildResources": "build/generated"
+  },
+  "files": ["dist/**/*", "package.json"],
+  "extraResources": [
+    {
+      "from": "pets",
+      "to": "pets",
+      "filter": ["**/*"]
+    }
+  ],
+  "publish": null,
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      }
+    ],
+    "icon": "build/generated/icon.ico",
+    "executableName": "Codex Pet Desktop",
+    "artifactName": "codex-pet-desktop-${version}-setup-${arch}.${ext}",
+    "forceCodeSigning": false
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": false,
+    "allowElevation": true,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": false,
+    "createStartMenuShortcut": false,
+    "runAfterFinish": false,
+    "deleteAppDataOnUninstall": false,
+    "installerIcon": "build/generated/icon.ico",
+    "uninstallerIcon": "build/generated/icon.ico",
+    "uninstallDisplayName": "Codex Pet Desktop ${version}",
+    "license": "LICENSE"
+  }
+}
