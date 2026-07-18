@@ -205,6 +205,24 @@ directory. This proves packaged discovery, IPC, import, switching, restart persi
 and preview rendering without changing normal native-picker behavior or the renderer security
 boundary.
 
+### M3.3 installer and signing boundary
+
+`electron-builder.json` consumes only the compiled `dist/` tree and root package metadata for
+`app.asar`, then copies reviewed `pets/` into `resources/pets`. The NSIS target is x64, assisted,
+per-user, and permits choosing an install directory. Automatic verification disables desktop and
+start-menu shortcuts and installs only to an exact verifier-owned directory below `os.tmpdir()`.
+
+The application icon is a deterministic nearest-neighbor derivative of the committed original
+Pixel Sprout preview. Generated PNG/ICO files and distribution artifacts stay ignored. Unsigned
+builds produce an explicit `NotSigned` report; signed builds require `WIN_CSC_LINK` and
+`WIN_CSC_KEY_PASSWORD` before enabling `forceCodeSigning`. Secrets never cross into renderer IPC,
+repository configuration, or verification output.
+
+The lifecycle verifier does not remove the installation directory itself. It launches the NSIS
+uninstaller and passes only if that directory disappears, then deletes its separate temporary
+user-data and import fixture. The manual GitHub Actions workflow has read-only repository
+permission and uploads artifacts without publishing releases.
+
 ## Security and storage
 
 Browser windows use `contextIsolation: true`, `nodeIntegration: false`, and `sandbox: true`.

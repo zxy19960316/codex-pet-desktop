@@ -14,6 +14,10 @@
 > and a two-process packaged Settings E2E verifies import, switching, restart persistence, rescan,
 > and previews. See `docs/reports/M3_2_IMPLEMENTATION.md`.
 
+> **2026-07-18 M3.3 baseline:** A Windows x64 NSIS installer, original icon, checksum, signing
+> preflight, isolated install/launch/uninstall E2E, and manual artifact workflow are implemented.
+> See `docs/reports/M3_3_IMPLEMENTATION.md`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: use an execution workflow that implements this plan task-by-task, with each task reviewed against its tests before continuing. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build an independent, secure Electron desktop pet that completes the M0 desktop shell and an M1 Codex App Server integration loop with deterministic Mock fallback.
@@ -238,8 +242,9 @@
 - **M4 – Pet packs and animation system:** delivered as M3.1 with safe local discovery, import,
   switching, PNG sprite geometry, animation fallback, Settings UI, and an original package.
 - **M5 — Multiple sessions and productization:** future; M1 tracks independent thread state only.
-- **M6 — Installers, updates, and releases:** M3.2 supplies an unpacked Windows verification build;
-  installers, signing, updates, and release automation remain future work.
+- **M6 — Installers, updates, and releases:** M3.3 supplies a verified unsigned Windows x64 NSIS
+  installer and signing preparation; a real certificate, updates, and release publication remain
+  future work.
 
 ## M2.6 extension
 
@@ -258,8 +263,8 @@
 - **P4 – User pet packs:** complete in M3.1 with safe local package discovery, validation, preview,
   attribution/license display, import, switching, rescan, and failure isolation; M3.2 adds packaged
   resource discovery and automated restart-persistence evidence.
-- **P5 — Productization:** click hit-window hardening, settings, startup behavior, installers, and
-  releases.
+- **P5 — Productization:** M3.3 delivers the Windows installer lifecycle and manual artifact CI;
+  click hit-window hardening, startup behavior, signed releases, and updates remain.
 
 ## Self-Review
 

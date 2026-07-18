@@ -11,6 +11,8 @@ needed.
   switching, and user folder import.
 - Packaged Windows resource discovery plus a two-process Settings E2E for import, switching,
   restart persistence, rescan, and preview rendering.
+- An original-branded Windows x64 NSIS installer with SHA-256 output and isolated
+  install/launch/uninstall verification.
 - Compact `300 x 360` transparent window; details and human requests expand it to `420 x 700` while
   preserving the lower-right anchor.
 - Two-row `5h` / `weekly` quota strip with unavailable placeholders instead of invented data.
@@ -47,11 +49,20 @@ npm test
 npm run build
 npm run package:dir
 npm run verify:m3-2
+npm run package:installer
+npm run verify:m3-3
 ```
 
 `package:dir` creates an ignored unpacked application under `release/`. `verify:m3-2` packages the
 app, launches that EXE twice with isolated temporary user-data, and writes ignored reports and Pets
 screenshots under `tmp/m3-2-e2e/results/`.
+
+`package:installer` creates an ignored unsigned installer and checksum under `release/m3-3/`.
+`verify:m3-3` installs it to a unique temporary directory, validates the installed Settings/Pet
+path, runs the real uninstaller, and preserves only the ignored report and screenshot under
+`tmp/m3-3-e2e/`. See the
+[`M3.3 Windows distribution report`](docs/reports/M3_3_IMPLEMENTATION.md) for signing preparation
+and evidence limits.
 
 ## Privacy and local data
 
