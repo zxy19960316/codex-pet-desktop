@@ -48,11 +48,25 @@ usage provider and child process to stop before Electron quits.
 `EventNormalizer` converts protocol notifications into domain events. Unknown methods create only
 a payload-free diagnostic code and never alter pet state.
 
-## Pixel theme and window layout
+## Pet packages, animation, and window layout
 
-The renderer consumes a trusted `RuntimePetTheme`; it does not resolve arbitrary filesystem paths.
-The bundled original SVG is a `4 x 4` sheet of `64 x 64` frames rendered with nearest-neighbor
-scaling. State fallback traversal is cycle-bounded and always resolves to `idle`.
+Pet resources and UI themes are separate. `PetRegistry` scans reviewed packages under the
+application `pets/` directory plus imported packages under Electron user data. It validates the
+manifest, safe relative paths, regular-file boundary, PNG signature and dimensions, sprite frame
+geometry, import count/size limits, duplicate IDs, and the mandatory `idle` animation. One broken
+package creates a renderer-safe issue record and does not abort the scan or application startup.
+
+The Registry caches only valid `PetPackage` objects and owns the current ID. Selection is persisted
+in a small `.active-pet.json` file beside user packages rather than adding character identity to UI
+theme or Settings preference schemas. Outgoing desktop and Settings snapshots are decorated in
+`src/main/index.ts`; `RuntimeController` remains concerned only with normalized activity state.
+
+`AnimationResolver` maps the 12-state M3.1 vocabulary to a concrete `PetAnimationAsset`. A
+manifest fallback takes precedence over deterministic defaults such as
+`working -> thinking -> idle`; cycles are bounded and a damaged in-memory package returns no
+animation rather than throwing. The renderer uses validated URLs and geometry only and never
+resolves arbitrary filesystem paths. M3.1 supports horizontal PNG sprite sheets; frame count is
+inferred from the image width, and duration is derived from frames and FPS.
 
 The normal window is `300 x 360`. Opening details, debug tools, an approval, or a structured input
 resizes it to `420 x 700`. Resizing preserves the lower-right edge and clamps the result to the
@@ -109,9 +123,10 @@ the existing window, while a close clears the retained reference. Vite builds `s
 separate renderer entry, and Electron loads a dedicated `settings.cjs` preload. The window keeps
 `contextIsolation: true`, `nodeIntegration: false`, and `sandbox: true`.
 
-The settings preload exposes only three operations: read a settings-safe snapshot, subscribe to
-settings-safe snapshots, and submit a typed patch. It does not expose pet-state controls, approval
-or input replies, Codex turn controls, M2.6 verification actions, Node.js, Electron, or filesystem
+The settings preload exposes snapshot read/subscription, typed settings patching, and four narrow
+pet-management actions: select, import through a native folder picker, rescan, and open the managed
+user pet directory. It does not expose debug pet-state controls, approval or input replies, Codex
+turn controls, M2.6 verification actions, Node.js, Electron, general paths, or general filesystem
 access. Every Settings IPC invocation compares the sender's `webContents.id` with the live Settings
 Window before doing work. Patch parsing in the main process accepts only these exact fields:
 
@@ -120,8 +135,9 @@ Window before doing work. Patch parsing in the main process accepts only these e
 - device-local connection controls: `useMockData` and `autoStartAppServer`.
 
 Unknown partitions, unknown nested fields, non-boolean switches, non-finite quota values, and quota
-values outside `0..100` are rejected before they reach the runtime. The Settings renderer displays
-six sections: Status, General, Codex connection, Quota, Diagnostics, and About.
+values outside `0..100` are rejected before they reach the runtime. Pet selection accepts only a
+canonical package ID; the native picker path never comes from renderer input. The Settings renderer
+displays seven sections: Status, General, Pets, Codex connection, Quota, Diagnostics, and About.
 
 Settings changes continue through the existing `RuntimeController.patchSettings()` seam. Its
 existing persistence callback writes through `SettingsService`; its existing settings-changed
@@ -161,8 +177,19 @@ overwritten. Explicit changes can still apply in memory for the current process 
 usable, but persistence stays disabled until the protected file is repaired or upgraded by a
 compatible release.
 
-M3.0 does not implement the M3.1 Pet Registry, third-party pet imports, cloud synchronization,
-mobile clients, an online theme marketplace, automatic updates, packaging, or release automation.
+### M3.1 Pet manager and import boundary
+
+`PetSelector` displays the active preview, author, version, license, origin, package status, and
+isolated validation issues. Switching and rescanning update both renderer snapshots without
+restarting or changing Codex transport. Import validates the user-selected source tree, copies it
+to a temporary directory under user-data `pets/`, validates the copy, and atomically renames it.
+Duplicates and invalid sources never replace installed packages, and failed temporary copies are
+removed.
+
+`ExternalPetAdapter<TSource>` is a format-neutral future conversion seam. It grants no download or
+validation bypass and does not bind the application to Clawd, Pokémon-like packs, or another
+project. M3.1 does not implement cloud synchronization, mobile clients, an online marketplace,
+automatic updates, packaging, or release automation.
 
 ## Security and storage
 

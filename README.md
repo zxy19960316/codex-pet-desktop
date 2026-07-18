@@ -7,8 +7,8 @@ needed.
 
 ## Current product baseline
 
-- Original manifest-driven pixel creature with idle, thinking, working, and success sprite rows,
-  plus safe state fallbacks.
+- Registry-backed Pet Packages with PNG sprite sheets, validated state fallbacks, active-pet
+  switching, and user folder import.
 - Compact `300 x 360` transparent window; details and human requests expand it to `420 x 700` while
   preserving the lower-right anchor.
 - Two-row `5h` / `weekly` quota strip with unavailable placeholders instead of invented data.
@@ -49,14 +49,17 @@ npm run build
 
 The app has no cloud account, telemetry uploader, browser-cookie access, or login emulation. The
 hook receiver discards prompt text, tool inputs, tool outputs, transcript paths, and model details.
-Its bounded local event file contains only lifecycle identifiers and timestamps. Window settings
-and event data stay in Electron's local user-data directory.
+Its bounded local event file contains only lifecycle identifiers and timestamps. Window settings,
+imported pet packages, active-pet selection, and event data stay in Electron's local user-data
+directory.
 
 ## Pet assets
 
 This repository does not bundle Pokémon artwork or other extracted game resources. The included
-`Pixel Sprout` SVG sprite sheet is an original code-drawn placeholder. User-owned packs belong in
-the Git-ignored `user-pets/` directory. See [`ASSET_POLICY.md`](ASSET_POLICY.md).
+Pixel Sprout PNG package is original procedural pixel art. Open **Settings Center -> Pets** to
+switch packages, import a local package folder, open the managed user-data directory, or rescan.
+See the [Pet Package guide](docs/guides/PET_PACKAGE_SYSTEM.md) and
+[`ASSET_POLICY.md`](ASSET_POLICY.md).
 
 ## Independence and license
 

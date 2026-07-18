@@ -5,6 +5,11 @@
 > `docs/reports/2026-07-16_PRODUCT_RESET_AUDIT.md` and the first executable plan is
 > `docs/superpowers/plans/2026-07-16-pixel-pet-shell.md`. M2.6 no longer gates pet rendering.
 
+> **2026-07-18 M3.1 baseline:** The 2D Pet Asset System is implemented. The current package schema,
+> Registry/import boundary, Animation Resolver, and Settings integration are documented in
+> `docs/guides/PET_PACKAGE_SYSTEM.md` and
+> `docs/superpowers/plans/2026-07-18-m3-1-pet-asset-system.md`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: use an execution workflow that implements this plan task-by-task, with each task reviewed against its tests before continuing. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build an independent, secure Electron desktop pet that completes the M0 desktop shell and an M1 Codex App Server integration loop with deterministic Mock fallback.
@@ -34,12 +39,13 @@
 - `src/preload/*`: the only renderer-to-main bridge and its public type declarations.
 - `src/renderer/*`: React views for the pet, HUD, approvals, and debug controls.
 - `src/core/codex/*`: JSONL framing, JSON-RPC, child-process lifecycle, protocol guards, event normalization, approvals, usage, and mocks.
-- `src/core/pet/*`: pet states, priority, per-thread aggregation, and transient restoration.
+- `src/core/pet/*`: pet states, priority, per-thread aggregation, package validation/registry,
+  external-adapter contract, animation fallback, and transient restoration.
 - `src/core/sessions/*`: independent thread snapshots and active-thread counts.
 - `src/core/logging/*`: structured, redacted diagnostic records.
 - `src/shared/*`: IPC contracts, settings, pet-pack types, and serializable result types.
 - `tests/*`: unit and architecture tests that run without Electron UI automation or a real Codex account.
-- `themes/example-original-pet/*`: original CSS-only sample pet metadata; no third-party artwork.
+- `pets/example-original-pet/*`: original reproducible PNG Pet Package; no third-party artwork.
 - `docs/*`, root policy files, and `.github/workflows/ci.yml`: architecture, implementation evidence, community policy, and CI.
 
 ### Task 1: Repository and toolchain baseline
@@ -225,7 +231,8 @@
   cleanup; and separate protocol/mock/human verification records. M3 HUD and M4 pet packs follow
   only after guided real desktop approval and input checks are recorded.
 - **M3 — Complete quota and Token HUD:** future; M1 supplies only provider/UI foundations.
-- **M4 — Pet packs and animation system:** future; M1 supplies only a safe manifest skeleton and original placeholder.
+- **M4 – Pet packs and animation system:** delivered as M3.1 with safe local discovery, import,
+  switching, PNG sprite geometry, animation fallback, Settings UI, and an original package.
 - **M5 — Multiple sessions and productization:** future; M1 tracks independent thread state only.
 - **M6 — Installers, updates, and releases:** future; no packaging or release automation in this change.
 
@@ -243,7 +250,8 @@
 - **P2 — Real Codex observation:** official lifecycle hook installer, local event bridge, session
   aggregation, hook health, and App Server as an optional control path rather than the only sensor.
 - **P3 — Human action surfaces:** approval and user-input cards opened progressively from the pet.
-- **P4 — User pet packs:** safe local theme discovery, validation, preview, and attribution.
+- **P4 – User pet packs:** complete in M3.1 with safe local package discovery, validation, preview,
+  attribution/license display, import, switching, rescan, and failure isolation.
 - **P5 — Productization:** click hit-window hardening, settings, startup behavior, installers, and
   releases.
 
