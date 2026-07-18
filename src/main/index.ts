@@ -1,7 +1,8 @@
-import { app, BrowserWindow, dialog, ipcMain } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
 import { join } from "node:path";
 import { SafeLogger } from "../core/logging/logger";
 import type { PetState } from "../core/pet/pet-state";
+import { PetRegistry } from "../core/pet/pet-registry";
 import { IPC_CHANNELS, type DesktopSnapshot } from "../shared/ipc-contract";
 import { SETTINGS_IPC_CHANNELS, type SettingsWindowSnapshot } from "../shared/ipc/settings-ipc";
 import { settingsDocumentFromLocalSettings, type LocalSettings } from "../shared/settings";
@@ -28,6 +29,7 @@ let trayManager: TrayManager;
 let runtime: RuntimeController;
 let hookBridge: HookEventBridge;
 let hookEventsPath: string;
+let petRegistry: PetRegistry;
 
 async function connectCodexHook(): Promise<void> {
   try {
@@ -74,7 +76,18 @@ function buildSettingsSnapshot(snapshot: DesktopSnapshot): SettingsWindowSnapsho
       name: app.getName(),
       version: app.getVersion(),
     },
+    pets: snapshot.pet ?? petRegistry.getSnapshot(),
   };
+}
+
+function withPetSnapshot(snapshot: DesktopSnapshot): DesktopSnapshot {
+  return { ...snapshot, pet: petRegistry.getSnapshot() };
+}
+
+function publishPetSnapshots(): void {
+  const snapshot = withPetSnapshot(runtime.getSnapshot());
+  windowManager.send(IPC_CHANNELS.snapshot, snapshot);
+  settingsWindowManager.send(SETTINGS_IPC_CHANNELS.snapshot, buildSettingsSnapshot(snapshot));
 }
 
 function rebuildTray(settings: LocalSettings): void {
@@ -96,6 +109,12 @@ function rebuildTray(settings: LocalSettings): void {
 
 async function startApplication(): Promise<void> {
   const userData = app.getPath("userData");
+  petRegistry = new PetRegistry({
+    builtinDirectory: join(app.getAppPath(), "pets"),
+    userDirectory: join(userData, "pets"),
+    activePetId: "pixel-sprout",
+  });
+  await petRegistry.scan();
   settingsService = new SettingsService(
     new SettingsStore({
       legacyPath: join(userData, "settings.json"),
@@ -139,12 +158,16 @@ async function startApplication(): Promise<void> {
     logger,
     initialSettings: settings,
     publish: (snapshot) => {
-      windowManager.setMode(windowModeForSnapshot(snapshot));
-      windowManager.send(IPC_CHANNELS.snapshot, snapshot);
-      settingsWindowManager.send(SETTINGS_IPC_CHANNELS.snapshot, buildSettingsSnapshot(snapshot));
+      const publicSnapshot = withPetSnapshot(snapshot);
+      windowManager.setMode(windowModeForSnapshot(publicSnapshot));
+      windowManager.send(IPC_CHANNELS.snapshot, publicSnapshot);
+      settingsWindowManager.send(
+        SETTINGS_IPC_CHANNELS.snapshot,
+        buildSettingsSnapshot(publicSnapshot),
+      );
       if (guidedE2E) {
         try {
-          writeE2EResult(guidedE2EResult, snapshot);
+          writeE2EResult(guidedE2EResult, publicSnapshot);
         } catch (error) {
           logger.write("error", "e2e-result-write-failed", {
             errorName: error instanceof Error ? error.name : "unknown",
@@ -202,9 +225,31 @@ async function startApplication(): Promise<void> {
       removeHandler: (channel) => ipcMain.removeHandler(channel),
     },
     {
-      getSnapshot: () => buildSettingsSnapshot(runtime.getSnapshot()),
+      getSnapshot: () => buildSettingsSnapshot(withPetSnapshot(runtime.getSnapshot())),
       patchSettings: (patch) => runtime.patchSettings(patch),
       getSettingsSenderId: () => settingsWindowManager.senderId,
+      setActivePet: async (id) => {
+        await petRegistry.setActivePet(id);
+        publishPetSnapshots();
+      },
+      importPetPackage: async () => {
+        const selection = await dialog.showOpenDialog({
+          title: "Import Pet Package",
+          properties: ["openDirectory"],
+        });
+        if (selection.canceled || !selection.filePaths[0]) return;
+        const imported = await petRegistry.importPetPackage(selection.filePaths[0]);
+        await petRegistry.setActivePet(imported.manifest.id);
+        publishPetSnapshots();
+      },
+      rescanPets: async () => {
+        await petRegistry.scan();
+        publishPetSnapshots();
+      },
+      openPetsDirectory: async () => {
+        const error = await shell.openPath(petRegistry.userDirectory);
+        if (error) throw new Error(`Could not open the pet directory: ${error}`);
+      },
     },
   );
   await runtime.start();

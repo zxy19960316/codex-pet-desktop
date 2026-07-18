@@ -109,6 +109,10 @@ describe("settings IPC validation", () => {
         getSnapshot: vi.fn(),
         patchSettings,
         getSettingsSenderId: () => 42,
+        setActivePet: vi.fn(async () => undefined),
+        importPetPackage: vi.fn(async () => undefined),
+        rescanPets: vi.fn(async () => undefined),
+        openPetsDirectory: vi.fn(async () => undefined),
       },
     );
     const patchHandler = handlers.get(SETTINGS_IPC_CHANNELS.patch)!;

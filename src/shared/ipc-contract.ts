@@ -4,6 +4,7 @@ import type { DailyUsage, RateLimitBucket } from "../core/codex/usage-provider";
 import type { ThreadTokenUsage } from "../core/codex/usage-provider";
 import type { UserInputAnswers, UserInputRequest } from "../core/input/input-types";
 import type { PetState, PetStateChange } from "../core/pet/pet-state";
+import type { PetRegistrySnapshot } from "../core/pet/pet-manifest";
 import type { LocalSettings } from "./settings";
 import type {
   CodexThreadSnapshot,
@@ -69,6 +70,7 @@ export interface DesktopSnapshot {
   currentThreadTokens: number | null;
   settings: LocalSettings;
   protocolSource: "codex-hooks" | "codex-app-server" | "mock" | "unavailable";
+  pet?: PetRegistrySnapshot;
 }
 
 export interface DesktopApi {

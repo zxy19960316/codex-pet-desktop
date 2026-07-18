@@ -18,6 +18,10 @@ export interface SettingsIpcActions {
   getSnapshot(): SettingsWindowSnapshot;
   patchSettings(patch: Partial<LocalSettings>): Promise<void>;
   getSettingsSenderId(): number | undefined;
+  setActivePet(id: string): Promise<void>;
+  importPetPackage(): Promise<void>;
+  rescanPets(): Promise<void>;
+  openPetsDirectory(): Promise<void>;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -30,6 +34,12 @@ function unknownKeys(value: Record<string, unknown>, allowed: ReadonlySet<string
 
 function booleanField(value: unknown, key: string): boolean {
   if (typeof value !== "boolean") throw new Error(`Invalid ${key}`);
+  return value;
+}
+
+export function parsePetId(value: unknown): string {
+  if (typeof value !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value))
+    throw new Error("Invalid pet id");
   return value;
 }
 
@@ -98,8 +108,28 @@ export function registerSettingsIpcHandlers(
     assertSettingsSender(event.sender.id, actions.getSettingsSenderId());
     return actions.patchSettings(settingsPatchToLocalSettings(parseSettingsPatch(value)));
   });
+  registrar.handle(SETTINGS_IPC_CHANNELS.setActivePet, (event, value) => {
+    assertSettingsSender(event.sender.id, actions.getSettingsSenderId());
+    return actions.setActivePet(parsePetId(value));
+  });
+  registrar.handle(SETTINGS_IPC_CHANNELS.importPetPackage, (event) => {
+    assertSettingsSender(event.sender.id, actions.getSettingsSenderId());
+    return actions.importPetPackage();
+  });
+  registrar.handle(SETTINGS_IPC_CHANNELS.rescanPets, (event) => {
+    assertSettingsSender(event.sender.id, actions.getSettingsSenderId());
+    return actions.rescanPets();
+  });
+  registrar.handle(SETTINGS_IPC_CHANNELS.openPetsDirectory, (event) => {
+    assertSettingsSender(event.sender.id, actions.getSettingsSenderId());
+    return actions.openPetsDirectory();
+  });
   return () => {
     registrar.removeHandler(SETTINGS_IPC_CHANNELS.getSnapshot);
     registrar.removeHandler(SETTINGS_IPC_CHANNELS.patch);
+    registrar.removeHandler(SETTINGS_IPC_CHANNELS.setActivePet);
+    registrar.removeHandler(SETTINGS_IPC_CHANNELS.importPetPackage);
+    registrar.removeHandler(SETTINGS_IPC_CHANNELS.rescanPets);
+    registrar.removeHandler(SETTINGS_IPC_CHANNELS.openPetsDirectory);
   };
 }

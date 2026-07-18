@@ -14,6 +14,10 @@ const api: SettingsApi = {
     return () => ipcRenderer.removeListener(SETTINGS_IPC_CHANNELS.snapshot, handler);
   },
   patch: (patch) => ipcRenderer.invoke(SETTINGS_IPC_CHANNELS.patch, patch),
+  setActivePet: (id) => ipcRenderer.invoke(SETTINGS_IPC_CHANNELS.setActivePet, id),
+  importPetPackage: () => ipcRenderer.invoke(SETTINGS_IPC_CHANNELS.importPetPackage),
+  rescanPets: () => ipcRenderer.invoke(SETTINGS_IPC_CHANNELS.rescanPets),
+  openPetsDirectory: () => ipcRenderer.invoke(SETTINGS_IPC_CHANNELS.openPetsDirectory),
 };
 
 contextBridge.exposeInMainWorld("codexPetSettings", Object.freeze(api));

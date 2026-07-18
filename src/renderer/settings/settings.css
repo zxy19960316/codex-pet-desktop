@@ -35,6 +35,29 @@ input {
   font: inherit;
 }
 
+button {
+  padding: 8px 12px;
+  border: 2px solid #1d2733;
+  border-radius: 5px;
+  color: #1d2733;
+  background: #f5d86e;
+  box-shadow: 3px 3px 0 rgba(29, 39, 51, 0.22);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled),
+button:focus-visible:not(:disabled) {
+  background: #ffd95c;
+  transform: translate(-1px, -1px);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
 .settings-shell {
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);
@@ -317,6 +340,159 @@ dd {
   line-height: 1.55;
 }
 
+.pet-selector {
+  display: grid;
+  gap: 16px;
+}
+
+.current-pet {
+  display: grid;
+  grid-template-columns: 148px minmax(0, 1fr);
+  gap: 20px;
+  align-items: center;
+  padding: 16px;
+  border: 2px solid #1d2733;
+  border-radius: 7px;
+  background: #e6edd9;
+}
+
+.pet-preview-frame {
+  display: grid;
+  width: 148px;
+  height: 148px;
+  place-items: center;
+  border: 2px solid #1d2733;
+  border-radius: 6px;
+  background:
+    linear-gradient(45deg, #e2dfd2 25%, transparent 25%) 0 0 / 16px 16px,
+    linear-gradient(45deg, transparent 75%, #e2dfd2 75%) 0 0 / 16px 16px,
+    #f8f4e8;
+  image-rendering: pixelated;
+}
+
+.pet-preview-frame img {
+  width: 128px;
+  height: 128px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.current-pet-copy h3 {
+  margin: 0 0 13px;
+  font-size: 26px;
+  letter-spacing: -0.035em;
+}
+
+.pet-metadata {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.pet-metadata > div {
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  gap: 10px;
+}
+
+.pet-metadata dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.pet-actions,
+.pet-list-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pet-list-heading {
+  justify-content: space-between;
+  padding-top: 4px;
+}
+
+.pet-list-heading small,
+.pet-card small {
+  color: #687078;
+}
+
+.pet-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pet-card {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 11px;
+  border: 1px solid #c7c0b2;
+  border-radius: 6px;
+  background: #f0ecdf;
+}
+
+.pet-card--active {
+  border: 2px solid #4f8a55;
+  background: #e6edd9;
+}
+
+.pet-card img {
+  grid-row: 1 / span 2;
+  width: 54px;
+  height: 54px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.pet-card > div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.pet-card-status {
+  color: #4f6852;
+  font:
+    800 9px/1 ui-monospace,
+    monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pet-card button {
+  grid-column: 2 / -1;
+  justify-self: start;
+  padding: 6px 10px;
+}
+
+.pet-empty,
+.pet-issues {
+  margin: 0;
+  padding: 12px;
+  border: 1px solid #c7c0b2;
+  border-radius: 5px;
+  color: #59636c;
+  background: #f0ecdf;
+  font-size: 12px;
+}
+
+.pet-issues summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.pet-issues ul {
+  margin: 10px 0 0;
+  padding-left: 20px;
+}
+
+.pet-issues li + li {
+  margin-top: 7px;
+}
+
 .settings-error {
   padding: 10px 13px;
   border: 2px solid #8e3425;
@@ -365,5 +541,14 @@ dd {
 
   .settings-content {
     padding: 26px 18px 48px;
+  }
+
+  .current-pet,
+  .pet-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pet-preview-frame {
+    width: 100%;
   }
 }

@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import type { PetState } from "../../core/pet/pet-state";
-import { BUILTIN_PIXEL_PET } from "./builtin-theme";
+import type { PetPackage } from "../../core/pet/pet-manifest";
 import { resolvePetAnimation, spriteStyle } from "./pet-animation";
 
 const STATE_LABELS: Record<PetState, string> = {
@@ -18,8 +18,8 @@ const STATE_LABELS: Record<PetState, string> = {
   offline: "Offline",
 };
 
-export function Pet({ state }: { state: PetState }) {
-  const resolved = resolvePetAnimation(BUILTIN_PIXEL_PET, state);
+export function Pet({ state, pet }: { state: PetState; pet?: PetPackage }) {
+  const resolved = pet ? resolvePetAnimation(pet, state) : undefined;
   const style = resolved ? (spriteStyle(resolved.animation) as CSSProperties) : undefined;
   return (
     <section className="pet-stage" aria-label={`Pet state: ${STATE_LABELS[state]}`}>

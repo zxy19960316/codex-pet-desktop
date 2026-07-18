@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import type { SettingsPatch, SettingsWindowSnapshot } from "../../shared/ipc/settings-ipc";
+import { PetSelector } from "./PetSelector";
 
 const SECTIONS = [
   ["status", "Status"],
   ["general", "General"],
+  ["pets", "Pets"],
   ["codex", "Codex connection"],
   ["quota", "Quota"],
   ["diagnostics", "Diagnostics"],
@@ -55,6 +57,7 @@ function Toggle({
 export function SettingsApp() {
   const [snapshot, setSnapshot] = useState<SettingsWindowSnapshot | null>(null);
   const [pending, setPending] = useState(false);
+  const [petPending, setPetPending] = useState<string>();
   const [error, setError] = useState<string>();
 
   useEffect(() => {
@@ -85,6 +88,22 @@ export function SettingsApp() {
       setError("The settings change was rejected and was not applied.");
     } finally {
       setPending(false);
+    }
+  }
+
+  async function runPetAction(name: string, action: () => Promise<void>): Promise<void> {
+    setPetPending(name);
+    setError(undefined);
+    try {
+      await action();
+    } catch (actionError) {
+      setError(
+        actionError instanceof Error
+          ? actionError.message
+          : "The pet operation failed without a diagnostic message.",
+      );
+    } finally {
+      setPetPending(undefined);
     }
   }
 
@@ -122,7 +141,7 @@ export function SettingsApp() {
       <div className="settings-content">
         <div className="settings-heading">
           <div>
-            <p className="eyebrow">M3.0</p>
+            <p className="eyebrow">M3.1</p>
             <h1>Settings Center</h1>
           </div>
           <span className={`status-pill status-pill--${snapshot.status.connectionStatus}`}>
@@ -190,13 +209,37 @@ export function SettingsApp() {
           />
         </section>
 
+        <section id="pets" className="settings-card">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">2D assets</p>
+              <h2>Pets</h2>
+            </div>
+            <span className="section-number">03</span>
+          </div>
+          <PetSelector
+            pets={snapshot.pets}
+            pending={petPending}
+            onSelect={(id) =>
+              void runPetAction(`select:${id}`, () => window.codexPetSettings.setActivePet(id))
+            }
+            onImport={() =>
+              void runPetAction("import", () => window.codexPetSettings.importPetPackage())
+            }
+            onOpenDirectory={() =>
+              void runPetAction("open", () => window.codexPetSettings.openPetsDirectory())
+            }
+            onRescan={() => void runPetAction("rescan", () => window.codexPetSettings.rescanPets())}
+          />
+        </section>
+
         <section id="codex" className="settings-card">
           <div className="section-heading">
             <div>
               <p className="eyebrow">Local bridge</p>
               <h2>Codex connection</h2>
             </div>
-            <span className="section-number">03</span>
+            <span className="section-number">04</span>
           </div>
           <Toggle
             checked={device.autoStartAppServer}
@@ -220,7 +263,7 @@ export function SettingsApp() {
               <p className="eyebrow">Usage guardrail</p>
               <h2>Quota</h2>
             </div>
-            <span className="section-number">04</span>
+            <span className="section-number">05</span>
           </div>
           <label className="range-setting">
             <span>
@@ -266,7 +309,7 @@ export function SettingsApp() {
               <p className="eyebrow">Read-only</p>
               <h2>Diagnostics</h2>
             </div>
-            <span className="section-number">05</span>
+            <span className="section-number">06</span>
           </div>
           <dl className="diagnostic-list">
             <div>
@@ -286,7 +329,7 @@ export function SettingsApp() {
               <p className="eyebrow">Independent project</p>
               <h2>About</h2>
             </div>
-            <span className="section-number">06</span>
+            <span className="section-number">07</span>
           </div>
           <p>
             {snapshot.app.name} <strong>v{snapshot.app.version}</strong>

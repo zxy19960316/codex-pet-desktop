@@ -28,7 +28,7 @@ export function App() {
   return (
     <main className={`shell ${expanded ? "shell--expanded" : ""}`} data-state={snapshot.petState}>
       <CompactHud snapshot={snapshot} />
-      <Pet state={snapshot.petState} />
+      <Pet state={snapshot.petState} pet={snapshot.pet?.active} />
       {snapshot.approvals[0] && (
         <ApprovalCard
           request={snapshot.approvals[0]}
