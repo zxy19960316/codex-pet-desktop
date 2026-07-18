@@ -9,6 +9,8 @@ needed.
 
 - Registry-backed Pet Packages with PNG sprite sheets, validated state fallbacks, active-pet
   switching, and user folder import.
+- Packaged Windows resource discovery plus a two-process Settings E2E for import, switching,
+  restart persistence, rescan, and preview rendering.
 - Compact `300 x 360` transparent window; details and human requests expand it to `420 x 700` while
   preserving the lower-right anchor.
 - Two-row `5h` / `weekly` quota strip with unavailable placeholders instead of invented data.
@@ -43,7 +45,13 @@ npm run format:check
 npm run lint
 npm test
 npm run build
+npm run package:dir
+npm run verify:m3-2
 ```
+
+`package:dir` creates an ignored unpacked application under `release/`. `verify:m3-2` packages the
+app, launches that EXE twice with isolated temporary user-data, and writes ignored reports and Pets
+screenshots under `tmp/m3-2-e2e/results/`.
 
 ## Privacy and local data
 
@@ -59,7 +67,8 @@ This repository does not bundle Pokémon artwork or other extracted game resourc
 Pixel Sprout PNG package is original procedural pixel art. Open **Settings Center -> Pets** to
 switch packages, import a local package folder, open the managed user-data directory, or rescan.
 See the [Pet Package guide](docs/guides/PET_PACKAGE_SYSTEM.md) and
-[`ASSET_POLICY.md`](ASSET_POLICY.md).
+[`ASSET_POLICY.md`](ASSET_POLICY.md). Packaged verification details are recorded in
+[`docs/reports/M3_2_IMPLEMENTATION.md`](docs/reports/M3_2_IMPLEMENTATION.md).
 
 ## Independence and license
 

@@ -189,7 +189,21 @@ removed.
 `ExternalPetAdapter<TSource>` is a format-neutral future conversion seam. It grants no download or
 validation bypass and does not bind the application to Clawd, Pokémon-like packs, or another
 project. M3.1 does not implement cloud synchronization, mobile clients, an online marketplace,
-automatic updates, packaging, or release automation.
+automatic updates or release automation.
+
+### M3.2 packaged resource and verification boundary
+
+Development resolves built-in packages from `<appPath>/pets`. Packaged processes resolve them from
+`<process.resourcesPath>/pets`, where the unpacked application places the reviewed package tree
+beside `app.asar`. User imports continue to live only under Electron user-data and are never mixed
+with installation resources.
+
+The M3.2 verifier is enabled only by the explicit `--m3-2-e2e` process argument. It keeps path
+injection and Chromium screenshot capture in the main process, drives stable DOM controls through
+the real sandboxed Settings window, and runs two packaged processes against one isolated user-data
+directory. This proves packaged discovery, IPC, import, switching, restart persistence, rescan,
+and preview rendering without changing normal native-picker behavior or the renderer security
+boundary.
 
 ## Security and storage
 

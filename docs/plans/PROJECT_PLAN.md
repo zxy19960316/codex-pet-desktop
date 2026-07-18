@@ -10,6 +10,10 @@
 > `docs/guides/PET_PACKAGE_SYSTEM.md` and
 > `docs/superpowers/plans/2026-07-18-m3-1-pet-asset-system.md`.
 
+> **2026-07-18 M3.2 baseline:** Built-in Pet Packages are included in an unpacked Windows build,
+> and a two-process packaged Settings E2E verifies import, switching, restart persistence, rescan,
+> and previews. See `docs/reports/M3_2_IMPLEMENTATION.md`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: use an execution workflow that implements this plan task-by-task, with each task reviewed against its tests before continuing. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build an independent, secure Electron desktop pet that completes the M0 desktop shell and an M1 Codex App Server integration loop with deterministic Mock fallback.
@@ -234,7 +238,8 @@
 - **M4 – Pet packs and animation system:** delivered as M3.1 with safe local discovery, import,
   switching, PNG sprite geometry, animation fallback, Settings UI, and an original package.
 - **M5 — Multiple sessions and productization:** future; M1 tracks independent thread state only.
-- **M6 — Installers, updates, and releases:** future; no packaging or release automation in this change.
+- **M6 — Installers, updates, and releases:** M3.2 supplies an unpacked Windows verification build;
+  installers, signing, updates, and release automation remain future work.
 
 ## M2.6 extension
 
@@ -251,7 +256,8 @@
   aggregation, hook health, and App Server as an optional control path rather than the only sensor.
 - **P3 — Human action surfaces:** approval and user-input cards opened progressively from the pet.
 - **P4 – User pet packs:** complete in M3.1 with safe local package discovery, validation, preview,
-  attribution/license display, import, switching, rescan, and failure isolation.
+  attribution/license display, import, switching, rescan, and failure isolation; M3.2 adds packaged
+  resource discovery and automated restart-persistence evidence.
 - **P5 — Productization:** click hit-window hardening, settings, startup behavior, installers, and
   releases.
 

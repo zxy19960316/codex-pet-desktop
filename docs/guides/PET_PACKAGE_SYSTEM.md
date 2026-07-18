@@ -136,7 +136,8 @@ of throwing through the renderer.
 
 The Registry scans two roots:
 
-- `pets/` under the application path contains reviewed built-in packages;
+- `<appPath>/pets` during development, or `<process.resourcesPath>/pets` in a packaged application,
+  contains reviewed built-in packages;
 - `pets/` under Electron's user-data directory contains user imports and remains outside Git.
 
 Built-in packages are loaded first. Duplicate IDs are reported and ignored rather than silently
@@ -175,3 +176,15 @@ node scripts/generate-original-pet-assets.mjs
 ```
 
 The generator and output contain no third-party character, game, logo, font, or sound resource.
+
+## Packaging and verification
+
+`npm run package:dir` creates an ignored unpacked application. Built-in packages are copied beside
+`app.asar` under `resources/pets/`, so their manifests and PNG files remain normal files that the
+Registry can validate. Imported packages are never written into this installation directory.
+
+`npm run verify:m3-2` launches the packaged application twice and drives the real Settings page:
+the first process imports and switches packages; the second reuses the isolated user-data and
+checks persisted selection plus rescan. Reports and Pets-section screenshots are written under
+`tmp/m3-2-e2e/results/`. The verifier supplies its fixture path only behind the explicit
+`--m3-2-e2e` main-process gate; normal use always opens the native folder picker.
