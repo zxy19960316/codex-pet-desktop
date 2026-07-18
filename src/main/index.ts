@@ -20,6 +20,7 @@ import { TrayManager } from "./tray-manager";
 import { windowModeForSnapshot } from "./window-layout";
 import { WindowManager } from "./window-manager";
 import { SettingsWindowManager } from "./windows/settings-window-manager";
+import { resolveBuiltinPetsDirectory } from "./pet-resource-path";
 
 const logger = new SafeLogger();
 let settingsService: SettingsService;
@@ -110,7 +111,11 @@ function rebuildTray(settings: LocalSettings): void {
 async function startApplication(): Promise<void> {
   const userData = app.getPath("userData");
   petRegistry = new PetRegistry({
-    builtinDirectory: join(app.getAppPath(), "pets"),
+    builtinDirectory: resolveBuiltinPetsDirectory({
+      appPath: app.getAppPath(),
+      resourcesPath: process.resourcesPath,
+      isPackaged: app.isPackaged,
+    }),
     userDirectory: join(userData, "pets"),
     activePetId: "pixel-sprout",
   });
