@@ -3,6 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "description": "Open-source Codex desktop pet with approvals, usage HUD, and local pet packs",
+  "productName": "Codex Pet Desktop",
+  "author": "Codex Pet Desktop contributors",
+  "homepage": "https://github.com/zxy19960316/codex-pet-desktop",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zxy19960316/codex-pet-desktop.git"
+  },
   "license": "MIT",
   "type": "module",
   "main": "dist/main/index.cjs",
@@ -15,7 +22,8 @@
     "test": "vitest run",
     "build:electron": "esbuild src/main/index.ts --bundle --platform=node --format=cjs --outfile=dist/main/index.cjs --external:electron && esbuild src/preload/index.ts --bundle --platform=node --format=cjs --outfile=dist/preload/index.cjs --external:electron && esbuild src/preload/settings.ts --bundle --platform=node --format=cjs --outfile=dist/preload/settings.cjs --external:electron && esbuild src/hook/receiver.ts --bundle --platform=node --format=cjs --outfile=dist/hook/codex-pet-hook.cjs",
     "build": "tsc --noEmit && vite build && npm run build:electron",
-    "package:dir": "npm run build && node scripts/package-app.mjs",
+    "assets:icons": "node scripts/generate-app-icons.mjs",
+    "package:dir": "npm run build && npm run assets:icons && node scripts/package-app.mjs",
     "test:e2e:m3-2": "node scripts/run-m3-2-e2e.mjs",
     "verify:m3-2": "npm run package:dir && npm run test:e2e:m3-2"
   },
@@ -34,6 +42,8 @@
     "esbuild": "0.28.1",
     "eslint": "10.7.0",
     "globals": "17.7.0",
+    "png-to-ico": "3.0.2",
+    "pngjs": "7.0.0",
     "prettier": "3.9.5",
     "typescript": "6.0.3",
     "typescript-eslint": "8.64.0",

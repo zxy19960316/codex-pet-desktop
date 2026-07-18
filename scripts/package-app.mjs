@@ -8,6 +8,7 @@ const root = process.cwd();
 const stagingDirectory = join(root, "tmp", "m3-2-package-stage");
 const outputDirectory = join(root, "release");
 const petsDirectory = join(root, "pets");
+const iconPath = join(root, "build", "generated", "icon.ico");
 const rootPackage = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
 const targetPlatform = platform();
 const targetArch = arch();
@@ -25,6 +26,7 @@ await Promise.all([
   requirePath(join(root, "dist", "main", "index.cjs"), "Built main bundle"),
   requirePath(join(root, "dist", "renderer", "index.html"), "Built renderer"),
   requirePath(join(petsDirectory, "example-original-pet", "manifest.json"), "Built-in pet"),
+  requirePath(iconPath, "Generated application icon"),
 ]);
 
 await rm(stagingDirectory, { recursive: true, force: true });
@@ -57,6 +59,7 @@ try {
     arch: targetArch,
     out: outputDirectory,
     overwrite: true,
+    icon: iconPath,
     asar: true,
     prune: true,
     extraResource: [petsDirectory],
@@ -69,6 +72,7 @@ try {
       ProductName: applicationName,
       InternalName: applicationName,
       OriginalFilename: `${applicationName}.exe`,
+      LegalCopyright: `Copyright (c) ${new Date().getUTCFullYear()} Codex Pet Desktop contributors`,
     },
   });
 
