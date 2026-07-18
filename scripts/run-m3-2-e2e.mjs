@@ -3,6 +3,7 @@ import { cp, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { arch, platform, tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
+import { createRequire } from "node:module";
 import { clearTimeout, setTimeout } from "node:timers";
 
 const root = process.cwd();
@@ -10,6 +11,7 @@ const applicationName = "Codex Pet Desktop";
 const verificationRoot = join(root, "tmp", "m3-2-e2e");
 const userDataDirectory = join(tmpdir(), `codex-pet-m3-2-e2e-${process.pid}`);
 const importSource = join(verificationRoot, "import-source", "e2e-sprout");
+const codexImportSource = join(verificationRoot, "codex-source", "synthetic-geo");
 const resultsDirectory = join(verificationRoot, "results");
 const packagedDirectory = join(root, "release", `${applicationName}-${platform()}-${arch()}`);
 const executable =
@@ -30,6 +32,7 @@ const packagedManifest =
         "manifest.json",
       )
     : join(packagedDirectory, "resources", "pets", "example-original-pet", "manifest.json");
+const electronExecutable = createRequire(import.meta.url)("electron");
 
 async function requireFile(path, label) {
   try {
@@ -59,6 +62,7 @@ async function launchPhase(phase) {
         CODEX_PET_M3_2_USER_DATA: userDataDirectory,
         CODEX_PET_M3_2_OUTPUT: outputDirectory,
         CODEX_PET_M3_2_IMPORT_SOURCE: phase === "import" ? importSource : undefined,
+        CODEX_PET_M3_2_CODEX_IMPORT_SOURCE: phase === "import" ? codexImportSource : undefined,
       },
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -97,13 +101,19 @@ async function launchPhase(phase) {
 function requireEvidence(report, phase) {
   if (report.phase !== phase || report.passed !== true || report.packaged !== true)
     throw new Error(`M3.2 ${phase} report did not pass packaged verification`);
-  if (report.currentPetId !== "e2e-sprout" || report.previewsLoaded !== true)
+  if (report.currentPetId !== "codex-pokepets-synthetic-geo" || report.previewsLoaded !== true)
     throw new Error(`M3.2 ${phase} report did not retain the imported pet and previews`);
-  for (const id of ["pixel-sprout", "e2e-sprout"])
+  for (const id of ["pixel-sprout", "e2e-sprout", "codex-pokepets-synthetic-geo"])
     if (!report.availablePetIds?.includes(id))
       throw new Error(`M3.2 ${phase} report is missing ${id}`);
   if (phase === "import") {
-    for (const field of ["imported", "switchedToBuiltin", "switchedBack"])
+    for (const field of [
+      "imported",
+      "switchedToBuiltin",
+      "switchedBack",
+      "codexImported",
+      "scalePreviewVerified",
+    ])
       if (report[field] !== true) throw new Error(`M3.2 import report failed ${field}`);
   } else if (report.rescanned !== true) throw new Error("M3.2 restart report failed rescan");
 }
@@ -124,11 +134,35 @@ fixtureManifest.id = "e2e-sprout";
 fixtureManifest.name = "E2E Sprout";
 fixtureManifest.version = "1.0.0-e2e";
 await writeFile(fixtureManifestPath, `${JSON.stringify(fixtureManifest, null, 2)}\n`, "utf8");
+await new Promise((resolveGeneration, rejectGeneration) => {
+  const child = spawn(
+    electronExecutable,
+    [join(root, "scripts", "generate-synthetic-pokepet.mjs"), codexImportSource],
+    {
+      cwd: root,
+      windowsHide: true,
+      stdio: ["ignore", "ignore", "pipe"],
+    },
+  );
+  let stderr = "";
+  child.stderr.on("data", (chunk) => {
+    stderr = appendBounded(stderr, chunk);
+  });
+  child.once("error", rejectGeneration);
+  child.once("close", (code) => {
+    if (code === 0) resolveGeneration();
+    else rejectGeneration(new Error(`Synthetic WebP generation exited with ${code}: ${stderr}`));
+  });
+});
 
 const importPhase = await launchPhase("import");
 requireEvidence(importPhase.report, "import");
 await Promise.all([
   requireFile(join(userDataDirectory, "pets", "e2e-sprout", "manifest.json"), "Imported pet"),
+  requireFile(
+    join(userDataDirectory, "pets", "codex-pokepets-synthetic-geo", "manifest.json"),
+    "Adapted synthetic Codex pet",
+  ),
   requireFile(join(userDataDirectory, "pets", ".active-pet.json"), "Active pet state"),
   requireFile(importPhase.report.screenshot, "Import Settings screenshot"),
 ]);

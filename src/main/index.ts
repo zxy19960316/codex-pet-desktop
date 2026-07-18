@@ -1,5 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { SafeLogger } from "../core/logging/logger";
 import type { PetState } from "../core/pet/pet-state";
 import { PetRegistry } from "../core/pet/pet-registry";
@@ -42,7 +42,14 @@ let codexPokePetsAdapter: CodexPokePetsAdapter;
 let codexPokePetsProvider: CodexPokePetsProvider;
 const petContextMenu = new PetContextMenu();
 
-async function confirmThirdPartyImport(): Promise<boolean> {
+async function confirmThirdPartyImport(sourcePath?: string): Promise<boolean> {
+  if (
+    sourcePath &&
+    m32E2E?.phase === "import" &&
+    m32E2E.codexImportSource &&
+    resolve(sourcePath) === m32E2E.codexImportSource
+  )
+    return true;
   const result = await dialog.showMessageBox({
     type: "warning",
     title: "Import third-party character asset",
@@ -364,13 +371,16 @@ async function startApplication(): Promise<void> {
         publishPetSnapshots();
       },
       importCodexPokePet: async () => {
-        const selection = await dialog.showOpenDialog({
-          title: "Import Codex PokéPet",
-          properties: ["openDirectory"],
-        });
+        const selection =
+          m32E2E?.phase === "import" && m32E2E.codexImportSource
+            ? { canceled: false, filePaths: [m32E2E.codexImportSource] }
+            : await dialog.showOpenDialog({
+                title: "Import Codex PokéPet",
+                properties: ["openDirectory"],
+              });
         if (selection.canceled || !selection.filePaths[0]) return;
         const source = await codexPokePetsAdapter.inspect(selection.filePaths[0]);
-        if (!(await confirmThirdPartyImport())) return;
+        if (!(await confirmThirdPartyImport(selection.filePaths[0]))) return;
         await codexPokePetsAdapter.import(source);
         await codexPokePetsProvider.scan();
         windowManager.setPetPackage(petRegistry.getActivePet());

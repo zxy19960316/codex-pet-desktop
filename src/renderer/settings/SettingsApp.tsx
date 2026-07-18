@@ -219,7 +219,7 @@ export function SettingsApp() {
               <strong>Pet size</strong>
               <small>Adjust the pet and its window together from 50% to 200%.</small>
             </span>
-            <output>{preferences.petDisplay.scalePercent}%</output>
+            <output data-testid="pet-scale-value">{preferences.petDisplay.scalePercent}%</output>
             <input
               type="range"
               min="50"
@@ -241,6 +241,7 @@ export function SettingsApp() {
               <button
                 type="button"
                 key={scalePercent}
+                data-testid={`pet-scale-${scalePercent}`}
                 className={preferences.petDisplay.scalePercent === scalePercent ? "active" : ""}
                 disabled={pending}
                 onClick={() => void patch({ preferences: { petDisplay: { scalePercent } } })}

@@ -105,7 +105,12 @@ export function PetSelector({
         >
           {pending === "import" ? "Importing..." : "Import Pet Package"}
         </button>
-        <button type="button" disabled={Boolean(pending)} onClick={onImportCodexPokePet}>
+        <button
+          type="button"
+          data-testid="codex-pokepet-import"
+          disabled={Boolean(pending)}
+          onClick={onImportCodexPokePet}
+        >
           {pending === "import-codex" ? "Importing..." : "Import Codex PokéPet"}
         </button>
         <button type="button" disabled={Boolean(pending)} onClick={onOpenDirectory}>

@@ -9,6 +9,7 @@ const absolute = {
   CODEX_PET_M3_2_USER_DATA: "C:/tmp/m3-2/user-data",
   CODEX_PET_M3_2_OUTPUT: "C:/tmp/m3-2/results/import",
   CODEX_PET_M3_2_IMPORT_SOURCE: "C:/tmp/m3-2/import-source",
+  CODEX_PET_M3_2_CODEX_IMPORT_SOURCE: "C:/tmp/m3-2/codex-source",
 };
 
 describe("M3.2 Settings verifier", () => {
@@ -30,6 +31,7 @@ describe("M3.2 Settings verifier", () => {
       ...absolute,
       CODEX_PET_M3_2_PHASE: "restart",
       CODEX_PET_M3_2_IMPORT_SOURCE: undefined,
+      CODEX_PET_M3_2_CODEX_IMPORT_SOURCE: undefined,
     });
     expect(restartConfiguration).toMatchObject({ phase: "restart" });
     expect(restartConfiguration).not.toHaveProperty("importSource");
@@ -47,13 +49,15 @@ describe("M3.2 Settings verifier", () => {
       phase: "import",
       passed: true,
       packaged: true,
-      currentPetId: "e2e-sprout",
-      availablePetIds: ["pixel-sprout", "e2e-sprout"],
+      currentPetId: "codex-pokepets-synthetic-geo",
+      availablePetIds: ["pixel-sprout", "e2e-sprout", "codex-pokepets-synthetic-geo"],
       previewsLoaded: true,
       imported: true,
       switchedToBuiltin: true,
       switchedBack: true,
       rescanned: false,
+      codexImported: true,
+      scalePreviewVerified: true,
       screenshot: "C:/tmp/settings-import.png",
     };
     expect(validateM32VerificationReport(report, "import")).toEqual(report);
