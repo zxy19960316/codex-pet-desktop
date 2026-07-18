@@ -19,5 +19,6 @@ tmp/e2e/
 tmp/hook-proof/
 tmp/ui-reset/
 tmp/m3-2-e2e/
+tmp/m3-3-e2e/
 .DS_Store
 Thumbs.db

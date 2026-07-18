@@ -27,7 +27,9 @@
     "package:installer": "npm run build && npm run assets:icons && electron-builder --config electron-builder.json --win nsis --x64 --publish never && node scripts/write-installer-checksum.mjs",
     "package:installer:signed": "node scripts/require-windows-signing.mjs && npm run build && npm run assets:icons && electron-builder --config electron-builder.json --win nsis --x64 --publish never --config.win.forceCodeSigning=true && node scripts/write-installer-checksum.mjs",
     "test:e2e:m3-2": "node scripts/run-m3-2-e2e.mjs",
-    "verify:m3-2": "npm run package:dir && npm run test:e2e:m3-2"
+    "verify:m3-2": "npm run package:dir && npm run test:e2e:m3-2",
+    "test:e2e:m3-3": "node scripts/run-m3-3-installer-e2e.mjs",
+    "verify:m3-3": "npm run package:installer && npm run test:e2e:m3-3"
   },
   "dependencies": {
     "react": "19.2.7",
