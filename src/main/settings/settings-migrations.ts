@@ -1,10 +1,14 @@
 import {
+  clampPetScale,
   cloneSettingsDocument,
   DEFAULT_SETTINGS,
   DEFAULT_SETTINGS_DOCUMENT,
+  settingsDocumentFromLocalSettings,
+  type DeviceSettings,
   type LocalSettings,
   type SettingsDocumentV2,
-  settingsDocumentFromLocalSettings,
+  type SettingsDocumentV3,
+  type SettingsPreferencesV2,
   type WindowPosition,
 } from "../../shared/settings";
 
@@ -52,59 +56,110 @@ function validQuota(value: unknown): value is number {
   return isFiniteNumber(value) && value >= 0 && value <= 100;
 }
 
-function parseV2(input: Record<string, unknown>): SettingsDocumentV2 {
+function parsePreferencesV2(value: unknown): SettingsPreferencesV2 {
+  if (
+    !isRecord(value) ||
+    !hasExactKeys(value, ["alwaysOnTop", "clickThrough", "soundEnabled", "quotaWarningPercent"]) ||
+    typeof value.alwaysOnTop !== "boolean" ||
+    typeof value.clickThrough !== "boolean" ||
+    typeof value.soundEnabled !== "boolean" ||
+    !validQuota(value.quotaWarningPercent)
+  )
+    throw new InvalidSettingsDocumentError("Invalid settings preferences");
+  return {
+    alwaysOnTop: value.alwaysOnTop,
+    clickThrough: value.clickThrough,
+    soundEnabled: value.soundEnabled,
+    quotaWarningPercent: value.quotaWarningPercent,
+  };
+}
+
+function parseDevice(value: unknown): DeviceSettings {
+  if (!isRecord(value)) throw new InvalidSettingsDocumentError("Invalid device settings");
+  if (
+    !hasExactKeys(value, [
+      "layoutVersion",
+      ...(Object.hasOwn(value, "petPosition") ? ["petPosition"] : []),
+      "hudVisible",
+      "debugVisible",
+      "useMockData",
+      "autoStartAppServer",
+    ]) ||
+    !Number.isInteger(value.layoutVersion) ||
+    (Object.hasOwn(value, "petPosition") && !validPosition(value.petPosition)) ||
+    typeof value.hudVisible !== "boolean" ||
+    typeof value.debugVisible !== "boolean" ||
+    typeof value.useMockData !== "boolean" ||
+    typeof value.autoStartAppServer !== "boolean"
+  )
+    throw new InvalidSettingsDocumentError("Invalid device settings");
+  return {
+    layoutVersion: value.layoutVersion as number,
+    petPosition: validPosition(value.petPosition) ? { ...value.petPosition } : undefined,
+    hudVisible: value.hudVisible,
+    debugVisible: value.debugVisible,
+    useMockData: value.useMockData,
+    autoStartAppServer: value.autoStartAppServer,
+  };
+}
+
+function parseV2(input: Record<string, unknown>): SettingsDocumentV3 {
   if (!hasExactKeys(input, ["schemaVersion", "preferences", "device"]))
     throw new InvalidSettingsDocumentError("Invalid v2 settings keys");
-  if (!isRecord(input.preferences) || !isRecord(input.device))
-    throw new InvalidSettingsDocumentError("Invalid v2 settings partitions");
+  const source: SettingsDocumentV2 = {
+    schemaVersion: 2,
+    preferences: parsePreferencesV2(input.preferences),
+    device: parseDevice(input.device),
+  };
+  return {
+    schemaVersion: 3,
+    preferences: {
+      ...source.preferences,
+      petDisplay: {
+        scalePercent: DEFAULT_SETTINGS.scalePercent,
+        lockPhysicalSizeAcrossDisplays: DEFAULT_SETTINGS.lockPhysicalSizeAcrossDisplays,
+      },
+    },
+    device: source.device,
+  };
+}
+
+function parseV3(input: Record<string, unknown>): SettingsDocumentV3 {
+  if (!hasExactKeys(input, ["schemaVersion", "preferences", "device"]))
+    throw new InvalidSettingsDocumentError("Invalid v3 settings keys");
+  if (!isRecord(input.preferences) || !Object.hasOwn(input.preferences, "petDisplay"))
+    throw new InvalidSettingsDocumentError("Invalid v3 settings preferences");
   const preferences = input.preferences;
-  const device = input.device;
   if (
     !hasExactKeys(preferences, [
       "alwaysOnTop",
       "clickThrough",
       "soundEnabled",
       "quotaWarningPercent",
+      "petDisplay",
     ]) ||
-    !hasExactKeys(device, [
-      "layoutVersion",
-      ...(Object.hasOwn(device, "petPosition") ? ["petPosition"] : []),
-      "hudVisible",
-      "debugVisible",
-      "useMockData",
-      "autoStartAppServer",
-    ])
+    !isRecord(preferences.petDisplay) ||
+    !hasExactKeys(preferences.petDisplay, ["scalePercent", "lockPhysicalSizeAcrossDisplays"]) ||
+    !isFiniteNumber(preferences.petDisplay.scalePercent) ||
+    typeof preferences.petDisplay.lockPhysicalSizeAcrossDisplays !== "boolean"
   )
-    throw new InvalidSettingsDocumentError("Invalid v2 settings fields");
-  if (
-    typeof preferences.alwaysOnTop !== "boolean" ||
-    typeof preferences.clickThrough !== "boolean" ||
-    typeof preferences.soundEnabled !== "boolean" ||
-    !validQuota(preferences.quotaWarningPercent) ||
-    !Number.isInteger(device.layoutVersion) ||
-    (Object.hasOwn(device, "petPosition") && !validPosition(device.petPosition)) ||
-    typeof device.hudVisible !== "boolean" ||
-    typeof device.debugVisible !== "boolean" ||
-    typeof device.useMockData !== "boolean" ||
-    typeof device.autoStartAppServer !== "boolean"
-  )
-    throw new InvalidSettingsDocumentError("Invalid v2 settings values");
+    throw new InvalidSettingsDocumentError("Invalid v3 pet display settings");
+  const base = parsePreferencesV2({
+    alwaysOnTop: preferences.alwaysOnTop,
+    clickThrough: preferences.clickThrough,
+    soundEnabled: preferences.soundEnabled,
+    quotaWarningPercent: preferences.quotaWarningPercent,
+  });
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     preferences: {
-      alwaysOnTop: preferences.alwaysOnTop,
-      clickThrough: preferences.clickThrough,
-      soundEnabled: preferences.soundEnabled,
-      quotaWarningPercent: preferences.quotaWarningPercent,
+      ...base,
+      petDisplay: {
+        scalePercent: clampPetScale(preferences.petDisplay.scalePercent),
+        lockPhysicalSizeAcrossDisplays: preferences.petDisplay.lockPhysicalSizeAcrossDisplays,
+      },
     },
-    device: {
-      layoutVersion: device.layoutVersion as number,
-      petPosition: validPosition(device.petPosition) ? { ...device.petPosition } : undefined,
-      hudVisible: device.hudVisible,
-      debugVisible: device.debugVisible,
-      useMockData: device.useMockData,
-      autoStartAppServer: device.autoStartAppServer,
-    },
+    device: parseDevice(input.device),
   };
 }
 
@@ -113,7 +168,7 @@ function legacyBoolean(input: Record<string, unknown>, key: keyof LocalSettings)
   return typeof value === "boolean" ? value : (DEFAULT_SETTINGS[key] as boolean);
 }
 
-function migrateLegacy(input: Record<string, unknown>): SettingsDocumentV2 {
+function migrateLegacy(input: Record<string, unknown>): SettingsDocumentV3 {
   const currentLayout = input.layoutVersion === DEFAULT_SETTINGS.layoutVersion;
   const legacy: LocalSettings = {
     layoutVersion: DEFAULT_SETTINGS.layoutVersion,
@@ -130,19 +185,24 @@ function migrateLegacy(input: Record<string, unknown>): SettingsDocumentV2 {
     quotaWarningPercent: validQuota(input.quotaWarningPercent)
       ? input.quotaWarningPercent
       : DEFAULT_SETTINGS.quotaWarningPercent,
+    scalePercent: isFiniteNumber(input.scalePercent)
+      ? clampPetScale(input.scalePercent)
+      : DEFAULT_SETTINGS.scalePercent,
+    lockPhysicalSizeAcrossDisplays: legacyBoolean(input, "lockPhysicalSizeAcrossDisplays"),
   };
   return settingsDocumentFromLocalSettings(legacy);
 }
 
 export class MigrationRegistry {
-  migrate(input: unknown): SettingsDocumentV2 {
+  migrate(input: unknown): SettingsDocumentV3 {
     if (!isRecord(input)) throw new InvalidSettingsDocumentError("Settings must be an object");
     if (!Object.hasOwn(input, "schemaVersion")) return migrateLegacy(input);
-    if (input.schemaVersion !== 2) throw new UnsupportedSettingsVersionError(input.schemaVersion);
-    return parseV2(input);
+    if (input.schemaVersion === 2) return parseV2(input);
+    if (input.schemaVersion === 3) return parseV3(input);
+    throw new UnsupportedSettingsVersionError(input.schemaVersion);
   }
 
-  defaults(): SettingsDocumentV2 {
+  defaults(): SettingsDocumentV3 {
     return cloneSettingsDocument(DEFAULT_SETTINGS_DOCUMENT);
   }
 }

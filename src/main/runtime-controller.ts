@@ -57,6 +57,7 @@ const BOOLEAN_SETTINGS = [
   "useMockData",
   "autoStartAppServer",
   "soundEnabled",
+  "lockPhysicalSizeAcrossDisplays",
 ] as const;
 
 function safeSettingsPatch(patch: Partial<LocalSettings>): Partial<LocalSettings> {
@@ -64,6 +65,8 @@ function safeSettingsPatch(patch: Partial<LocalSettings>): Partial<LocalSettings
   for (const key of BOOLEAN_SETTINGS) if (typeof patch[key] === "boolean") safe[key] = patch[key];
   if (typeof patch.quotaWarningPercent === "number" && Number.isFinite(patch.quotaWarningPercent))
     safe.quotaWarningPercent = patch.quotaWarningPercent;
+  if (typeof patch.scalePercent === "number" && Number.isFinite(patch.scalePercent))
+    safe.scalePercent = patch.scalePercent;
   return safe;
 }
 

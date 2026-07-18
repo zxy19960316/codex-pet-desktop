@@ -11,18 +11,14 @@
   min-height: 164px;
 }
 
-.shell--expanded .pet-sprite {
-  transform: scale(2.15);
-}
-
 .pet-sprite {
   position: relative;
   z-index: 1;
   flex: none;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
-  transform: scale(3);
   transform-origin: center;
+  transition: transform 140ms ease;
   animation: pet-sprite-frames var(--pet-duration) steps(var(--pet-frames)) var(--pet-iteration);
   filter: drop-shadow(0 5px 0 rgba(15, 24, 40, 0.22));
 }

@@ -106,7 +106,11 @@ function buildSettingsSnapshot(snapshot: DesktopSnapshot): SettingsWindowSnapsho
 }
 
 function withPetSnapshot(snapshot: DesktopSnapshot): DesktopSnapshot {
-  return { ...snapshot, pet: petRegistry.getSnapshot() };
+  return {
+    ...snapshot,
+    pet: petRegistry.getSnapshot(),
+    petPhysicalScaleFactor: windowManager?.physicalScaleFactor ?? 1,
+  };
 }
 
 function publishPetSnapshots(): void {
@@ -155,6 +159,7 @@ async function startApplication(): Promise<void> {
     new SettingsStore({
       legacyPath: join(userData, "settings.json"),
       v2Path: join(userData, "settings.v2.json"),
+      v3Path: join(userData, "settings.v3.json"),
     }),
   );
   let settings = await settingsService.initialize();
@@ -221,6 +226,7 @@ async function startApplication(): Promise<void> {
     },
     persistSettings: (patch) => settingsService.patch(patch),
     onSettingsChanged: (next) => {
+      windowManager.updatePetDisplay(next);
       windowManager.setAlwaysOnTop(next.alwaysOnTop);
       windowManager.setClickThrough(next.clickThrough);
       rebuildTray(next);
@@ -231,6 +237,7 @@ async function startApplication(): Promise<void> {
   });
   hookEventsPath = join(app.getPath("userData"), "hook-events.jsonl");
   hookBridge = new HookEventBridge(hookEventsPath, (event) => runtime.applyHookEvent(event));
+  windowManager.setPetPackage(petRegistry.getActivePet());
   await windowManager.create(settings);
   hookBridge.start();
   rebuildTray(settings);
@@ -250,6 +257,10 @@ async function startApplication(): Promise<void> {
       runtime.patchSettings({ clickThrough: !runtime.getSnapshot().settings.clickThrough }),
     reconnectCodex: () => runtime.reconnect(),
     patchSettings: (patch) => runtime.patchSettings(patch),
+    adjustPetScale: (deltaSteps) =>
+      runtime.patchSettings({
+        scalePercent: runtime.getSnapshot().settings.scalePercent + deltaSteps * 5,
+      }),
     enqueueMockApproval: () => runtime.enqueueMockApproval(),
     enqueueMockUserInput: () => runtime.enqueueMockUserInput(),
     createThread: (request) => runtime.createThread(request),
@@ -274,6 +285,7 @@ async function startApplication(): Promise<void> {
       getSettingsSenderId: () => settingsWindowManager.senderId,
       setActivePet: async (id) => {
         await petRegistry.setActivePet(id);
+        windowManager.setPetPackage(petRegistry.getActivePet());
         publishPetSnapshots();
       },
       importPetPackage: async () => {
@@ -287,6 +299,7 @@ async function startApplication(): Promise<void> {
         if (selection.canceled || !selection.filePaths[0]) return;
         const imported = await petRegistry.importPetPackage(selection.filePaths[0]);
         await petRegistry.setActivePet(imported.manifest.id);
+        windowManager.setPetPackage(petRegistry.getActivePet());
         publishPetSnapshots();
       },
       importCodexPokePet: async () => {
@@ -299,6 +312,7 @@ async function startApplication(): Promise<void> {
         if (!(await confirmThirdPartyImport())) return;
         await codexPokePetsAdapter.import(source);
         await codexPokePetsProvider.scan();
+        windowManager.setPetPackage(petRegistry.getActivePet());
         publishPetSnapshots();
       },
       scanCodexPokePets: async () => {
@@ -308,11 +322,13 @@ async function startApplication(): Promise<void> {
       importDiscoveredCodexPokePet: async (sourcePetId) => {
         if (!(await confirmThirdPartyImport())) return;
         await codexPokePetsProvider.import(sourcePetId);
+        windowManager.setPetPackage(petRegistry.getActivePet());
         publishPetSnapshots();
       },
       rescanPets: async () => {
         await petRegistry.scan();
         await codexPokePetsProvider.scan();
+        windowManager.setPetPackage(petRegistry.getActivePet());
         publishPetSnapshots();
       },
       openPetsDirectory: async () => {

@@ -2,7 +2,7 @@ import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import {
   cloneSettingsDocument,
-  type SettingsDocumentV2,
+  type SettingsDocumentV3,
   type SettingsLoadState,
 } from "../../shared/settings";
 import {
@@ -12,7 +12,7 @@ import {
 } from "./settings-migrations";
 
 export interface SettingsStoreReadResult {
-  document: SettingsDocumentV2;
+  document: SettingsDocumentV3;
   loadState: SettingsLoadState;
   writable: boolean;
 }
@@ -28,6 +28,7 @@ export interface SettingsFileOperations {
 export interface SettingsStoreOptions {
   legacyPath: string;
   v2Path: string;
+  v3Path: string;
   operations?: Partial<SettingsFileOperations>;
 }
 
@@ -48,20 +49,46 @@ function isMissing(error: unknown): boolean {
 function futureVersion(error: UnsupportedSettingsVersionError): number | undefined {
   return typeof error.schemaVersion === "number" &&
     Number.isFinite(error.schemaVersion) &&
-    error.schemaVersion > 2
+    error.schemaVersion > 3
     ? error.schemaVersion
     : undefined;
+}
+
+function protectedResult(
+  migrations: MigrationRegistry,
+  error: unknown,
+): SettingsStoreReadResult | undefined {
+  if (error instanceof UnsupportedSettingsVersionError) {
+    const schemaVersion = futureVersion(error);
+    return {
+      document: migrations.defaults(),
+      loadState:
+        schemaVersion === undefined
+          ? { kind: "corrupt" }
+          : { kind: "future-version", schemaVersion },
+      writable: false,
+    };
+  }
+  if (error instanceof SyntaxError || error instanceof InvalidSettingsDocumentError)
+    return {
+      document: migrations.defaults(),
+      loadState: { kind: "corrupt" },
+      writable: false,
+    };
+  return undefined;
 }
 
 export class SettingsStore {
   readonly #legacyPath: string;
   readonly #v2Path: string;
+  readonly #v3Path: string;
   readonly #operations: SettingsFileOperations;
   readonly #migrations: MigrationRegistry;
 
   constructor(options: SettingsStoreOptions, migrations = new MigrationRegistry()) {
     this.#legacyPath = options.legacyPath;
     this.#v2Path = options.v2Path;
+    this.#v3Path = options.v3Path;
     this.#operations = { ...DEFAULT_OPERATIONS, ...options.operations };
     this.#migrations = migrations;
   }
@@ -69,56 +96,59 @@ export class SettingsStore {
   async read(): Promise<SettingsStoreReadResult> {
     let raw: string;
     try {
-      raw = await this.#operations.readFile(this.#v2Path);
+      raw = await this.#operations.readFile(this.#v3Path);
     } catch (error) {
       if (!isMissing(error)) throw error;
-      return this.#readLegacy();
+      return this.#readV2();
     }
-
     try {
       return {
         document: this.#migrations.migrate(JSON.parse(raw)),
-        loadState: { kind: "loaded", schemaVersion: 2 },
+        loadState: { kind: "loaded", schemaVersion: 3 },
         writable: true,
       };
     } catch (error) {
-      if (error instanceof UnsupportedSettingsVersionError) {
-        const schemaVersion = futureVersion(error);
-        if (schemaVersion !== undefined)
-          return {
-            document: this.#migrations.defaults(),
-            loadState: { kind: "future-version", schemaVersion },
-            writable: false,
-          };
-        return {
-          document: this.#migrations.defaults(),
-          loadState: { kind: "corrupt" },
-          writable: false,
-        };
-      }
-      if (error instanceof SyntaxError || error instanceof InvalidSettingsDocumentError) {
-        return {
-          document: this.#migrations.defaults(),
-          loadState: { kind: "corrupt" },
-          writable: false,
-        };
-      }
+      const protectedState = protectedResult(this.#migrations, error);
+      if (protectedState) return protectedState;
       throw error;
     }
   }
 
-  async write(document: Readonly<SettingsDocumentV2>): Promise<void> {
-    await this.#operations.mkdir(dirname(this.#v2Path));
+  async write(document: Readonly<SettingsDocumentV3>): Promise<void> {
+    await this.#operations.mkdir(dirname(this.#v3Path));
     temporarySequence += 1;
-    const temporary = `${this.#v2Path}.${process.pid}.${Date.now()}.${temporarySequence}.tmp`;
+    const temporary = `${this.#v3Path}.${process.pid}.${Date.now()}.${temporarySequence}.tmp`;
     try {
       await this.#operations.writeFile(
         temporary,
         `${JSON.stringify(cloneSettingsDocument(document), null, 2)}\n`,
       );
-      await this.#operations.rename(temporary, this.#v2Path);
+      await this.#operations.rename(temporary, this.#v3Path);
     } catch (error) {
       await this.#operations.rm(temporary).catch(() => undefined);
+      throw error;
+    }
+  }
+
+  async #readV2(): Promise<SettingsStoreReadResult> {
+    let raw: string;
+    try {
+      raw = await this.#operations.readFile(this.#v2Path);
+    } catch (error) {
+      if (isMissing(error)) return this.#readLegacy();
+      throw error;
+    }
+    try {
+      const document = this.#migrations.migrate(JSON.parse(raw));
+      await this.write(document);
+      return {
+        document,
+        loadState: { kind: "migrated", sourceVersion: 2 },
+        writable: true,
+      };
+    } catch (error) {
+      const protectedState = protectedResult(this.#migrations, error);
+      if (protectedState) return protectedState;
       throw error;
     }
   }
@@ -136,10 +166,8 @@ export class SettingsStore {
         };
       throw error;
     }
-
     try {
-      const parsed = JSON.parse(raw) as unknown;
-      const document = this.#migrations.migrate(parsed);
+      const document = this.#migrations.migrate(JSON.parse(raw));
       await this.write(document);
       return {
         document,
@@ -147,26 +175,8 @@ export class SettingsStore {
         writable: true,
       };
     } catch (error) {
-      if (error instanceof UnsupportedSettingsVersionError) {
-        const schemaVersion = futureVersion(error);
-        if (schemaVersion !== undefined)
-          return {
-            document: this.#migrations.defaults(),
-            loadState: { kind: "future-version", schemaVersion },
-            writable: false,
-          };
-        return {
-          document: this.#migrations.defaults(),
-          loadState: { kind: "corrupt" },
-          writable: false,
-        };
-      }
-      if (error instanceof SyntaxError || error instanceof InvalidSettingsDocumentError)
-        return {
-          document: this.#migrations.defaults(),
-          loadState: { kind: "corrupt" },
-          writable: false,
-        };
+      const protectedState = protectedResult(this.#migrations, error);
+      if (protectedState) return protectedState;
       throw error;
     }
   }

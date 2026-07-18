@@ -308,6 +308,26 @@ dd {
   accent-color: #cf6941;
 }
 
+.pet-size-setting {
+  margin-top: 14px;
+}
+
+.pet-size-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 12px 0 8px;
+}
+
+.pet-size-shortcuts button {
+  padding: 6px 9px;
+}
+
+.pet-size-shortcuts button.active {
+  color: #f7f0d6;
+  background: #4f8a55;
+}
+
 .quota-summary,
 .diagnostic-list {
   display: grid;

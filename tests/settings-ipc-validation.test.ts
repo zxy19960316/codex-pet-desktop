@@ -51,6 +51,7 @@ describe("settings IPC validation", () => {
         clickThrough: true,
         soundEnabled: true,
         quotaWarningPercent: 25,
+        petDisplay: { scalePercent: 125, lockPhysicalSizeAcrossDisplays: true },
       },
       device: { useMockData: false, autoStartAppServer: true },
     });
@@ -60,6 +61,8 @@ describe("settings IPC validation", () => {
       clickThrough: true,
       soundEnabled: true,
       quotaWarningPercent: 25,
+      scalePercent: 125,
+      lockPhysicalSizeAcrossDisplays: true,
       useMockData: false,
       autoStartAppServer: true,
     });
@@ -78,6 +81,14 @@ describe("settings IPC validation", () => {
     expect(() => parseSettingsPatch({ preferences: { quotaWarningPercent: Number.NaN } })).toThrow(
       "Invalid quotaWarningPercent",
     );
+    expect(() =>
+      parseSettingsPatch({ preferences: { petDisplay: { scalePercent: Number.NaN } } }),
+    ).toThrow("Invalid scalePercent");
+    expect(() =>
+      parseSettingsPatch({
+        preferences: { petDisplay: { lockPhysicalSizeAcrossDisplays: "yes" } },
+      }),
+    ).toThrow("Invalid lockPhysicalSizeAcrossDisplays");
     expect(() => parseSettingsPatch({ preferences: { hidden: true } })).toThrow(
       "Unknown settings field",
     );

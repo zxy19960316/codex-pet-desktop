@@ -4,7 +4,7 @@ import {
   localSettingsFromDocument,
   settingsDocumentFromLocalSettings,
   type LocalSettings,
-  type SettingsDocumentV2,
+  type SettingsDocumentV3,
   type SettingsLoadState,
 } from "../../shared/settings";
 import { SettingsStore } from "./settings-store";
@@ -28,6 +28,7 @@ function applyPatch(current: LocalSettings, patch: Partial<LocalSettings>): Loca
     "useMockData",
     "autoStartAppServer",
     "soundEnabled",
+    "lockPhysicalSizeAcrossDisplays",
   ] as const;
   for (const key of booleanKeys) if (typeof patch[key] === "boolean") next[key] = patch[key];
   if (typeof patch.layoutVersion === "number" && Number.isInteger(patch.layoutVersion))
@@ -40,6 +41,8 @@ function applyPatch(current: LocalSettings, patch: Partial<LocalSettings>): Loca
     next.petPosition = { ...patch.petPosition };
   if (typeof patch.quotaWarningPercent === "number" && Number.isFinite(patch.quotaWarningPercent))
     next.quotaWarningPercent = Math.min(100, Math.max(0, patch.quotaWarningPercent));
+  if (typeof patch.scalePercent === "number" && Number.isFinite(patch.scalePercent))
+    next.scalePercent = Math.min(200, Math.max(50, Math.round(patch.scalePercent)));
   return next;
 }
 
@@ -71,7 +74,7 @@ export class SettingsService {
     return cloneLocalSettings(localSettingsFromDocument(this.#document));
   }
 
-  getDocument(): SettingsDocumentV2 {
+  getDocument(): SettingsDocumentV3 {
     return cloneSettingsDocument(this.#document);
   }
 
@@ -86,7 +89,7 @@ export class SettingsService {
       if (this.#writable) {
         await this.#store.write(document);
         if (this.#loadState.kind === "missing")
-          this.#loadState = { kind: "loaded", schemaVersion: 2 };
+          this.#loadState = { kind: "loaded", schemaVersion: 3 };
       }
       this.#document = document;
       for (const listener of this.#listeners) listener(cloneLocalSettings(next));

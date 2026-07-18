@@ -23,6 +23,7 @@ export interface IpcActions {
   toggleClickThrough(): Promise<void>;
   reconnectCodex(): Promise<void>;
   patchSettings(patch: Partial<LocalSettings>): Promise<void>;
+  adjustPetScale(deltaSteps: number): Promise<void>;
   enqueueMockApproval(): void;
   respondUserInput(requestId: string, answers: UserInputAnswers): Promise<void>;
   cancelUserInput(requestId: string): Promise<void>;
@@ -81,6 +82,9 @@ export function registerIpcHandlers(actions: IpcActions): () => void {
   ipcMain.handle(IPC_CHANNELS.reconnectCodex, () => actions.reconnectCodex());
   ipcMain.handle(IPC_CHANNELS.patchSettings, (_event, patch: Partial<LocalSettings>) =>
     actions.patchSettings(patch),
+  );
+  ipcMain.handle(IPC_CHANNELS.adjustPetScale, (_event, deltaSteps: unknown) =>
+    actions.adjustPetScale(parsePetScaleDelta(deltaSteps)),
   );
   ipcMain.handle(IPC_CHANNELS.enqueueMockApproval, () => actions.enqueueMockApproval());
   ipcMain.handle(IPC_CHANNELS.respondUserInput, (_event, requestId: unknown, answers: unknown) => {
@@ -141,4 +145,10 @@ export function registerIpcHandlers(actions: IpcActions): () => void {
   return () => {
     for (const channel of Object.values(IPC_CHANNELS)) ipcMain.removeHandler(channel);
   };
+}
+
+export function parsePetScaleDelta(value: unknown): number {
+  if (typeof value !== "number" || !Number.isInteger(value) || value === 0 || Math.abs(value) > 10)
+    throw new Error("Invalid pet scale delta");
+  return value;
 }

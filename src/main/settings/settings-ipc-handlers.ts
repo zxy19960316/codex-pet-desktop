@@ -59,7 +59,13 @@ export function parseSettingsPatch(value: unknown): SettingsPatch {
 
   if (Object.hasOwn(value, "preferences")) {
     if (!isRecord(value.preferences)) throw new Error("Invalid settings preferences");
-    const allowed = new Set(["alwaysOnTop", "clickThrough", "soundEnabled", "quotaWarningPercent"]);
+    const allowed = new Set([
+      "alwaysOnTop",
+      "clickThrough",
+      "soundEnabled",
+      "quotaWarningPercent",
+      "petDisplay",
+    ]);
     if (unknownKeys(value.preferences, allowed).length) throw new Error("Unknown settings field");
     const preferences: NonNullable<SettingsPatch["preferences"]> = {};
     if (Object.hasOwn(value.preferences, "alwaysOnTop"))
@@ -73,6 +79,25 @@ export function parseSettingsPatch(value: unknown): SettingsPatch {
       if (typeof quota !== "number" || !Number.isFinite(quota) || quota < 0 || quota > 100)
         throw new Error("Invalid quotaWarningPercent");
       preferences.quotaWarningPercent = quota;
+    }
+    if (Object.hasOwn(value.preferences, "petDisplay")) {
+      if (!isRecord(value.preferences.petDisplay)) throw new Error("Invalid petDisplay");
+      const displayAllowed = new Set(["scalePercent", "lockPhysicalSizeAcrossDisplays"]);
+      if (unknownKeys(value.preferences.petDisplay, displayAllowed).length)
+        throw new Error("Unknown petDisplay field");
+      const petDisplay: NonNullable<NonNullable<SettingsPatch["preferences"]>["petDisplay"]> = {};
+      if (Object.hasOwn(value.preferences.petDisplay, "scalePercent")) {
+        const scale = value.preferences.petDisplay.scalePercent;
+        if (typeof scale !== "number" || !Number.isFinite(scale))
+          throw new Error("Invalid scalePercent");
+        petDisplay.scalePercent = scale;
+      }
+      if (Object.hasOwn(value.preferences.petDisplay, "lockPhysicalSizeAcrossDisplays"))
+        petDisplay.lockPhysicalSizeAcrossDisplays = booleanField(
+          value.preferences.petDisplay.lockPhysicalSizeAcrossDisplays,
+          "lockPhysicalSizeAcrossDisplays",
+        );
+      preferences.petDisplay = petDisplay;
     }
     patch.preferences = preferences;
   }
@@ -96,7 +121,8 @@ export function parseSettingsPatch(value: unknown): SettingsPatch {
 }
 
 export function settingsPatchToLocalSettings(patch: SettingsPatch): Partial<LocalSettings> {
-  return { ...patch.preferences, ...patch.device };
+  const { petDisplay, ...preferences } = patch.preferences ?? {};
+  return { ...preferences, ...petDisplay, ...patch.device };
 }
 
 export function registerSettingsIpcHandlers(

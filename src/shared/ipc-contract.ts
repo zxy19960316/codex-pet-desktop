@@ -28,6 +28,7 @@ export const IPC_CHANNELS = {
   toggleClickThrough: "desktop:toggle-click-through",
   reconnectCodex: "desktop:reconnect-codex",
   patchSettings: "desktop:patch-settings",
+  adjustPetScale: "desktop:adjust-pet-scale",
   enqueueMockApproval: "desktop:enqueue-mock-approval",
   respondUserInput: "desktop:respond-user-input",
   cancelUserInput: "desktop:cancel-user-input",
@@ -71,6 +72,7 @@ export interface DesktopSnapshot {
   settings: LocalSettings;
   protocolSource: "codex-hooks" | "codex-app-server" | "mock" | "unavailable";
   pet?: PetRegistrySnapshot;
+  petPhysicalScaleFactor?: number;
 }
 
 export interface DesktopApi {
@@ -84,6 +86,7 @@ export interface DesktopApi {
   toggleClickThrough(): Promise<void>;
   reconnectCodex(): Promise<void>;
   patchSettings(patch: Partial<LocalSettings>): Promise<void>;
+  adjustPetScale(deltaSteps: number): Promise<void>;
   enqueueMockApproval(): Promise<void>;
   respondUserInput(requestId: string, answers: UserInputAnswers): Promise<void>;
   cancelUserInput(requestId: string): Promise<void>;

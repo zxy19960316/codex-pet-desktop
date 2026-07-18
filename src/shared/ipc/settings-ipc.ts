@@ -2,7 +2,8 @@ import type { AppServerStatus } from "../../core/codex/app-server-process";
 import type { DailyUsage, RateLimitBucket } from "../../core/codex/usage-provider";
 import type {
   DeviceSettings,
-  SettingsDocumentV2,
+  PetDisplaySettings,
+  SettingsDocumentV3,
   SettingsLoadState,
   SettingsPreferences,
 } from "../settings";
@@ -28,12 +29,12 @@ export interface SettingsPatch {
       SettingsPreferences,
       "alwaysOnTop" | "clickThrough" | "soundEnabled" | "quotaWarningPercent"
     >
-  >;
+  > & { petDisplay?: Partial<PetDisplaySettings> };
   device?: Partial<Pick<DeviceSettings, "useMockData" | "autoStartAppServer">>;
 }
 
 export interface SettingsWindowSnapshot {
-  settings: SettingsDocumentV2;
+  settings: SettingsDocumentV3;
   loadState: SettingsLoadState;
   status: {
     connectionStatus: AppServerStatus;

@@ -15,6 +15,7 @@ async function temporarySettings() {
     directory,
     legacyPath: join(directory, "settings.json"),
     v2Path: join(directory, "settings.v2.json"),
+    v3Path: join(directory, "settings.v3.json"),
   };
 }
 
@@ -33,8 +34,8 @@ describe("settings service", () => {
     expect(service.getLoadState()).toEqual({ kind: "missing" });
 
     await service.patch({ soundEnabled: true });
-    expect(service.getLoadState()).toEqual({ kind: "loaded", schemaVersion: 2 });
-    expect(JSON.parse(await readFile(paths.v2Path, "utf8"))).toEqual({
+    expect(service.getLoadState()).toEqual({ kind: "loaded", schemaVersion: 3 });
+    expect(JSON.parse(await readFile(paths.v3Path, "utf8"))).toEqual({
       ...DEFAULT_SETTINGS_DOCUMENT,
       preferences: { ...DEFAULT_SETTINGS_DOCUMENT.preferences, soundEnabled: true },
     });
@@ -49,15 +50,61 @@ describe("settings service", () => {
     expect(await service.initialize()).toMatchObject(legacy);
     expect(service.getLoadState()).toEqual({ kind: "migrated", sourceVersion: 1 });
     expect(await readFile(paths.legacyPath, "utf8")).toBe(JSON.stringify(legacy));
-    expect(JSON.parse(await readFile(paths.v2Path, "utf8"))).toMatchObject({
-      schemaVersion: 2,
+    expect(JSON.parse(await readFile(paths.v3Path, "utf8"))).toMatchObject({
+      schemaVersion: 3,
       preferences: legacy,
     });
   });
 
+  it("migrates v2 to v3 without losing existing preferences or device fields", async () => {
+    const paths = await temporarySettings();
+    const v2 = {
+      schemaVersion: 2,
+      preferences: {
+        alwaysOnTop: false,
+        clickThrough: true,
+        soundEnabled: true,
+        quotaWarningPercent: 35,
+      },
+      device: {
+        layoutVersion: 1,
+        petPosition: { x: 24, y: 48 },
+        hudVisible: true,
+        debugVisible: false,
+        useMockData: true,
+        autoStartAppServer: false,
+      },
+    };
+    await writeFile(paths.v2Path, JSON.stringify(v2), "utf8");
+
+    const service = new SettingsService(new SettingsStore(paths));
+    expect(await service.initialize()).toMatchObject({
+      alwaysOnTop: false,
+      clickThrough: true,
+      soundEnabled: true,
+      quotaWarningPercent: 35,
+      petPosition: { x: 24, y: 48 },
+      hudVisible: true,
+      useMockData: true,
+      scalePercent: 100,
+      lockPhysicalSizeAcrossDisplays: false,
+    });
+    expect(service.getLoadState()).toEqual({ kind: "migrated", sourceVersion: 2 });
+    expect(JSON.parse(await readFile(paths.v3Path, "utf8"))).toMatchObject({
+      schemaVersion: 3,
+      preferences: {
+        alwaysOnTop: false,
+        clickThrough: true,
+        petDisplay: { scalePercent: 100, lockPhysicalSizeAcrossDisplays: false },
+      },
+      device: { petPosition: { x: 24, y: 48 }, hudVisible: true },
+    });
+    expect(await readFile(paths.v2Path, "utf8")).toBe(JSON.stringify(v2));
+  });
+
   it("uses defaults for corrupt JSON and never overwrites the damaged file", async () => {
     const paths = await temporarySettings();
-    await writeFile(paths.v2Path, "{broken-json", "utf8");
+    await writeFile(paths.v3Path, "{broken-json", "utf8");
     const service = new SettingsService(new SettingsStore(paths));
 
     expect(await service.initialize()).toEqual(DEFAULT_SETTINGS);
@@ -65,13 +112,13 @@ describe("settings service", () => {
     await service.patch({ alwaysOnTop: false });
 
     expect(service.getSettings().alwaysOnTop).toBe(false);
-    expect(await readFile(paths.v2Path, "utf8")).toBe("{broken-json");
+    expect(await readFile(paths.v3Path, "utf8")).toBe("{broken-json");
   });
 
   it("protects an unknown future schema from every automatic write", async () => {
     const paths = await temporarySettings();
     const future = JSON.stringify({ ...DEFAULT_SETTINGS_DOCUMENT, schemaVersion: 9 });
-    await writeFile(paths.v2Path, future, "utf8");
+    await writeFile(paths.v3Path, future, "utf8");
     const service = new SettingsService(new SettingsStore(paths));
 
     expect(await service.initialize()).toEqual(DEFAULT_SETTINGS);
@@ -79,18 +126,18 @@ describe("settings service", () => {
     await service.patch({ clickThrough: true });
 
     expect(service.getSettings().clickThrough).toBe(true);
-    expect(await readFile(paths.v2Path, "utf8")).toBe(future);
+    expect(await readFile(paths.v3Path, "utf8")).toBe(future);
   });
 
   it("treats a non-numeric schema version as a corrupt protected document", async () => {
     const paths = await temporarySettings();
     const invalid = JSON.stringify({ ...DEFAULT_SETTINGS_DOCUMENT, schemaVersion: "next" });
-    await writeFile(paths.v2Path, invalid, "utf8");
+    await writeFile(paths.v3Path, invalid, "utf8");
     const service = new SettingsService(new SettingsStore(paths));
 
     expect(await service.initialize()).toEqual(DEFAULT_SETTINGS);
     expect(service.getLoadState()).toEqual({ kind: "corrupt" });
-    expect(await readFile(paths.v2Path, "utf8")).toBe(invalid);
+    expect(await readFile(paths.v3Path, "utf8")).toBe(invalid);
   });
 
   it("writes a complete temporary file before atomically renaming it", async () => {
@@ -117,15 +164,15 @@ describe("settings service", () => {
     await store.write(DEFAULT_SETTINGS_DOCUMENT);
 
     expect(calls).toHaveLength(2);
-    expect(calls[0]).toMatch(/write:.*settings\.v2\.json\..*\.tmp$/);
-    expect(calls[1]).toMatch(/rename:.*\.tmp->.*settings\.v2\.json$/);
+    expect(calls[0]).toMatch(/write:.*settings\.v3\.json\..*\.tmp$/);
+    expect(calls[1]).toMatch(/rename:.*\.tmp->.*settings\.v3\.json$/);
     expect(serialized.endsWith("\n")).toBe(true);
     expect(JSON.parse(serialized)).toEqual(DEFAULT_SETTINGS_DOCUMENT);
   });
 
   it("keeps the previous file when atomic rename fails", async () => {
     const paths = await temporarySettings();
-    await writeFile(paths.v2Path, JSON.stringify(DEFAULT_SETTINGS_DOCUMENT), "utf8");
+    await writeFile(paths.v3Path, JSON.stringify(DEFAULT_SETTINGS_DOCUMENT), "utf8");
     const operations: Partial<SettingsFileOperations> = {
       rename: async () => {
         throw new Error("rename denied");
@@ -139,7 +186,7 @@ describe("settings service", () => {
         preferences: { ...DEFAULT_SETTINGS_DOCUMENT.preferences, alwaysOnTop: false },
       }),
     ).rejects.toThrow("rename denied");
-    expect(JSON.parse(await readFile(paths.v2Path, "utf8"))).toEqual(DEFAULT_SETTINGS_DOCUMENT);
+    expect(JSON.parse(await readFile(paths.v3Path, "utf8"))).toEqual(DEFAULT_SETTINGS_DOCUMENT);
   });
 
   it("serializes concurrent patches and immediately notifies supported live fields", async () => {
@@ -161,8 +208,26 @@ describe("settings service", () => {
       quotaWarningPercent: 30,
     });
     expect(listener).toHaveBeenCalledTimes(3);
-    expect(JSON.parse(await readFile(paths.v2Path, "utf8"))).toMatchObject({
+    expect(JSON.parse(await readFile(paths.v3Path, "utf8"))).toMatchObject({
       preferences: { alwaysOnTop: false, clickThrough: true, quotaWarningPercent: 30 },
+    });
+  });
+
+  it("clamps live pet scale patches while preserving the physical-size preference", async () => {
+    const paths = await temporarySettings();
+    const service = new SettingsService(new SettingsStore(paths));
+    await service.initialize();
+
+    await service.patch({ scalePercent: 999, lockPhysicalSizeAcrossDisplays: true });
+
+    expect(service.getSettings()).toMatchObject({
+      scalePercent: 200,
+      lockPhysicalSizeAcrossDisplays: true,
+    });
+    expect(JSON.parse(await readFile(paths.v3Path, "utf8"))).toMatchObject({
+      preferences: {
+        petDisplay: { scalePercent: 200, lockPhysicalSizeAcrossDisplays: true },
+      },
     });
   });
 });

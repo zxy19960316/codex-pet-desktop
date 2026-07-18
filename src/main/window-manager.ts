@@ -1,17 +1,36 @@
 import { BrowserWindow, screen } from "electron";
 import { join } from "node:path";
+import type { PetPackage } from "../core/pet/pet-manifest";
 import type { LocalSettings } from "../shared/settings";
-import { clampWindowPosition } from "./position-store";
-import { initialWindowMode, WINDOW_SIZES, type WindowMode } from "./window-layout";
+import { computePetWindowBounds } from "./pet-window-layout";
+import { initialWindowMode, type WindowMode } from "./window-layout";
 
 export interface PositionSettingsStore {
   patch(patch: Partial<LocalSettings>): Promise<LocalSettings>;
+}
+
+interface PetFrame {
+  width: number;
+  height: number;
+}
+
+const DEFAULT_FRAME: PetFrame = { width: 64, height: 64 };
+
+function activeFrame(pet: PetPackage | undefined): PetFrame {
+  const animation = pet?.animations.idle ?? Object.values(pet?.animations ?? {})[0];
+  return animation
+    ? { width: animation.frameWidth, height: animation.frameHeight }
+    : { ...DEFAULT_FRAME };
 }
 
 export class WindowManager {
   readonly #settingsStore: PositionSettingsStore;
   #window?: BrowserWindow;
   #mode: WindowMode = "compact";
+  #settings?: LocalSettings;
+  #frame: PetFrame = { ...DEFAULT_FRAME };
+  #physicalScaleFactor = 1;
+  #applyingBounds = false;
 
   constructor(settingsStore: PositionSettingsStore) {
     this.#settingsStore = settingsStore;
@@ -21,25 +40,37 @@ export class WindowManager {
     return this.#window;
   }
 
+  get physicalScaleFactor(): number {
+    return this.#physicalScaleFactor;
+  }
+
   async create(settings: LocalSettings): Promise<BrowserWindow> {
     if (this.#window && !this.#window.isDestroyed()) return this.#window;
+    this.#settings = { ...settings };
     this.#mode = initialWindowMode(settings);
-    const windowSize = WINDOW_SIZES[this.#mode];
     const display = settings.petPosition
       ? screen.getDisplayNearestPoint(settings.petPosition)
       : screen.getPrimaryDisplay();
-    const fallback = {
-      x: display.workArea.x + display.workArea.width - windowSize.width - 24,
-      y: display.workArea.y + display.workArea.height - windowSize.height - 24,
-    };
-    const position = clampWindowPosition(
-      settings.petPosition ?? fallback,
-      display.workArea,
-      windowSize,
-    );
+    const initial = computePetWindowBounds({
+      frameWidth: this.#frame.width,
+      frameHeight: this.#frame.height,
+      scalePercent: settings.scalePercent,
+      physicalScaleFactor: this.#physicalFactor(display.scaleFactor),
+      expanded: this.#mode === "expanded",
+      currentBounds: settings.petPosition
+        ? { ...settings.petPosition, width: 300, height: 360 }
+        : {
+            x: display.workArea.x + display.workArea.width - 324,
+            y: display.workArea.y + display.workArea.height - 384,
+            width: 300,
+            height: 360,
+          },
+      displayWorkArea: display.workArea,
+      anchor: settings.petPosition ? undefined : "right-bottom",
+    });
+    this.#physicalScaleFactor = this.#physicalFactor(display.scaleFactor);
     const window = new BrowserWindow({
-      ...windowSize,
-      ...position,
+      ...initial,
       frame: false,
       transparent: true,
       resizable: false,
@@ -60,8 +91,10 @@ export class WindowManager {
     window.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: false });
     this.setClickThrough(settings.clickThrough);
     window.on("moved", () => {
+      if (this.#applyingBounds) return;
       const [x, y] = window.getPosition();
       void this.#settingsStore.patch({ petPosition: { x, y } });
+      this.#relayout();
     });
     window.on("closed", () => {
       if (this.#window === window) this.#window = undefined;
@@ -71,19 +104,61 @@ export class WindowManager {
     return window;
   }
 
+  setPetPackage(pet: PetPackage | undefined): void {
+    this.#frame = activeFrame(pet);
+    this.#relayout();
+  }
+
+  updatePetDisplay(settings: LocalSettings): void {
+    this.#settings = { ...settings };
+    this.#relayout();
+  }
+
   setMode(mode: WindowMode): void {
-    const window = this.#window;
-    if (!window || window.isDestroyed() || mode === this.#mode) return;
-    const current = window.getBounds();
-    const nextSize = WINDOW_SIZES[mode];
-    const display = screen.getDisplayNearestPoint({ x: current.x, y: current.y });
-    const anchoredPosition = {
-      x: current.x + current.width - nextSize.width,
-      y: current.y + current.height - nextSize.height,
-    };
-    const position = clampWindowPosition(anchoredPosition, display.workArea, nextSize);
+    if (mode === this.#mode) return;
     this.#mode = mode;
-    window.setBounds({ ...nextSize, ...position }, true);
+    this.#relayout();
+  }
+
+  #physicalFactor(displayScaleFactor: number): number {
+    if (!this.#settings?.lockPhysicalSizeAcrossDisplays) return 1;
+    const primaryScaleFactor = screen.getPrimaryDisplay().scaleFactor;
+    if (!Number.isFinite(displayScaleFactor) || displayScaleFactor <= 0) return 1;
+    return primaryScaleFactor / displayScaleFactor;
+  }
+
+  #relayout(): void {
+    const window = this.#window;
+    const settings = this.#settings;
+    if (!window || window.isDestroyed() || !settings || this.#applyingBounds) return;
+    const current = window.getBounds();
+    const display = screen.getDisplayNearestPoint({
+      x: current.x + Math.round(current.width / 2),
+      y: current.y + Math.round(current.height / 2),
+    });
+    const physicalScaleFactor = this.#physicalFactor(display.scaleFactor);
+    const next = computePetWindowBounds({
+      frameWidth: this.#frame.width,
+      frameHeight: this.#frame.height,
+      scalePercent: settings.scalePercent,
+      physicalScaleFactor,
+      expanded: this.#mode === "expanded",
+      currentBounds: current,
+      displayWorkArea: display.workArea,
+    });
+    this.#physicalScaleFactor = physicalScaleFactor;
+    if (
+      next.x === current.x &&
+      next.y === current.y &&
+      next.width === current.width &&
+      next.height === current.height
+    )
+      return;
+    this.#applyingBounds = true;
+    window.setBounds(next, true);
+    setTimeout(() => {
+      this.#applyingBounds = false;
+    }, 50);
   }
 
   showOrHide(): void {
