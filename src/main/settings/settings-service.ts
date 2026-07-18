@@ -5,8 +5,9 @@ import {
   settingsDocumentFromLocalSettings,
   type LocalSettings,
   type SettingsDocumentV2,
+  type SettingsLoadState,
 } from "../../shared/settings";
-import { SettingsStore, type SettingsLoadState } from "./settings-store";
+import { SettingsStore } from "./settings-store";
 
 type SettingsListener = (settings: LocalSettings) => void;
 
@@ -82,7 +83,11 @@ export class SettingsService {
     const operation = this.#pending.then(async () => {
       const next = applyPatch(this.getSettings(), patch);
       const document = settingsDocumentFromLocalSettings(next);
-      if (this.#writable) await this.#store.write(document);
+      if (this.#writable) {
+        await this.#store.write(document);
+        if (this.#loadState.kind === "missing")
+          this.#loadState = { kind: "loaded", schemaVersion: 2 };
+      }
       this.#document = document;
       for (const listener of this.#listeners) listener(cloneLocalSettings(next));
       return cloneLocalSettings(next);

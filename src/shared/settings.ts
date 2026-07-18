@@ -38,6 +38,13 @@ export interface SettingsDocumentV2 {
   device: DeviceSettings;
 }
 
+export type SettingsLoadState =
+  | { kind: "missing" }
+  | { kind: "loaded"; schemaVersion: 2 }
+  | { kind: "migrated"; sourceVersion: 1 }
+  | { kind: "corrupt" }
+  | { kind: "future-version"; schemaVersion: number };
+
 export const DEFAULT_SETTINGS: Readonly<LocalSettings> = {
   layoutVersion: 1,
   alwaysOnTop: true,

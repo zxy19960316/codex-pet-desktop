@@ -33,6 +33,7 @@ describe("settings service", () => {
     expect(service.getLoadState()).toEqual({ kind: "missing" });
 
     await service.patch({ soundEnabled: true });
+    expect(service.getLoadState()).toEqual({ kind: "loaded", schemaVersion: 2 });
     expect(JSON.parse(await readFile(paths.v2Path, "utf8"))).toEqual({
       ...DEFAULT_SETTINGS_DOCUMENT,
       preferences: { ...DEFAULT_SETTINGS_DOCUMENT.preferences, soundEnabled: true },

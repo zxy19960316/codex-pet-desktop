@@ -52,6 +52,19 @@ describe("settings migrations", () => {
     expect(migrated).toEqual(DEFAULT_SETTINGS_DOCUMENT);
   });
 
+  it("keeps the legacy compact-layout reset when layoutVersion is missing", () => {
+    const migrated = new MigrationRegistry().migrate({
+      hudVisible: true,
+      debugVisible: true,
+    });
+
+    expect(migrated.device).toMatchObject({
+      layoutVersion: 1,
+      hudVisible: false,
+      debugVisible: false,
+    });
+  });
+
   it("clones a valid v2 document instead of sharing mutable defaults", () => {
     const registry = new MigrationRegistry();
     const first = registry.migrate(DEFAULT_SETTINGS_DOCUMENT);

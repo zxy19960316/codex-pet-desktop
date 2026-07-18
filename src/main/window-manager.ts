@@ -1,15 +1,19 @@
 import { BrowserWindow, screen } from "electron";
 import { join } from "node:path";
 import type { LocalSettings } from "../shared/settings";
-import { clampWindowPosition, LocalSettingsStore } from "./position-store";
+import { clampWindowPosition } from "./position-store";
 import { initialWindowMode, WINDOW_SIZES, type WindowMode } from "./window-layout";
 
+export interface PositionSettingsStore {
+  patch(patch: Partial<LocalSettings>): Promise<LocalSettings>;
+}
+
 export class WindowManager {
-  readonly #settingsStore: LocalSettingsStore;
+  readonly #settingsStore: PositionSettingsStore;
   #window?: BrowserWindow;
   #mode: WindowMode = "compact";
 
-  constructor(settingsStore: LocalSettingsStore) {
+  constructor(settingsStore: PositionSettingsStore) {
     this.#settingsStore = settingsStore;
   }
 

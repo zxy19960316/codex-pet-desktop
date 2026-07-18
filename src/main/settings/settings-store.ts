@@ -1,18 +1,15 @@
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
-import { cloneSettingsDocument, type SettingsDocumentV2 } from "../../shared/settings";
+import {
+  cloneSettingsDocument,
+  type SettingsDocumentV2,
+  type SettingsLoadState,
+} from "../../shared/settings";
 import {
   InvalidSettingsDocumentError,
   MigrationRegistry,
   UnsupportedSettingsVersionError,
 } from "./settings-migrations";
-
-export type SettingsLoadState =
-  | { kind: "missing" }
-  | { kind: "loaded"; schemaVersion: 2 }
-  | { kind: "migrated"; sourceVersion: 1 }
-  | { kind: "corrupt" }
-  | { kind: "future-version"; schemaVersion: number };
 
 export interface SettingsStoreReadResult {
   document: SettingsDocumentV2;

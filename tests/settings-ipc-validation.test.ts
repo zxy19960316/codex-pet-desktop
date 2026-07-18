@@ -1,0 +1,175 @@
+import { describe, expect, it, vi } from "vitest";
+import {
+  assertSettingsSender,
+  parseSettingsPatch,
+  registerSettingsIpcHandlers,
+  settingsPatchToLocalSettings,
+} from "../src/main/settings/settings-ipc-handlers";
+import { SETTINGS_IPC_CHANNELS } from "../src/shared/ipc/settings-ipc";
+import {
+  SettingsWindowManager,
+  type SettingsBrowserWindow,
+} from "../src/main/windows/settings-window-manager";
+
+class FakeSettingsWindow implements SettingsBrowserWindow {
+  readonly webContents = { id: 42, send: vi.fn() };
+  readonly show = vi.fn();
+  readonly focus = vi.fn();
+  readonly loadFile = vi.fn(async () => undefined);
+  #destroyed = false;
+  #listeners = new Map<string, () => void>();
+
+  isDestroyed(): boolean {
+    return this.#destroyed;
+  }
+
+  once(event: string, listener: () => void): void {
+    this.#listeners.set(`once:${event}`, listener);
+  }
+
+  on(event: string, listener: () => void): void {
+    this.#listeners.set(event, listener);
+  }
+
+  emit(event: string): void {
+    this.#listeners.get(event)?.();
+    this.#listeners.get(`once:${event}`)?.();
+  }
+
+  destroy(): void {
+    this.#destroyed = true;
+    this.emit("closed");
+  }
+}
+
+describe("settings IPC validation", () => {
+  it("accepts only allowlisted nested settings fields", () => {
+    const patch = parseSettingsPatch({
+      preferences: {
+        alwaysOnTop: false,
+        clickThrough: true,
+        soundEnabled: true,
+        quotaWarningPercent: 25,
+      },
+      device: { useMockData: false, autoStartAppServer: true },
+    });
+
+    expect(settingsPatchToLocalSettings(patch)).toEqual({
+      alwaysOnTop: false,
+      clickThrough: true,
+      soundEnabled: true,
+      quotaWarningPercent: 25,
+      useMockData: false,
+      autoStartAppServer: true,
+    });
+  });
+
+  it("rejects invalid booleans, quota values, and unknown fields", () => {
+    expect(() => parseSettingsPatch({ preferences: { alwaysOnTop: "false" } })).toThrow(
+      "Invalid alwaysOnTop",
+    );
+    expect(() => parseSettingsPatch({ preferences: { quotaWarningPercent: -1 } })).toThrow(
+      "Invalid quotaWarningPercent",
+    );
+    expect(() => parseSettingsPatch({ preferences: { quotaWarningPercent: 101 } })).toThrow(
+      "Invalid quotaWarningPercent",
+    );
+    expect(() => parseSettingsPatch({ preferences: { quotaWarningPercent: Number.NaN } })).toThrow(
+      "Invalid quotaWarningPercent",
+    );
+    expect(() => parseSettingsPatch({ preferences: { hidden: true } })).toThrow(
+      "Unknown settings field",
+    );
+    expect(() => parseSettingsPatch({ device: { petPosition: { x: 0, y: 0 } } })).toThrow(
+      "Unknown settings field",
+    );
+    expect(() => parseSettingsPatch({ credentials: { token: "secret" } })).toThrow(
+      "Unknown settings partition",
+    );
+  });
+
+  it("accepts calls only from the current Settings Window webContents", () => {
+    expect(() => assertSettingsSender(42, 42)).not.toThrow();
+    expect(() => assertSettingsSender(7, 42)).toThrow("Unauthorized Settings IPC sender");
+    expect(() => assertSettingsSender(42, undefined)).toThrow("Unauthorized Settings IPC sender");
+  });
+
+  it("routes validated live fields immediately and rejects another window", async () => {
+    const handlers = new Map<
+      string,
+      (event: { sender: { id: number } }, value?: unknown) => unknown
+    >();
+    const patchSettings = vi.fn(async () => undefined);
+    registerSettingsIpcHandlers(
+      {
+        handle: (channel, listener) => handlers.set(channel, listener),
+        removeHandler: (channel) => void handlers.delete(channel),
+      },
+      {
+        getSnapshot: vi.fn(),
+        patchSettings,
+        getSettingsSenderId: () => 42,
+      },
+    );
+    const patchHandler = handlers.get(SETTINGS_IPC_CHANNELS.patch)!;
+
+    await patchHandler(
+      { sender: { id: 42 } },
+      {
+        preferences: {
+          alwaysOnTop: false,
+          clickThrough: true,
+          quotaWarningPercent: 15,
+        },
+      },
+    );
+    expect(patchSettings).toHaveBeenCalledWith({
+      alwaysOnTop: false,
+      clickThrough: true,
+      quotaWarningPercent: 15,
+    });
+    expect(() =>
+      patchHandler({ sender: { id: 7 } }, { preferences: { alwaysOnTop: true } }),
+    ).toThrow("Unauthorized Settings IPC sender");
+  });
+});
+
+describe("settings window manager", () => {
+  it("reuses, shows, and focuses one secure Settings Window", async () => {
+    const windows: FakeSettingsWindow[] = [];
+    const options: unknown[] = [];
+    const manager = new SettingsWindowManager({
+      preloadPath: "C:/app/settings-preload.cjs",
+      htmlPath: "C:/app/settings.html",
+      createWindow: (windowOptions) => {
+        options.push(windowOptions);
+        const window = new FakeSettingsWindow();
+        windows.push(window);
+        return window;
+      },
+    });
+
+    const first = await manager.open();
+    const second = await manager.open();
+
+    expect(first).toBe(second);
+    expect(windows).toHaveLength(1);
+    expect(windows[0].show).toHaveBeenCalledTimes(1);
+    expect(windows[0].focus).toHaveBeenCalledTimes(1);
+    expect(windows[0].loadFile).toHaveBeenCalledWith("C:/app/settings.html");
+    expect(options[0]).toMatchObject({
+      show: false,
+      webPreferences: {
+        preload: "C:/app/settings-preload.cjs",
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: true,
+      },
+    });
+    expect(manager.senderId).toBe(42);
+
+    windows[0].destroy();
+    await manager.open();
+    expect(windows).toHaveLength(2);
+  });
+});

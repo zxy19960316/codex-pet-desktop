@@ -3,6 +3,7 @@ import type { LocalSettings } from "../shared/settings";
 
 export interface TrayActions {
   showOrHide(): void;
+  openSettings(): void;
   toggleHud(): void;
   toggleDebug(): void;
   toggleAlwaysOnTop(): void;
@@ -28,6 +29,7 @@ export class TrayManager {
     tray.setContextMenu(
       Menu.buildFromTemplate([
         { label: "Show / hide pet", click: actions.showOrHide },
+        { label: "Settings...", click: actions.openSettings },
         { label: "Open HUD", click: actions.toggleHud },
         { label: "Open debug panel", click: actions.toggleDebug },
         { type: "separator" },

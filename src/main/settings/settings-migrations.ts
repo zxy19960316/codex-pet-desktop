@@ -114,15 +114,16 @@ function legacyBoolean(input: Record<string, unknown>, key: keyof LocalSettings)
 }
 
 function migrateLegacy(input: Record<string, unknown>): SettingsDocumentV2 {
+  const currentLayout = input.layoutVersion === DEFAULT_SETTINGS.layoutVersion;
   const legacy: LocalSettings = {
-    layoutVersion: Number.isInteger(input.layoutVersion)
-      ? (input.layoutVersion as number)
-      : DEFAULT_SETTINGS.layoutVersion,
+    layoutVersion: DEFAULT_SETTINGS.layoutVersion,
     petPosition: validPosition(input.petPosition) ? { ...input.petPosition } : undefined,
     alwaysOnTop: legacyBoolean(input, "alwaysOnTop"),
     clickThrough: legacyBoolean(input, "clickThrough"),
-    hudVisible: legacyBoolean(input, "hudVisible"),
-    debugVisible: legacyBoolean(input, "debugVisible"),
+    hudVisible: currentLayout ? legacyBoolean(input, "hudVisible") : DEFAULT_SETTINGS.hudVisible,
+    debugVisible: currentLayout
+      ? legacyBoolean(input, "debugVisible")
+      : DEFAULT_SETTINGS.debugVisible,
     useMockData: legacyBoolean(input, "useMockData"),
     autoStartAppServer: legacyBoolean(input, "autoStartAppServer"),
     soundEnabled: legacyBoolean(input, "soundEnabled"),

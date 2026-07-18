@@ -1,24 +1,29 @@
-import { app, dialog } from "electron";
+import { app, BrowserWindow, dialog, ipcMain } from "electron";
 import { join } from "node:path";
 import { SafeLogger } from "../core/logging/logger";
 import type { PetState } from "../core/pet/pet-state";
-import { IPC_CHANNELS } from "../shared/ipc-contract";
-import { type LocalSettings } from "../shared/settings";
+import { IPC_CHANNELS, type DesktopSnapshot } from "../shared/ipc-contract";
+import { SETTINGS_IPC_CHANNELS, type SettingsWindowSnapshot } from "../shared/ipc/settings-ipc";
+import { settingsDocumentFromLocalSettings, type LocalSettings } from "../shared/settings";
 import { AppServerProcess } from "../core/codex/app-server-process";
 import { registerIpcHandlers } from "./ipc-handlers";
 import { HookEventBridge } from "./hook-event-bridge";
 import { installCodexPetHooks } from "./hook-installer";
-import { LocalSettingsStore } from "./position-store";
 import { RuntimeController } from "./runtime-controller";
+import { registerSettingsIpcHandlers } from "./settings/settings-ipc-handlers";
+import { SettingsService } from "./settings/settings-service";
+import { SettingsStore } from "./settings/settings-store";
 import { runSmokeValidation } from "./smoke-validation";
 import { writeE2EResult } from "./e2e-result-writer";
 import { TrayManager } from "./tray-manager";
 import { windowModeForSnapshot } from "./window-layout";
 import { WindowManager } from "./window-manager";
+import { SettingsWindowManager } from "./windows/settings-window-manager";
 
 const logger = new SafeLogger();
-let settingsStore: LocalSettingsStore;
+let settingsService: SettingsService;
 let windowManager: WindowManager;
+let settingsWindowManager: SettingsWindowManager;
 let trayManager: TrayManager;
 let runtime: RuntimeController;
 let hookBridge: HookEventBridge;
@@ -48,10 +53,34 @@ async function connectCodexHook(): Promise<void> {
   }
 }
 let disposeIpc: (() => void) | undefined;
+let disposeSettingsIpc: (() => void) | undefined;
+
+function buildSettingsSnapshot(snapshot: DesktopSnapshot): SettingsWindowSnapshot {
+  return {
+    settings: settingsDocumentFromLocalSettings(snapshot.settings),
+    loadState: settingsService.getLoadState(),
+    status: {
+      connectionStatus: snapshot.connectionStatus,
+      connectionDetail: snapshot.connectionDetail,
+      protocolSource: snapshot.protocolSource,
+      activeThreadCount: snapshot.activeThreadCount,
+    },
+    quota: {
+      rateLimits: snapshot.rateLimits,
+      dailyUsage: snapshot.dailyUsage,
+      currentThreadTokens: snapshot.currentThreadTokens,
+    },
+    app: {
+      name: app.getName(),
+      version: app.getVersion(),
+    },
+  };
+}
 
 function rebuildTray(settings: LocalSettings): void {
   trayManager.create(settings, {
     showOrHide: () => windowManager.showOrHide(),
+    openSettings: () => void settingsWindowManager.open(),
     toggleHud: () =>
       void runtime.patchSettings({ hudVisible: !runtime.getSnapshot().settings.hudVisible }),
     toggleDebug: () =>
@@ -66,8 +95,14 @@ function rebuildTray(settings: LocalSettings): void {
 }
 
 async function startApplication(): Promise<void> {
-  settingsStore = new LocalSettingsStore(join(app.getPath("userData"), "settings.json"));
-  let settings = await settingsStore.read();
+  const userData = app.getPath("userData");
+  settingsService = new SettingsService(
+    new SettingsStore({
+      legacyPath: join(userData, "settings.json"),
+      v2Path: join(userData, "settings.v2.json"),
+    }),
+  );
+  let settings = await settingsService.initialize();
   const smokeOutput = process.env.CODEX_PET_SMOKE_OUTPUT;
   const smokeReal = process.env.CODEX_PET_SMOKE_REAL === "1";
   const smokeInputOnly = process.env.CODEX_PET_SMOKE_INPUT === "1";
@@ -93,7 +128,12 @@ async function startApplication(): Promise<void> {
       clickThrough: false,
     };
   }
-  windowManager = new WindowManager(settingsStore);
+  windowManager = new WindowManager(settingsService);
+  settingsWindowManager = new SettingsWindowManager({
+    preloadPath: join(__dirname, "../preload/settings.cjs"),
+    htmlPath: join(__dirname, "../renderer/settings.html"),
+    createWindow: (options) => new BrowserWindow(options),
+  });
   trayManager = new TrayManager();
   runtime = new RuntimeController({
     logger,
@@ -101,6 +141,7 @@ async function startApplication(): Promise<void> {
     publish: (snapshot) => {
       windowManager.setMode(windowModeForSnapshot(snapshot));
       windowManager.send(IPC_CHANNELS.snapshot, snapshot);
+      settingsWindowManager.send(SETTINGS_IPC_CHANNELS.snapshot, buildSettingsSnapshot(snapshot));
       if (guidedE2E) {
         try {
           writeE2EResult(guidedE2EResult, snapshot);
@@ -111,7 +152,7 @@ async function startApplication(): Promise<void> {
         }
       }
     },
-    persistSettings: (patch) => settingsStore.patch(patch),
+    persistSettings: (patch) => settingsService.patch(patch),
     onSettingsChanged: (next) => {
       windowManager.setAlwaysOnTop(next.alwaysOnTop);
       windowManager.setClickThrough(next.clickThrough);
@@ -154,6 +195,18 @@ async function startApplication(): Promise<void> {
     startVerification: () => runtime.startVerification(),
     runVerification: (kind) => runtime.runVerification(kind),
   });
+  disposeSettingsIpc = registerSettingsIpcHandlers(
+    {
+      handle: (channel, listener) =>
+        ipcMain.handle(channel, (event, ...args) => listener(event, ...args)),
+      removeHandler: (channel) => ipcMain.removeHandler(channel),
+    },
+    {
+      getSnapshot: () => buildSettingsSnapshot(runtime.getSnapshot()),
+      patchSettings: (patch) => runtime.patchSettings(patch),
+      getSettingsSenderId: () => settingsWindowManager.senderId,
+    },
+  );
   await runtime.start();
   if (smokeOutput && !smokeReal && !smokeCompact) {
     if (smokeInputOnly) runtime.enqueueMockUserInput();
@@ -203,6 +256,7 @@ else {
     if (cleanupStarted) return;
     cleanupStarted = true;
     disposeIpc?.();
+    disposeSettingsIpc?.();
     hookBridge?.stop();
     trayManager?.destroy();
     void runtime
