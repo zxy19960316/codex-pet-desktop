@@ -1,21 +1,22 @@
 import type { PetState } from "./pet-state";
 
 export const PET_STATE_PRIORITY: Readonly<Record<PetState, number>> = {
-  sleeping: 0,
+  sleep: 0,
   idle: 1,
   quota_low: 2,
-  thinking: 3,
-  typing: 4,
-  working: 5,
-  success: 6,
-  quota_exhausted: 7,
-  waiting_input: 8,
-  approval: 9,
-  error: 10,
+  offline: 3,
+  thinking: 4,
+  typing: 5,
+  working: 6,
+  success: 7,
+  quota_empty: 8,
+  waiting_input: 9,
+  approval: 10,
+  error: 11,
 };
 
 export function highestPriority(states: Iterable<PetState>): PetState {
-  let highest: PetState = "sleeping";
+  let highest: PetState = "sleep";
   for (const state of states) {
     if (PET_STATE_PRIORITY[state] > PET_STATE_PRIORITY[highest]) highest = state;
   }

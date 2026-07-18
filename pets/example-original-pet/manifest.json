@@ -60,9 +60,10 @@
     "typing": "working",
     "approval": "thinking",
     "waiting_input": "thinking",
-    "sleeping": "idle",
+    "sleep": "idle",
     "quota_low": "idle",
-    "quota_exhausted": "sleeping"
+    "quota_empty": "sleep",
+    "offline": "sleep"
   },
   "capabilities": {
     "spriteSheet": true,

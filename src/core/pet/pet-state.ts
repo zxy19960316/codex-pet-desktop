@@ -1,5 +1,5 @@
 export const PET_STATES = [
-  "sleeping",
+  "sleep",
   "idle",
   "thinking",
   "typing",
@@ -9,7 +9,8 @@ export const PET_STATES = [
   "success",
   "error",
   "quota_low",
-  "quota_exhausted",
+  "quota_empty",
+  "offline",
 ] as const;
 
 export type PetState = (typeof PET_STATES)[number];

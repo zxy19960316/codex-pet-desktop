@@ -7,14 +7,15 @@ const order: PetState[] = [
   "error",
   "approval",
   "waiting_input",
-  "quota_exhausted",
+  "quota_empty",
   "success",
   "working",
   "typing",
   "thinking",
+  "offline",
   "quota_low",
   "idle",
-  "sleeping",
+  "sleep",
 ];
 
 function change(threadId: string, state: PetState, timestamp = 1): PetStateChange {

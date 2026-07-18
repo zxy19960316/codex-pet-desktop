@@ -79,7 +79,7 @@ export class PetStateMachine {
 
   getActiveThreadCount(): number {
     return [...this.#threads.values()].filter(
-      ({ change }) => !["idle", "sleeping"].includes(change.state),
+      ({ change }) => !["idle", "sleep"].includes(change.state),
     ).length;
   }
 

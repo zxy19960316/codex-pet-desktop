@@ -27,7 +27,7 @@
   filter: drop-shadow(0 5px 0 rgba(15, 24, 40, 0.22));
 }
 
-.pet-sprite[data-pet-state="sleeping"] {
+.pet-sprite[data-pet-state="sleep"] {
   filter: saturate(0.55) brightness(0.86) drop-shadow(0 5px 0 rgba(15, 24, 40, 0.22));
 }
 
@@ -41,7 +41,7 @@
   filter: brightness(1.08) drop-shadow(0 5px 0 rgba(15, 24, 40, 0.22));
 }
 
-.pet-sprite[data-pet-state="quota_exhausted"] {
+.pet-sprite[data-pet-state="quota_empty"] {
   opacity: 0.62;
 }
 
