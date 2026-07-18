@@ -406,6 +406,16 @@ export function SettingsApp() {
             {snapshot.app.name} <strong>v{snapshot.app.version}</strong>
           </p>
           <p>MIT-licensed desktop companion. No cloud settings sync or telemetry is included.</p>
+          <ul className="asset-policy-summary">
+            <li>This project does not bundle Pokémon character assets.</li>
+            <li>
+              Locally imported third-party assets are not covered by this project's MIT license.
+            </li>
+            <li>
+              You are responsible for confirming that you have the right to use imported assets.
+            </li>
+            <li>This application has no official affiliation with Pokémon rights holders.</li>
+          </ul>
         </section>
       </div>
     </main>

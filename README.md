@@ -7,8 +7,12 @@ needed.
 
 ## Current product baseline
 
-- Registry-backed Pet Packages with PNG sprite sheets, validated state fallbacks, active-pet
-  switching, and user folder import.
+- Registry-backed Pet Packages with signature-checked PNG/WebP sprite sheets, validated state
+  fallbacks, active-pet switching, and local-only user folder import.
+- Optional local discovery and explicit one-at-a-time import of already-installed Codex PokéPets;
+  no character asset is downloaded, uploaded, bundled, or relicensed.
+- Persistent 50–200% sizing, Ctrl+wheel adjustment, display-aware bounds, original CSS state
+  overlays, and shared dynamic desktop/tray menus.
 - Packaged Windows resource discovery plus a two-process Settings E2E for import, switching,
   restart persistence, rescan, and preview rendering.
 - An original-branded Windows x64 NSIS installer with SHA-256 output and isolated
@@ -54,8 +58,9 @@ npm run verify:m3-3
 ```
 
 `package:dir` creates an ignored unpacked application under `release/`. `verify:m3-2` packages the
-app, launches that EXE twice with isolated temporary user-data, and writes ignored reports and Pets
-screenshots under `tmp/m3-2-e2e/results/`.
+app, launches that EXE twice with isolated temporary user-data, imports a canonical PNG fixture and
+a runtime-generated original geometric WebP Codex-format fixture, then verifies switching, scale
+preview, restart persistence, and ignored reports/screenshots under `tmp/m3-2-e2e/results/`.
 
 `package:installer` creates an ignored unsigned installer and checksum under `release/m3-3/`.
 `verify:m3-3` installs it to a unique temporary directory, validates the installed Settings/Pet
@@ -76,8 +81,10 @@ directory.
 
 This repository does not bundle Pokémon artwork or other extracted game resources. The included
 Pixel Sprout PNG package is original procedural pixel art. Open **Settings Center -> Pets** to
-switch packages, import a local package folder, open the managed user-data directory, or rescan.
-See the [Pet Package guide](docs/guides/PET_PACKAGE_SYSTEM.md) and
+switch packages, scan local `~/.codex/pets`, explicitly import one compatible source, open the
+managed user-data directory, or rescan. See the
+[Codex PokéPets import guide](docs/guides/CODEX_POKEPETS_IMPORT.md),
+[Pet Package guide](docs/guides/PET_PACKAGE_SYSTEM.md), and
 [`ASSET_POLICY.md`](ASSET_POLICY.md). Packaged verification details are recorded in
 [`docs/reports/M3_2_IMPLEMENTATION.md`](docs/reports/M3_2_IMPLEMENTATION.md).
 
