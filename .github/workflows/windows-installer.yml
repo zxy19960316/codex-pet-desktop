@@ -1,0 +1,34 @@
+name: Windows installer verification
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  installer:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Build, install, launch, and uninstall
+        run: npm run verify:m3-3
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - name: Upload unsigned verification evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: codex-pet-windows-m3-3
+          if-no-files-found: error
+          retention-days: 7
+          path: |
+            release/m3-3/*.exe
+            release/m3-3/*.exe.sha256
+            tmp/m3-3-e2e/report.json
+            tmp/m3-3-e2e/settings-installed.png
