@@ -310,7 +310,7 @@ async function startApplication(): Promise<void> {
   hookBridge.start();
   rebuildTray(withPetSnapshot(runtime.getSnapshot()));
   disposeIpc = registerIpcHandlers({
-    getSnapshot: () => runtime.getSnapshot(),
+    getSnapshot: () => withPetSnapshot(runtime.getSnapshot()),
     setPetState: (state: PetState) => runtime.setDebugPetState(state),
     respondApproval: (requestId, decision) => runtime.respondApproval(requestId, decision),
     respondUserInput: (requestId, answers) => runtime.respondUserInput(requestId, answers),
