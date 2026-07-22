@@ -1,4 +1,7 @@
 import { isPetState, type PetState } from "./pet-state";
+import type { PetImageFormat } from "./image-metadata";
+
+export type { PetImageFormat } from "./image-metadata";
 
 export type PetMetadataValue = string | number | boolean | null;
 
@@ -9,6 +12,9 @@ export interface PetAnimationDefinition {
   frameHeight: number;
   fps: number;
   loop: boolean;
+  format?: PetImageFormat;
+  frameRow?: number;
+  frames?: number;
 }
 
 export interface PetAssetManifest {
@@ -42,6 +48,7 @@ export interface PetAnimationAsset extends PetAnimationDefinition {
   sheetWidth: number;
   sheetHeight: number;
   frames: number;
+  frameRow?: number;
 }
 
 export interface PetPackage {
@@ -60,6 +67,7 @@ export interface PetSummary {
   previewUrl: string;
   origin: PetPackageOrigin;
   active: boolean;
+  previewAnimation?: PetAnimationAsset;
 }
 
 export interface PetPackageIssue {
@@ -119,15 +127,20 @@ export function isSafePetAssetPath(value: string): boolean {
   return segments.every((segment) => Boolean(segment) && segment !== "." && segment !== "..");
 }
 
+function imageFormatForPath(value: string): PetImageFormat | undefined {
+  const extension = value.toLowerCase().split(".").pop();
+  return extension === "png" || extension === "webp" ? extension : undefined;
+}
+
 function assetPath(
   value: string,
   path: string,
-  extension: string,
+  extensions: readonly string[],
   errors: PetManifestValidationError[],
 ): string {
   if (!isSafePetAssetPath(value)) errors.push({ path, message: "must be a safe relative path" });
-  if (!value.toLowerCase().endsWith(extension))
-    errors.push({ path, message: `must reference a ${extension} file` });
+  if (!extensions.some((extension) => value.toLowerCase().endsWith(extension)))
+    errors.push({ path, message: `must reference a ${extensions.join(" or ")} file` });
   return value;
 }
 
@@ -147,7 +160,7 @@ function stringArray(
       errors.push({ path: `${path}.${index}`, message: "must be a non-empty string" });
       return;
     }
-    result.push(assetPath(entry.trim(), `${path}.${index}`, extension, errors));
+    result.push(assetPath(entry.trim(), `${path}.${index}`, [extension], errors));
   });
   if (new Set(result).size !== result.length)
     errors.push({ path, message: "must not contain duplicate paths" });
@@ -176,7 +189,7 @@ function parseAnimations(
     }
     const name = requiredString(animationValue, "name", errors);
     const spriteValue = requiredString(animationValue, "sprite", errors);
-    const sprite = assetPath(spriteValue, `${path}.sprite`, ".png", errors);
+    const sprite = assetPath(spriteValue, `${path}.sprite`, [".png", ".webp"], errors);
     if (sprite && !sprites.has(sprite))
       errors.push({ path: `${path}.sprite`, message: "must be declared in assets.sprites" });
     const frameWidth = positiveNumber(animationValue, "frameWidth", path, errors);
@@ -185,6 +198,18 @@ function parseAnimations(
     const loop = animationValue.loop;
     if (typeof loop !== "boolean")
       errors.push({ path: `${path}.loop`, message: "must be a boolean" });
+    const inferredFormat = imageFormatForPath(sprite);
+    const format = animationValue.format;
+    if (format !== undefined && format !== "png" && format !== "webp")
+      errors.push({ path: `${path}.format`, message: "must be png or webp" });
+    if (format !== undefined && inferredFormat && format !== inferredFormat)
+      errors.push({ path: `${path}.format`, message: "must match the sprite extension" });
+    const frameRow = animationValue.frameRow;
+    if (frameRow !== undefined && (!Number.isInteger(frameRow) || (frameRow as number) < 0))
+      errors.push({ path: `${path}.frameRow`, message: "must be a non-negative integer" });
+    const frames = animationValue.frames;
+    if (frames !== undefined && (!Number.isInteger(frames) || (frames as number) <= 0))
+      errors.push({ path: `${path}.frames`, message: "must be a positive integer" });
     animations[stateName] = {
       name,
       sprite,
@@ -192,6 +217,13 @@ function parseAnimations(
       frameHeight,
       fps,
       loop: typeof loop === "boolean" ? loop : false,
+      format: format === "png" || format === "webp" ? format : inferredFormat,
+      frameRow:
+        typeof frameRow === "number" && Number.isInteger(frameRow) && frameRow >= 0
+          ? frameRow
+          : undefined,
+      frames:
+        typeof frames === "number" && Number.isInteger(frames) && frames > 0 ? frames : undefined,
     };
   }
   if (!animations.idle)
@@ -254,12 +286,32 @@ export function validatePetManifest(value: unknown): PetManifestValidationResult
   const version = requiredString(value, "version", errors);
   const author = requiredString(value, "author", errors);
   const license = requiredString(value, "license", errors);
-  const preview = assetPath(requiredString(value, "preview", errors), "preview", ".png", errors);
+  const preview = assetPath(
+    requiredString(value, "preview", errors),
+    "preview",
+    [".png", ".webp"],
+    errors,
+  );
 
   let assets: PetAssetManifest = { sprites: [] };
   if (!isRecord(value.assets)) errors.push({ path: "assets", message: "must be an object" });
   else {
-    const sprites = stringArray(value.assets.sprites, "assets.sprites", ".png", errors);
+    const sprites = Array.isArray(value.assets.sprites)
+      ? value.assets.sprites.map((entry, index) => {
+          if (typeof entry !== "string" || !entry.trim()) {
+            errors.push({
+              path: `assets.sprites.${index}`,
+              message: "must be a non-empty string",
+            });
+            return "";
+          }
+          return assetPath(entry.trim(), `assets.sprites.${index}`, [".png", ".webp"], errors);
+        })
+      : [];
+    if (!Array.isArray(value.assets.sprites) || !value.assets.sprites.length)
+      errors.push({ path: "assets.sprites", message: "must be a non-empty array" });
+    if (new Set(sprites).size !== sprites.length)
+      errors.push({ path: "assets.sprites", message: "must not contain duplicate paths" });
     const sounds =
       value.assets.sounds === undefined
         ? undefined

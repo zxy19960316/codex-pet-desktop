@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { cp, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createRequire } from "node:module";
 import process from "node:process";
 import { clearTimeout, setTimeout } from "node:timers";
 
@@ -17,10 +18,13 @@ const verificationRoot = join(root, "tmp", "m3-3-e2e");
 const settingsOutput = join(verificationRoot, "installed-settings");
 const importParent = join(verificationRoot, "import-source");
 const importSource = join(importParent, "e2e-sprout");
+const codexImportParent = join(verificationRoot, "codex-source");
+const codexImportSource = join(codexImportParent, "synthetic-geo");
 const screenshot = join(verificationRoot, "settings-installed.png");
 const reportPath = join(verificationRoot, "report.json");
 const installDirectory = join(tmpdir(), `codex-pet-m3-3-install-${process.pid}`);
 const userDataDirectory = join(tmpdir(), `codex-pet-m3-3-user-data-${process.pid}`);
+const electronExecutable = createRequire(import.meta.url)("electron");
 
 function appendBounded(current, chunk) {
   return (current + chunk.toString("utf8")).slice(-32_768);
@@ -106,10 +110,13 @@ function requireInstalledSettingsEvidence(report) {
   if (
     report?.passed !== true ||
     report.packaged !== true ||
-    report.currentPetId !== "e2e-sprout" ||
+    report.currentPetId !== "codex-pokepets-synthetic-geo" ||
     report.previewsLoaded !== true ||
     !report.availablePetIds?.includes("pixel-sprout") ||
-    !report.availablePetIds?.includes("e2e-sprout")
+    !report.availablePetIds?.includes("e2e-sprout") ||
+    !report.availablePetIds?.includes("codex-pokepets-synthetic-geo") ||
+    report.codexImported !== true ||
+    report.scalePreviewVerified !== true
   )
     throw new Error(`Installed Settings evidence is incomplete: ${JSON.stringify(report)}`);
 }
@@ -128,6 +135,11 @@ fixtureManifest.id = "e2e-sprout";
 fixtureManifest.name = "E2E Sprout";
 fixtureManifest.version = "1.0.0-m3-3";
 await writeFile(fixtureManifestPath, `${JSON.stringify(fixtureManifest, null, 2)}\n`, "utf8");
+await run(
+  electronExecutable,
+  [join(root, "scripts", "generate-synthetic-pokepet.mjs"), codexImportSource],
+  { timeoutMs: 30_000 },
+);
 
 try {
   const installerBytes = await readFile(installer);
@@ -161,6 +173,7 @@ try {
       CODEX_PET_M3_2_USER_DATA: userDataDirectory,
       CODEX_PET_M3_2_OUTPUT: settingsOutput,
       CODEX_PET_M3_2_IMPORT_SOURCE: importSource,
+      CODEX_PET_M3_2_CODEX_IMPORT_SOURCE: codexImportSource,
     },
     timeoutMs: 60_000,
   });
@@ -180,11 +193,13 @@ try {
   await Promise.all([
     rm(userDataDirectory, { recursive: true, force: true }),
     rm(importParent, { recursive: true, force: true }),
+    rm(codexImportParent, { recursive: true, force: true }),
     rm(settingsOutput, { recursive: true, force: true }),
   ]);
   const temporaryDataRemoved =
     !(await exists(userDataDirectory)) &&
     !(await exists(importParent)) &&
+    !(await exists(codexImportParent)) &&
     !(await exists(settingsOutput));
   if (!temporaryDataRemoved) throw new Error("Verifier-owned temporary data was not removed");
 

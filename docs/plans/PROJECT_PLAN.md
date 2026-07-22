@@ -18,6 +18,11 @@
 > preflight, isolated install/launch/uninstall E2E, and manual artifact workflow are implemented.
 > See `docs/reports/M3_3_IMPLEMENTATION.md`.
 
+> **2026-07-18 M3.4 baseline:** Safe WebP assets, local-only Codex PokéPets discovery/adapter,
+> original state overlays, Settings v3 pet sizing, display-aware bounds, and shared native
+> desktop/tray menus are implemented. Pixel Sprout remains the only distributed pet; real local
+> third-party character import is not claimed without a user-installed package.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: use an execution workflow that implements this plan task-by-task, with each task reviewed against its tests before continuing. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build an independent, secure Electron desktop pet that completes the M0 desktop shell and an M1 Codex App Server integration loop with deterministic Mock fallback.
@@ -239,8 +244,9 @@
   cleanup; and separate protocol/mock/human verification records. M3 HUD and M4 pet packs follow
   only after guided real desktop approval and input checks are recorded.
 - **M3 — Complete quota and Token HUD:** future; M1 supplies only provider/UI foundations.
-- **M4 – Pet packs and animation system:** delivered as M3.1 with safe local discovery, import,
-  switching, PNG sprite geometry, animation fallback, Settings UI, and an original package.
+- **M4 – Pet packs and animation system:** delivered through M3.1–M3.4 with safe local discovery,
+  PNG/WebP geometry, explicit third-party local adaptation, animation fallback/overlays, sizing,
+  Settings UI, and one original bundled package.
 - **M5 — Multiple sessions and productization:** future; M1 tracks independent thread state only.
 - **M6 — Installers, updates, and releases:** M3.3 supplies a verified unsigned Windows x64 NSIS
   installer and signing preparation; a real certificate, updates, and release publication remain
@@ -260,9 +266,9 @@
 - **P2 — Real Codex observation:** official lifecycle hook installer, local event bridge, session
   aggregation, hook health, and App Server as an optional control path rather than the only sensor.
 - **P3 — Human action surfaces:** approval and user-input cards opened progressively from the pet.
-- **P4 – User pet packs:** complete in M3.1 with safe local package discovery, validation, preview,
-  attribution/license display, import, switching, rescan, and failure isolation; M3.2 adds packaged
-  resource discovery and automated restart-persistence evidence.
+- **P4 – User pet packs:** complete through M3.4 with validation, preview, attribution/license,
+  local Codex PokéPets discovery, explicit atomic import, PNG/WebP animation, state overlays,
+  scaling, dynamic menus, and packaged synthetic restart evidence.
 - **P5 — Productization:** M3.3 delivers the Windows installer lifecycle and manual artifact CI;
   click hit-window hardening, startup behavior, signed releases, and updates remain.
 

@@ -18,6 +18,7 @@ const api: DesktopApi = {
   toggleClickThrough: () => ipcRenderer.invoke(IPC_CHANNELS.toggleClickThrough),
   reconnectCodex: () => ipcRenderer.invoke(IPC_CHANNELS.reconnectCodex),
   patchSettings: (patch) => ipcRenderer.invoke(IPC_CHANNELS.patchSettings, patch),
+  adjustPetScale: (deltaSteps) => ipcRenderer.invoke(IPC_CHANNELS.adjustPetScale, deltaSteps),
   enqueueMockApproval: () => ipcRenderer.invoke(IPC_CHANNELS.enqueueMockApproval),
   respondUserInput: (requestId, answers) =>
     ipcRenderer.invoke(IPC_CHANNELS.respondUserInput, requestId, answers),
@@ -33,6 +34,7 @@ const api: DesktopApi = {
   startVerification: () => ipcRenderer.invoke(IPC_CHANNELS.startVerification),
   runVerification: (kind) => ipcRenderer.invoke(IPC_CHANNELS.runVerification, kind),
   quit: () => ipcRenderer.invoke(IPC_CHANNELS.quit),
+  updateWindowShape: (request) => ipcRenderer.send(IPC_CHANNELS.updateWindowShape, request),
 };
 
 contextBridge.exposeInMainWorld("codexPet", Object.freeze(api));

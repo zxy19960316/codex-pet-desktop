@@ -20,5 +20,12 @@ tmp/hook-proof/
 tmp/ui-reset/
 tmp/m3-2-e2e/
 tmp/m3-3-e2e/
+tmp/local-pokepets/
+tmp/imagegen/
+tmp/smoke-*/
+tmp/third_party/
+tmp/local-derived-pets/
+**/spritesheet-local*.webp
+**/*-local-12state/
 .DS_Store
 Thumbs.db

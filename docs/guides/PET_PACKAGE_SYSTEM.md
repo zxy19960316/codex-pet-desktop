@@ -4,7 +4,7 @@ M3.1 separates three concepts that were previously coupled in the renderer:
 
 - a **Pet** is a versioned character resource package;
 - a **Theme** is the Settings or desktop UI style and contains no character identity;
-- an **Animation** maps one normalized runtime state to a PNG sprite sheet.
+- an **Animation** maps one normalized runtime state to a validated PNG or WebP sprite sheet.
 
 The data path is:
 
@@ -33,9 +33,11 @@ example-original-pet/
     `-- error.png
 ```
 
-M3.1 supports horizontal PNG sprite sheets only. Every sheet contains equal-width frames in one
-row. Frame count is inferred as `PNG width / frameWidth`; the PNG height must equal `frameHeight`.
-The total CSS animation duration is `frames / fps` seconds. Skeletal animation, archives, remote
+Horizontal PNG packages remain fully compatible: frame count is inferred as
+`width / frameWidth`, and image height must equal `frameHeight`. M3.4 also accepts static WebP
+sprite sheets after checking RIFF/WEBP plus VP8, VP8L, or VP8X headers and dimensions. Multi-row
+atlases declare `frameRow` and `frames`; sheet width/height must divide by frame geometry and the
+declared row/count must fit. Total duration is `frames / fps` seconds. SVG, HTML, archives, remote
 URLs, scripts, and automatic downloads are not supported.
 
 ## Complete manifest example
@@ -92,14 +94,17 @@ URLs, scripts, and automatic downloads are not supported.
 | `version`                  | Non-empty package version string.                                                                          |
 | `author`                   | Non-empty attribution shown in Settings.                                                                   |
 | `license`                  | Non-empty license identifier or description shown in Settings.                                             |
-| `preview`                  | Safe package-relative `.png` path.                                                                         |
-| `assets.sprites`           | Non-empty, duplicate-free list of safe package-relative `.png` paths.                                      |
+| `preview`                  | Safe package-relative `.png` or `.webp` path with a matching real signature.                               |
+| `assets.sprites`           | Non-empty, duplicate-free list of safe package-relative `.png`/`.webp` paths.                              |
 | `assets.sounds`            | Optional non-empty list of safe package-relative `.wav` paths. M3.1 validates but does not play sounds.    |
 | `animations`               | State-to-sprite definitions. `idle` is mandatory. Every referenced sprite must appear in `assets.sprites`. |
 | `capabilities.spriteSheet` | Must be `true` in M3.1.                                                                                    |
 | `capabilities.sounds`      | Optional boolean declaration.                                                                              |
 | `metadata`                 | Extension map containing only string, number, boolean, or null values.                                     |
 | `fallbacks`                | Optional state-to-state overrides. Cycles are bounded and end at `idle`.                                   |
+
+Each animation may set `format` to `png` or `webp`. `frameRow` and `frames` are optional and are
+needed for a multi-row atlas; omitting them keeps the original strict horizontal-sheet behavior.
 
 Absolute paths, Windows drive paths, backslashes, empty path segments, `.` and `..` segments are
 rejected. Package directories and referenced resources must be regular files/directories rather
@@ -153,19 +158,23 @@ In **Settings Center -> Pets**:
 4. The copy is validated again and atomically renamed to its package ID.
 5. The Registry rescans and makes the imported package active.
 
-Duplicate IDs, unsafe filesystem entries, missing resources, malformed JSON, invalid PNG headers,
+Duplicate IDs, unsafe filesystem entries, missing resources, malformed JSON, invalid image headers,
 and incompatible geometry return a specific error. A failed import removes its temporary copy and
 does not replace an installed package. **Open directory** opens the managed user directory;
 **Rescan** refreshes the cache after local authoring changes.
 
 ## External sprite projects
 
-`ExternalPetAdapter<TSource>` is a neutral future extension contract with `canAdapt()` and
-`adapt()`. An adapter must convert a user-selected local source into this canonical package
-layout; it does not grant network access, change validation, bind the app to one external project,
-or permit redistribution of third-party assets. Clawd pets, user-created sprites, and
-Pokemon-like art styles can be supported only through independently lawful user-provided assets;
-no copyrighted character pack is bundled here.
+`ExternalPetAdapter<TSource>` remains a neutral extension contract. M3.4 implements
+`CodexPokePetsAdapter` for the local `pet.json` plus `spritesheet.webp` format. It accepts the
+1536×1872, 8×9 atlas with 192×208 cells, generates a canonical manifest, copies through an atomic
+temporary directory, and rescans/selects only after Registry validation. Discovery returns only a
+source ID, name, compatibility, and imported state—never the home path.
+
+The adapter does not grant network access or redistribution rights. Generated manifests record
+the source project, source ID, `redistributionAllowed=false`, `locallyImported=true`, and license
+text explicitly outside this project's MIT license. See
+[`CODEX_POKEPETS_IMPORT.md`](CODEX_POKEPETS_IMPORT.md).
 
 ## Original example assets
 
@@ -183,8 +192,9 @@ The generator and output contain no third-party character, game, logo, font, or 
 `app.asar` under `resources/pets/`, so their manifests and PNG files remain normal files that the
 Registry can validate. Imported packages are never written into this installation directory.
 
-`npm run verify:m3-2` launches the packaged application twice and drives the real Settings page:
-the first process imports and switches packages; the second reuses the isolated user-data and
-checks persisted selection plus rescan. Reports and Pets-section screenshots are written under
+`npm run verify:m3-2` launches the packaged application twice and drives the real Settings page.
+The first process imports/switches a canonical PNG package, generates and imports an original
+geometric Codex-format WebP package, and checks 200%/100% scale preview. The second process reuses
+the isolated user-data and checks adapted-pet selection plus rescan. Reports/screenshots are written under
 `tmp/m3-2-e2e/results/`. The verifier supplies its fixture path only behind the explicit
 `--m3-2-e2e` main-process gate; normal use always opens the native folder picker.

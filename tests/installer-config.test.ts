@@ -15,7 +15,11 @@ describe("Windows installer configuration", () => {
       compression: "maximum",
       directories: { output: "release/m3-3", buildResources: "build/generated" },
       files: ["dist/**/*", "package.json"],
-      extraResources: [{ from: "pets", to: "pets", filter: ["**/*"] }],
+      extraResources: [
+        { from: "pets", to: "pets", filter: ["**/*"] },
+        { from: "dist/hook/codex-pet-hook.cjs", to: "codex-pet-hook.cjs" },
+        { from: "build/generated/tray-icon.png", to: "tray-icon.png" },
+      ],
       publish: null,
       win: {
         icon: "build/generated/icon.ico",
@@ -28,8 +32,8 @@ describe("Windows installer configuration", () => {
         oneClick: false,
         perMachine: false,
         allowToChangeInstallationDirectory: true,
-        createDesktopShortcut: false,
-        createStartMenuShortcut: false,
+        createDesktopShortcut: true,
+        createStartMenuShortcut: true,
         runAfterFinish: false,
       },
     });

@@ -51,8 +51,9 @@ describe("settings IPC validation", () => {
         clickThrough: true,
         soundEnabled: true,
         quotaWarningPercent: 25,
+        petDisplay: { scalePercent: 125, lockPhysicalSizeAcrossDisplays: true },
       },
-      device: { useMockData: false, autoStartAppServer: true },
+      device: { useMockData: false, autoStartAppServer: true, launchAtLogin: true },
     });
 
     expect(settingsPatchToLocalSettings(patch)).toEqual({
@@ -60,8 +61,11 @@ describe("settings IPC validation", () => {
       clickThrough: true,
       soundEnabled: true,
       quotaWarningPercent: 25,
+      scalePercent: 125,
+      lockPhysicalSizeAcrossDisplays: true,
       useMockData: false,
       autoStartAppServer: true,
+      launchAtLogin: true,
     });
   });
 
@@ -78,6 +82,14 @@ describe("settings IPC validation", () => {
     expect(() => parseSettingsPatch({ preferences: { quotaWarningPercent: Number.NaN } })).toThrow(
       "Invalid quotaWarningPercent",
     );
+    expect(() =>
+      parseSettingsPatch({ preferences: { petDisplay: { scalePercent: Number.NaN } } }),
+    ).toThrow("Invalid scalePercent");
+    expect(() =>
+      parseSettingsPatch({
+        preferences: { petDisplay: { lockPhysicalSizeAcrossDisplays: "yes" } },
+      }),
+    ).toThrow("Invalid lockPhysicalSizeAcrossDisplays");
     expect(() => parseSettingsPatch({ preferences: { hidden: true } })).toThrow(
       "Unknown settings field",
     );
@@ -119,6 +131,9 @@ describe("settings IPC validation", () => {
         getSettingsSenderId: () => 42,
         setActivePet: vi.fn(async () => undefined),
         importPetPackage: vi.fn(async () => undefined),
+        importCodexPokePet: vi.fn(async () => undefined),
+        scanCodexPokePets: vi.fn(async () => undefined),
+        importDiscoveredCodexPokePet: vi.fn(async () => undefined),
         rescanPets: vi.fn(async () => undefined),
         openPetsDirectory: vi.fn(async () => undefined),
       },
@@ -156,6 +171,9 @@ describe("settings IPC validation", () => {
       getSettingsSenderId: () => 42,
       setActivePet: vi.fn(async () => undefined),
       importPetPackage: vi.fn(async () => undefined),
+      importCodexPokePet: vi.fn(async () => undefined),
+      scanCodexPokePets: vi.fn(async () => undefined),
+      importDiscoveredCodexPokePet: vi.fn(async () => undefined),
       rescanPets: vi.fn(async () => undefined),
       openPetsDirectory: vi.fn(async () => undefined),
     };
@@ -169,10 +187,19 @@ describe("settings IPC validation", () => {
 
     await handlers.get(SETTINGS_IPC_CHANNELS.setActivePet)!({ sender: { id: 42 } }, "pixel-sprout");
     await handlers.get(SETTINGS_IPC_CHANNELS.importPetPackage)!({ sender: { id: 42 } });
+    await handlers.get(SETTINGS_IPC_CHANNELS.importCodexPokePet)!({ sender: { id: 42 } });
+    await handlers.get(SETTINGS_IPC_CHANNELS.scanCodexPokePets)!({ sender: { id: 42 } });
+    await handlers.get(SETTINGS_IPC_CHANNELS.importDiscoveredCodexPokePet)!(
+      { sender: { id: 42 } },
+      "geo-bot",
+    );
     await handlers.get(SETTINGS_IPC_CHANNELS.rescanPets)!({ sender: { id: 42 } });
     await handlers.get(SETTINGS_IPC_CHANNELS.openPetsDirectory)!({ sender: { id: 42 } });
     expect(actions.setActivePet).toHaveBeenCalledWith("pixel-sprout");
     expect(actions.importPetPackage).toHaveBeenCalledOnce();
+    expect(actions.importCodexPokePet).toHaveBeenCalledOnce();
+    expect(actions.scanCodexPokePets).toHaveBeenCalledOnce();
+    expect(actions.importDiscoveredCodexPokePet).toHaveBeenCalledWith("geo-bot");
     expect(actions.rescanPets).toHaveBeenCalledOnce();
     expect(actions.openPetsDirectory).toHaveBeenCalledOnce();
     expect(() => handlers.get(SETTINGS_IPC_CHANNELS.rescanPets)!({ sender: { id: 7 } })).toThrow(
@@ -197,7 +224,7 @@ describe("settings window manager", () => {
     });
 
     const first = await manager.open();
-    const second = await manager.open();
+    const second = await manager.open("pets");
 
     expect(first).toBe(second);
     expect(windows).toHaveLength(1);
@@ -214,6 +241,10 @@ describe("settings window manager", () => {
       },
     });
     expect(manager.senderId).toBe(42);
+    expect(windows[0].webContents.send).toHaveBeenCalledWith(
+      SETTINGS_IPC_CHANNELS.navigate,
+      "pets",
+    );
 
     windows[0].destroy();
     await manager.open();

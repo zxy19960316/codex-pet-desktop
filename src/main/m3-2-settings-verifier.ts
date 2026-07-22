@@ -9,6 +9,7 @@ export interface M32E2EConfiguration {
   userDataDirectory: string;
   outputDirectory: string;
   importSource?: string;
+  codexImportSource?: string;
 }
 
 export interface M32VerificationReport {
@@ -22,6 +23,8 @@ export interface M32VerificationReport {
   switchedToBuiltin: boolean;
   switchedBack: boolean;
   rescanned: boolean;
+  codexImported: boolean;
+  scalePreviewVerified: boolean;
   screenshot: string;
   windowVisible?: boolean;
   windowBounds?: { x: number; y: number; width: number; height: number };
@@ -32,6 +35,7 @@ interface SettingsDomState {
   currentPetId?: string;
   availablePetIds: string[];
   previewsLoaded: boolean;
+  scalePercent?: number;
   error?: string;
 }
 
@@ -52,6 +56,7 @@ const SETTINGS_STATE_SCRIPT = `(() => {
       .map((card) => card.getAttribute('data-pet-id'))
       .filter(Boolean),
     previewsLoaded: images.length > 0 && images.every((image) => image.complete && image.naturalWidth > 0),
+    scalePercent: Number(document.querySelector('[data-testid="pet-scale-value"]')?.textContent?.replace('%', '')) || undefined,
     error: document.querySelector('.settings-error')?.textContent ?? undefined,
   };
 })()`;
@@ -76,8 +81,13 @@ export function parseM32E2EConfiguration(
     userDataDirectory: requiredAbsolutePath(env, "CODEX_PET_M3_2_USER_DATA"),
     outputDirectory: requiredAbsolutePath(env, "CODEX_PET_M3_2_OUTPUT"),
   };
-  if (phase === "import")
+  if (phase === "import") {
     configuration.importSource = requiredAbsolutePath(env, "CODEX_PET_M3_2_IMPORT_SOURCE");
+    configuration.codexImportSource = requiredAbsolutePath(
+      env,
+      "CODEX_PET_M3_2_CODEX_IMPORT_SOURCE",
+    );
+  }
   return configuration;
 }
 
@@ -98,18 +108,25 @@ export function validateM32VerificationReport(
   const report = record(value);
   if (report.phase !== expectedPhase) throw new Error("M3.2 report phase does not match");
   for (const key of ["passed", "packaged", "previewsLoaded"]) requireEvidence(report, key);
-  if (report.currentPetId !== "e2e-sprout")
-    throw new Error("M3.2 report did not retain e2e-sprout");
+  if (report.currentPetId !== "codex-pokepets-synthetic-geo")
+    throw new Error("M3.2 report did not retain the adapted synthetic Codex pet");
   if (
     !Array.isArray(report.availablePetIds) ||
     !report.availablePetIds.includes("pixel-sprout") ||
-    !report.availablePetIds.includes("e2e-sprout")
+    !report.availablePetIds.includes("e2e-sprout") ||
+    !report.availablePetIds.includes("codex-pokepets-synthetic-geo")
   )
     throw new Error("M3.2 report is missing expected available pets");
   if (typeof report.screenshot !== "string" || !isAbsolute(report.screenshot))
     throw new Error("M3.2 report screenshot must be an absolute path");
   if (expectedPhase === "import") {
-    for (const key of ["imported", "switchedToBuiltin", "switchedBack"])
+    for (const key of [
+      "imported",
+      "switchedToBuiltin",
+      "switchedBack",
+      "codexImported",
+      "scalePreviewVerified",
+    ])
       requireEvidence(report, key);
   } else requireEvidence(report, "rescanned");
   return report as unknown as M32VerificationReport;
@@ -195,6 +212,8 @@ export async function runM32SettingsVerification(options: {
     switchedToBuiltin: false,
     switchedBack: false,
     rescanned: false,
+    codexImported: false,
+    scalePreviewVerified: false,
     screenshot,
   };
 
@@ -208,6 +227,8 @@ export async function runM32SettingsVerification(options: {
     let switchedToBuiltin = false;
     let switchedBack = false;
     let rescanned = false;
+    let codexImported = false;
+    let scalePreviewVerified = false;
 
     if (configuration.phase === "import") {
       if (initial.currentPetId !== "pixel-sprout")
@@ -235,13 +256,27 @@ export async function runM32SettingsVerification(options: {
         "the imported pet switch",
       );
       switchedBack = true;
+      await click(window, "codex-pokepet-import");
+      await waitForSettingsState(
+        window,
+        (state) => state.currentPetId === "codex-pokepets-synthetic-geo",
+        "the synthetic Codex pet import",
+      );
+      codexImported = true;
+      await click(window, "pet-scale-200");
+      await waitForSettingsState(window, (state) => state.scalePercent === 200, "the 200% preview");
+      await click(window, "pet-scale-100");
+      await waitForSettingsState(window, (state) => state.scalePercent === 100, "the 100% preview");
+      scalePreviewVerified = true;
     } else {
-      if (initial.currentPetId !== "e2e-sprout")
-        throw new Error(`Restart phase did not restore e2e-sprout: ${initial.currentPetId}`);
+      if (initial.currentPetId !== "codex-pokepets-synthetic-geo")
+        throw new Error(
+          `Restart phase did not restore the synthetic Codex pet: ${initial.currentPetId}`,
+        );
       await click(window, "pet-rescan");
       await waitForSettingsState(
         window,
-        (state) => state.currentPetId === "e2e-sprout",
+        (state) => state.currentPetId === "codex-pokepets-synthetic-geo",
         "the rescan to retain the active pet",
       );
       rescanned = true;
@@ -250,9 +285,10 @@ export async function runM32SettingsVerification(options: {
     const finalState = await waitForSettingsState(
       window,
       (state) =>
-        state.currentPetId === "e2e-sprout" &&
+        state.currentPetId === "codex-pokepets-synthetic-geo" &&
         state.availablePetIds.includes("pixel-sprout") &&
         state.availablePetIds.includes("e2e-sprout") &&
+        state.availablePetIds.includes("codex-pokepets-synthetic-geo") &&
         state.previewsLoaded,
       "both loaded pet previews",
     );
@@ -293,6 +329,8 @@ export async function runM32SettingsVerification(options: {
       switchedToBuiltin,
       switchedBack,
       rescanned,
+      codexImported,
+      scalePreviewVerified,
       windowVisible: window.isVisible(),
       windowBounds: window.getBounds(),
     };

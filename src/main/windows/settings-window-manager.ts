@@ -1,4 +1,5 @@
 import type { BrowserWindowConstructorOptions } from "electron";
+import { SETTINGS_IPC_CHANNELS, type SettingsSection } from "../../shared/ipc/settings-ipc";
 
 export interface SettingsBrowserWindow {
   readonly webContents: {
@@ -31,11 +32,12 @@ export class SettingsWindowManager {
     return this.#activeWindow()?.webContents.id;
   }
 
-  async open(): Promise<SettingsBrowserWindow> {
+  async open(section?: SettingsSection): Promise<SettingsBrowserWindow> {
     const existing = this.#activeWindow();
     if (existing) {
       existing.show();
       existing.focus();
+      if (section) existing.webContents.send(SETTINGS_IPC_CHANNELS.navigate, section);
       return existing;
     }
     const window = this.#options.createWindow({
@@ -61,6 +63,7 @@ export class SettingsWindowManager {
       if (this.#window === window) this.#window = undefined;
     });
     await window.loadFile(this.#options.htmlPath);
+    if (section) window.webContents.send(SETTINGS_IPC_CHANNELS.navigate, section);
     return window;
   }
 

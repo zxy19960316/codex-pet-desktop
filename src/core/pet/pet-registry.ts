@@ -1,4 +1,4 @@
-import { cp, lstat, mkdir, open, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
+import { cp, lstat, mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 import {
@@ -13,10 +13,10 @@ import {
   type PetSummary,
 } from "./pet-manifest";
 import type { PetState } from "./pet-state";
+import { readPetImageMetadata, type PetImageMetadata } from "./image-metadata";
 
 const MANIFEST_FILENAME = "manifest.json";
 const DEFAULT_STATE_FILENAME = ".active-pet.json";
-const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 const MAX_MANIFEST_BYTES = 1024 * 1024;
 const MAX_ASSET_BYTES = 20 * 1024 * 1024;
 const MAX_IMPORT_BYTES = 100 * 1024 * 1024;
@@ -30,11 +30,6 @@ export interface PetRegistryOptions {
 }
 
 export type PetValidationResult = { ok: true; value: PetPackage } | { ok: false; error: string };
-
-interface PngSize {
-  width: number;
-  height: number;
-}
 
 function clonePackage(pet: PetPackage): PetPackage {
   return structuredClone(pet);
@@ -56,25 +51,6 @@ async function assertRegularFile(path: string, label: string): Promise<number> {
   if (!stats.isFile()) throw new Error(`${label} must be a regular file`);
   if (stats.size > MAX_ASSET_BYTES) throw new Error(`${label} exceeds the 20 MB asset limit`);
   return stats.size;
-}
-
-async function readPngSize(path: string, label: string): Promise<PngSize> {
-  await assertRegularFile(path, label);
-  const handle = await open(path, "r");
-  try {
-    const header = Buffer.alloc(24);
-    const { bytesRead } = await handle.read(header, 0, header.length, 0);
-    if (bytesRead < header.length || !header.subarray(0, 8).equals(PNG_SIGNATURE))
-      throw new Error(`${label} is not a valid PNG file`);
-    if (header.toString("ascii", 12, 16) !== "IHDR")
-      throw new Error(`${label} has an invalid PNG header`);
-    const width = header.readUInt32BE(16);
-    const height = header.readUInt32BE(20);
-    if (!width || !height) throw new Error(`${label} has invalid PNG dimensions`);
-    return { width, height };
-  } finally {
-    await handle.close();
-  }
 }
 
 async function readManifest(directory: string): Promise<unknown> {
@@ -100,9 +76,9 @@ async function loadAnimationAssets(
   root: string,
   manifest: PetManifest,
 ): Promise<Partial<Record<PetState, PetAnimationAsset>>> {
-  const dimensions = new Map<string, PngSize>();
+  const dimensions = new Map<string, PetImageMetadata>();
   for (const sprite of manifest.assets.sprites) {
-    dimensions.set(sprite, await readPngSize(assetPath(root, sprite), sprite));
+    dimensions.set(sprite, await readPetImageMetadata(assetPath(root, sprite), sprite));
   }
   const animations: Partial<Record<PetState, PetAnimationAsset>> = {};
   for (const [stateName, animation] of Object.entries(manifest.animations) as [
@@ -111,21 +87,34 @@ async function loadAnimationAssets(
   ][]) {
     const size = dimensions.get(animation.sprite);
     if (!size) throw new Error(`${animation.sprite} was not validated`);
-    if (size.height !== animation.frameHeight)
-      throw new Error(
-        `${animation.sprite} height ${size.height} does not match frameHeight ${animation.frameHeight}`,
-      );
     if (size.width % animation.frameWidth !== 0)
       throw new Error(
         `${animation.sprite} width ${size.width} is not divisible by frameWidth ${animation.frameWidth}`,
       );
-    const frames = size.width / animation.frameWidth;
+    const columns = size.width / animation.frameWidth;
+    const frameRow = animation.frameRow ?? 0;
+    if (animation.frameRow === undefined && size.height !== animation.frameHeight)
+      throw new Error(
+        `${animation.sprite} height ${size.height} does not match frameHeight ${animation.frameHeight}`,
+      );
+    if (animation.frameRow !== undefined && size.height % animation.frameHeight !== 0)
+      throw new Error(
+        `${animation.sprite} height ${size.height} is not divisible by frameHeight ${animation.frameHeight}`,
+      );
+    const rows = size.height / animation.frameHeight;
+    if (frameRow >= rows)
+      throw new Error(`${animation.sprite} frameRow ${frameRow} is outside ${rows} row(s)`);
+    const frames = animation.frames ?? columns;
+    if (frames > columns)
+      throw new Error(`${animation.sprite} requests ${frames} frames but has ${columns} column(s)`);
     animations[stateName] = {
       ...animation,
+      format: size.format,
       spriteUrl: pathToFileURL(assetPath(root, animation.sprite)).href,
       sheetWidth: size.width,
       sheetHeight: size.height,
       frames,
+      frameRow,
     };
   }
   return animations;
@@ -207,6 +196,7 @@ export class PetRegistry {
         previewUrl: pet.previewUrl,
         origin: pet.origin,
         active: pet.manifest.id === this.#activePetId,
+        previewAnimation: pet.animations.idle ? structuredClone(pet.animations.idle) : undefined,
       }))
       .sort(
         (left, right) =>
@@ -253,7 +243,7 @@ export class PetRegistry {
       const parsed = validatePetManifest(await readManifest(root));
       if (!parsed.ok) throw new Error(`Invalid manifest: ${formatManifestErrors(parsed.errors)}`);
       const previewPath = assetPath(root, parsed.value.preview);
-      await readPngSize(previewPath, parsed.value.preview);
+      await readPetImageMetadata(previewPath, parsed.value.preview);
       await assertOptionalSounds(root, parsed.value);
       const animations = await loadAnimationAssets(root, parsed.value);
       return {

@@ -3,9 +3,11 @@ import { isAbsolute } from "node:path";
 export interface M33InstalledSettingsEvidence {
   passed: true;
   packaged: true;
-  currentPetId: "e2e-sprout";
+  currentPetId: "codex-pokepets-synthetic-geo";
   availablePetIds: string[];
   previewsLoaded: true;
+  codexImported: true;
+  scalePreviewVerified: true;
 }
 
 export interface M33InstallerReport {
@@ -55,12 +57,14 @@ export function validateM33InstallerReport(value: unknown): M33InstallerReport {
 
   const settings = record(report.settingsReport, "M3.3 installed Settings report");
   for (const key of ["passed", "packaged", "previewsLoaded"]) requireTrue(settings, key);
-  if (settings.currentPetId !== "e2e-sprout")
-    throw new Error("M3.3 installed Settings currentPetId must be e2e-sprout");
+  for (const key of ["codexImported", "scalePreviewVerified"]) requireTrue(settings, key);
+  if (settings.currentPetId !== "codex-pokepets-synthetic-geo")
+    throw new Error("M3.3 installed Settings must retain the adapted synthetic pet");
   if (
     !Array.isArray(settings.availablePetIds) ||
     !settings.availablePetIds.includes("pixel-sprout") ||
-    !settings.availablePetIds.includes("e2e-sprout")
+    !settings.availablePetIds.includes("e2e-sprout") ||
+    !settings.availablePetIds.includes("codex-pokepets-synthetic-geo")
   )
     throw new Error("M3.3 installed Settings report is missing expected pets");
   return report as unknown as M33InstallerReport;

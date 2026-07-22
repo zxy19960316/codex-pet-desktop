@@ -8,6 +8,7 @@ export function spriteStyle(animation: PetAnimationAsset) {
     height: `${animation.frameHeight}px`,
     backgroundImage: `url("${animation.spriteUrl}")`,
     backgroundSize: `${animation.sheetWidth}px ${animation.sheetHeight}px`,
+    backgroundPositionY: `${-(animation.frameRow ?? 0) * animation.frameHeight}px`,
     "--pet-frame-distance": `${-animation.frames * animation.frameWidth}px`,
     "--pet-frames": String(animation.frames),
     "--pet-duration": `${durationMs}ms`,

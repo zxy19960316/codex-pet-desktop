@@ -2,7 +2,7 @@ import type { DesktopSnapshot } from "../shared/ipc-contract";
 import type { LocalSettings } from "../shared/settings";
 
 export const WINDOW_SIZES = {
-  compact: { width: 300, height: 360 },
+  compact: { width: 240, height: 316 },
   expanded: { width: 420, height: 700 },
 } as const;
 

@@ -20,6 +20,9 @@ export interface SettingsIpcActions {
   getSettingsSenderId(): number | undefined;
   setActivePet(id: string): Promise<void>;
   importPetPackage(): Promise<void>;
+  importCodexPokePet(): Promise<void>;
+  scanCodexPokePets(): Promise<void>;
+  importDiscoveredCodexPokePet(sourcePetId: string): Promise<void>;
   rescanPets(): Promise<void>;
   openPetsDirectory(): Promise<void>;
 }
@@ -56,7 +59,13 @@ export function parseSettingsPatch(value: unknown): SettingsPatch {
 
   if (Object.hasOwn(value, "preferences")) {
     if (!isRecord(value.preferences)) throw new Error("Invalid settings preferences");
-    const allowed = new Set(["alwaysOnTop", "clickThrough", "soundEnabled", "quotaWarningPercent"]);
+    const allowed = new Set([
+      "alwaysOnTop",
+      "clickThrough",
+      "soundEnabled",
+      "quotaWarningPercent",
+      "petDisplay",
+    ]);
     if (unknownKeys(value.preferences, allowed).length) throw new Error("Unknown settings field");
     const preferences: NonNullable<SettingsPatch["preferences"]> = {};
     if (Object.hasOwn(value.preferences, "alwaysOnTop"))
@@ -71,12 +80,31 @@ export function parseSettingsPatch(value: unknown): SettingsPatch {
         throw new Error("Invalid quotaWarningPercent");
       preferences.quotaWarningPercent = quota;
     }
+    if (Object.hasOwn(value.preferences, "petDisplay")) {
+      if (!isRecord(value.preferences.petDisplay)) throw new Error("Invalid petDisplay");
+      const displayAllowed = new Set(["scalePercent", "lockPhysicalSizeAcrossDisplays"]);
+      if (unknownKeys(value.preferences.petDisplay, displayAllowed).length)
+        throw new Error("Unknown petDisplay field");
+      const petDisplay: NonNullable<NonNullable<SettingsPatch["preferences"]>["petDisplay"]> = {};
+      if (Object.hasOwn(value.preferences.petDisplay, "scalePercent")) {
+        const scale = value.preferences.petDisplay.scalePercent;
+        if (typeof scale !== "number" || !Number.isFinite(scale))
+          throw new Error("Invalid scalePercent");
+        petDisplay.scalePercent = scale;
+      }
+      if (Object.hasOwn(value.preferences.petDisplay, "lockPhysicalSizeAcrossDisplays"))
+        petDisplay.lockPhysicalSizeAcrossDisplays = booleanField(
+          value.preferences.petDisplay.lockPhysicalSizeAcrossDisplays,
+          "lockPhysicalSizeAcrossDisplays",
+        );
+      preferences.petDisplay = petDisplay;
+    }
     patch.preferences = preferences;
   }
 
   if (Object.hasOwn(value, "device")) {
     if (!isRecord(value.device)) throw new Error("Invalid device settings");
-    const allowed = new Set(["useMockData", "autoStartAppServer"]);
+    const allowed = new Set(["useMockData", "autoStartAppServer", "launchAtLogin"]);
     if (unknownKeys(value.device, allowed).length) throw new Error("Unknown settings field");
     const device: NonNullable<SettingsPatch["device"]> = {};
     if (Object.hasOwn(value.device, "useMockData"))
@@ -86,6 +114,8 @@ export function parseSettingsPatch(value: unknown): SettingsPatch {
         value.device.autoStartAppServer,
         "autoStartAppServer",
       );
+    if (Object.hasOwn(value.device, "launchAtLogin"))
+      device.launchAtLogin = booleanField(value.device.launchAtLogin, "launchAtLogin");
     patch.device = device;
   }
 
@@ -93,7 +123,8 @@ export function parseSettingsPatch(value: unknown): SettingsPatch {
 }
 
 export function settingsPatchToLocalSettings(patch: SettingsPatch): Partial<LocalSettings> {
-  return { ...patch.preferences, ...patch.device };
+  const { petDisplay, ...preferences } = patch.preferences ?? {};
+  return { ...preferences, ...petDisplay, ...patch.device };
 }
 
 export function registerSettingsIpcHandlers(
@@ -116,6 +147,18 @@ export function registerSettingsIpcHandlers(
     assertSettingsSender(event.sender.id, actions.getSettingsSenderId());
     return actions.importPetPackage();
   });
+  registrar.handle(SETTINGS_IPC_CHANNELS.importCodexPokePet, (event) => {
+    assertSettingsSender(event.sender.id, actions.getSettingsSenderId());
+    return actions.importCodexPokePet();
+  });
+  registrar.handle(SETTINGS_IPC_CHANNELS.scanCodexPokePets, (event) => {
+    assertSettingsSender(event.sender.id, actions.getSettingsSenderId());
+    return actions.scanCodexPokePets();
+  });
+  registrar.handle(SETTINGS_IPC_CHANNELS.importDiscoveredCodexPokePet, (event, value) => {
+    assertSettingsSender(event.sender.id, actions.getSettingsSenderId());
+    return actions.importDiscoveredCodexPokePet(parsePetId(value));
+  });
   registrar.handle(SETTINGS_IPC_CHANNELS.rescanPets, (event) => {
     assertSettingsSender(event.sender.id, actions.getSettingsSenderId());
     return actions.rescanPets();
@@ -129,6 +172,9 @@ export function registerSettingsIpcHandlers(
     registrar.removeHandler(SETTINGS_IPC_CHANNELS.patch);
     registrar.removeHandler(SETTINGS_IPC_CHANNELS.setActivePet);
     registrar.removeHandler(SETTINGS_IPC_CHANNELS.importPetPackage);
+    registrar.removeHandler(SETTINGS_IPC_CHANNELS.importCodexPokePet);
+    registrar.removeHandler(SETTINGS_IPC_CHANNELS.scanCodexPokePets);
+    registrar.removeHandler(SETTINGS_IPC_CHANNELS.importDiscoveredCodexPokePet);
     registrar.removeHandler(SETTINGS_IPC_CHANNELS.rescanPets);
     registrar.removeHandler(SETTINGS_IPC_CHANNELS.openPetsDirectory);
   };

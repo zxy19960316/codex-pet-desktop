@@ -39,6 +39,7 @@ import type { PetState, PetStateChange } from "../core/pet/pet-state";
 import { type DesktopSnapshot } from "../shared/ipc-contract";
 import { DEFAULT_SETTINGS, type LocalSettings } from "../shared/settings";
 import { SnapshotAssembler } from "./snapshot-assembler";
+import type { AgentTelemetry } from "../core/codex/session-telemetry";
 
 export interface RuntimeControllerOptions {
   logger: SafeLogger;
@@ -56,7 +57,9 @@ const BOOLEAN_SETTINGS = [
   "debugVisible",
   "useMockData",
   "autoStartAppServer",
+  "launchAtLogin",
   "soundEnabled",
+  "lockPhysicalSizeAcrossDisplays",
 ] as const;
 
 function safeSettingsPatch(patch: Partial<LocalSettings>): Partial<LocalSettings> {
@@ -64,6 +67,8 @@ function safeSettingsPatch(patch: Partial<LocalSettings>): Partial<LocalSettings
   for (const key of BOOLEAN_SETTINGS) if (typeof patch[key] === "boolean") safe[key] = patch[key];
   if (typeof patch.quotaWarningPercent === "number" && Number.isFinite(patch.quotaWarningPercent))
     safe.quotaWarningPercent = patch.quotaWarningPercent;
+  if (typeof patch.scalePercent === "number" && Number.isFinite(patch.scalePercent))
+    safe.scalePercent = patch.scalePercent;
   return safe;
 }
 
@@ -113,6 +118,7 @@ export class RuntimeController {
   #protocolSource: DesktopSnapshot["protocolSource"] = "unavailable";
   #lastActiveThreadId?: string;
   #mockInputIndex = 0;
+  #agentTelemetry: AgentTelemetry | null = null;
 
   constructor(options: RuntimeControllerOptions) {
     this.#logger = options.logger;
@@ -190,7 +196,7 @@ export class RuntimeController {
       activeThreadCount: this.#petStateMachine.getActiveThreadCount(),
       approvals: this.#approvalRouter.getQueue(),
       userInputs: this.#inputRouter.snapshot(),
-      rateLimits: this.#rateLimits,
+      rateLimits: this.#agentTelemetry?.rateLimits ?? this.#rateLimits,
       dailyUsage: this.#dailyUsage,
       threadTokenUsage: [...this.#threadTokenUsage.values()].map((usage) => ({ ...usage })),
       selectedThreadId: this.#threadController.selectedThreadId,
@@ -198,7 +204,14 @@ export class RuntimeController {
       threads: this.#threadController.snapshot(),
       e2eRecords: this.#e2eStore.snapshot(),
       e2eSteps: this.#e2eStore.steps(),
-      currentThreadTokens: current,
+      currentThreadTokens: this.#agentTelemetry?.currentTokens ?? current,
+      contextWindowTokens: this.#agentTelemetry?.contextWindowTokens ?? null,
+      agent: this.#agentTelemetry
+        ? {
+            model: this.#agentTelemetry.model,
+            reasoningEffort: this.#agentTelemetry.reasoningEffort,
+          }
+        : undefined,
       settings: { ...this.#settings },
       protocolSource: this.#protocolSource,
     });
@@ -212,6 +225,14 @@ export class RuntimeController {
     this.#onSettingsChanged?.(this.#settings);
     this.#emit();
     if ("useMockData" in safe || "autoStartAppServer" in safe) await this.#connectCodex();
+  }
+
+  applyAgentTelemetry(telemetry: AgentTelemetry): void {
+    this.#agentTelemetry = {
+      ...telemetry,
+      rateLimits: telemetry.rateLimits?.map((bucket) => ({ ...bucket })) ?? null,
+    };
+    this.#emit();
   }
 
   async respondApproval(requestId: string, decision: ApprovalDecision): Promise<void> {

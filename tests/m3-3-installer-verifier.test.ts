@@ -12,9 +12,11 @@ const passingReport = {
   settingsReport: {
     passed: true,
     packaged: true,
-    currentPetId: "e2e-sprout",
-    availablePetIds: ["e2e-sprout", "pixel-sprout"],
+    currentPetId: "codex-pokepets-synthetic-geo",
+    availablePetIds: ["e2e-sprout", "pixel-sprout", "codex-pokepets-synthetic-geo"],
     previewsLoaded: true,
+    codexImported: true,
+    scalePreviewVerified: true,
   },
   screenshot: "C:/tmp/settings-installed.png",
   uninstallExitCode: 0,

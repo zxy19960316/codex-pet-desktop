@@ -12,6 +12,28 @@ function quoted(path: string): string {
   return `"${path.replaceAll('"', '\\"')}"`;
 }
 
+function isCodexPetHook(value: unknown, eventPath: string): boolean {
+  if (!isObject(value) || typeof value.command !== "string") return false;
+  const command = value.command.toLocaleLowerCase();
+  return (
+    command.trimStart().startsWith("node ") &&
+    command.includes(`--output ${quoted(eventPath)}`.toLocaleLowerCase())
+  );
+}
+
+function withoutStalePetHooks(groups: unknown[], eventPath: string): unknown[] {
+  const cleaned: unknown[] = [];
+  for (const group of groups) {
+    if (!isObject(group) || !Array.isArray(group.hooks)) {
+      cleaned.push(group);
+      continue;
+    }
+    const hooks = group.hooks.filter((hook) => !isCodexPetHook(hook, eventPath));
+    if (hooks.length) cleaned.push({ ...group, hooks });
+  }
+  return cleaned;
+}
+
 export function codexPetHookCommand(receiverPath: string, eventPath: string): string {
   return `node ${quoted(receiverPath)} --output ${quoted(eventPath)}`;
 }
@@ -26,24 +48,20 @@ export function mergeCodexPetHooks(
     : { hooks: {} };
   const command = codexPetHookCommand(receiverPath, eventPath);
   for (const event of CODEX_HOOK_EVENTS) {
-    const groups = Array.isArray(root.hooks[event]) ? [...root.hooks[event]] : [];
-    const alreadyInstalled = groups.some(
-      (group) =>
-        isObject(group) &&
-        Array.isArray(group.hooks) &&
-        group.hooks.some((hook) => isObject(hook) && hook.command === command),
+    const groups = withoutStalePetHooks(
+      Array.isArray(root.hooks[event]) ? [...root.hooks[event]] : [],
+      eventPath,
     );
-    if (!alreadyInstalled)
-      groups.push({
-        hooks: [
-          {
-            type: "command",
-            command,
-            commandWindows: command,
-            timeout: 5,
-          },
-        ],
-      });
+    groups.push({
+      hooks: [
+        {
+          type: "command",
+          command,
+          commandWindows: command,
+          timeout: 5,
+        },
+      ],
+    });
     root.hooks[event] = groups;
   }
   return root;
@@ -53,7 +71,7 @@ export async function installCodexPetHooks(options: {
   hooksPath: string;
   receiverPath: string;
   eventPath: string;
-}): Promise<void> {
+}): Promise<"installed" | "unchanged"> {
   let existing: unknown = {};
   try {
     existing = JSON.parse(await readFile(options.hooksPath, "utf8"));
@@ -61,6 +79,7 @@ export async function installCodexPetHooks(options: {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
   }
   const next = mergeCodexPetHooks(existing, options.receiverPath, options.eventPath);
+  if (JSON.stringify(next) === JSON.stringify(existing)) return "unchanged";
   await mkdir(dirname(options.hooksPath), { recursive: true });
   const temporary = `${options.hooksPath}.tmp`;
   await writeFile(temporary, `${JSON.stringify(next, null, 2)}\n`, {
@@ -68,4 +87,5 @@ export async function installCodexPetHooks(options: {
     mode: 0o600,
   });
   await rename(temporary, options.hooksPath);
+  return "installed";
 }

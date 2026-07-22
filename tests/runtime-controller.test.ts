@@ -5,6 +5,29 @@ import { RuntimeController } from "../src/main/runtime-controller";
 import { DEFAULT_SETTINGS } from "../src/shared/settings";
 
 describe("RuntimeController", () => {
+  it("allowlists pet display settings and publishes their persisted values", async () => {
+    const persistSettings = vi.fn(async (patch) => ({ ...DEFAULT_SETTINGS, ...patch }));
+    const controller = new RuntimeController({
+      logger: new SafeLogger(),
+      initialSettings: { ...DEFAULT_SETTINGS },
+      publish: vi.fn(),
+      persistSettings,
+    });
+    await controller.patchSettings({
+      scalePercent: 175,
+      lockPhysicalSizeAcrossDisplays: true,
+      petPosition: { x: 1, y: 2 },
+    });
+    expect(persistSettings).toHaveBeenCalledWith({
+      scalePercent: 175,
+      lockPhysicalSizeAcrossDisplays: true,
+    });
+    expect(controller.getSnapshot().settings).toMatchObject({
+      scalePercent: 175,
+      lockPhysicalSizeAcrossDisplays: true,
+    });
+  });
+
   it("publishes isolated thread token usage and cleans it when a thread closes", async () => {
     let appServerOptions: AppServerProcessOptions | undefined;
     const appServer = {

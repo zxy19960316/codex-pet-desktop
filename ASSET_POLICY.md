@@ -14,6 +14,14 @@ downloaded by the application. Import does not imply that the project authors re
 relicensed the package. Users remain responsible for the copyright, trademark, attribution, and
 license terms of every imported asset.
 
-Adapters for external sprite formats may convert independently lawful, user-provided local assets
-to the canonical Pet Package schema. They must not download, bundle, or redistribute third-party
-character packs. See [`docs/guides/PET_PACKAGE_SYSTEM.md`](docs/guides/PET_PACKAGE_SYSTEM.md).
+`CodexPokePetsAdapter` may convert one already-installed or explicitly selected local Codex
+PokéPets package into the canonical format. It reads only local files, copies only into Electron
+`userData/pets`, preserves source metadata, records `redistributionAllowed=false`, and labels the
+result as outside the project's MIT license. It never modifies the source directory, imports all
+discovered packages automatically, downloads assets, uploads them, or copies them into an
+installer.
+
+The project has no official relationship with Nintendo, Game Freak, Creatures Inc., The Pokémon
+Company, or other Pokémon rights holders, and it uses none of their logos. See the
+[`local import guide`](docs/guides/CODEX_POKEPETS_IMPORT.md) and
+[`Pet Package guide`](docs/guides/PET_PACKAGE_SYSTEM.md).

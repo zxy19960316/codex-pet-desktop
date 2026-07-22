@@ -52,7 +52,7 @@ a payload-free diagnostic code and never alter pet state.
 
 Pet resources and UI themes are separate. `PetRegistry` scans reviewed packages under the
 application `pets/` directory plus imported packages under Electron user data. It validates the
-manifest, safe relative paths, regular-file boundary, PNG signature and dimensions, sprite frame
+manifest, safe relative paths, regular-file boundary, PNG/WebP signatures and dimensions, sprite frame
 geometry, import count/size limits, duplicate IDs, and the mandatory `idle` animation. One broken
 package creates a renderer-safe issue record and does not abort the scan or application startup.
 
@@ -65,12 +65,14 @@ theme or Settings preference schemas. Outgoing desktop and Settings snapshots ar
 manifest fallback takes precedence over deterministic defaults such as
 `working -> thinking -> idle`; cycles are bounded and a damaged in-memory package returns no
 animation rather than throwing. The renderer uses validated URLs and geometry only and never
-resolves arbitrary filesystem paths. M3.1 supports horizontal PNG sprite sheets; frame count is
-inferred from the image width, and duration is derived from frames and FPS.
+resolves arbitrary filesystem paths. Horizontal PNG sheets stay compatible; validated WebP and
+optional explicit row/frame geometry support static multi-row atlases. Duration remains derived
+from frames and FPS.
 
-The normal window is `300 x 360`. Opening details, debug tools, an approval, or a structured input
-resizes it to `420 x 700`. Resizing preserves the lower-right edge and clamps the result to the
-nearest display work area.
+At 100%, the pet is normalized to a 192-DIP visual height. `computePetWindowBounds` links current
+frame geometry, 50–200% scale, compact/expanded chrome, display work area, and left-bottom,
+right-bottom, or free-position anchoring. `WindowManager` applies only changed bounds, clamps to
+the current display, and optionally compensates for display scale-factor changes.
 
 `ServerRequestRegistry` installs the three approval methods and
 `item/tool/requestUserInput` on each connected client. It retains only pending request resolvers
@@ -145,34 +147,34 @@ callback applies always-on-top and click-through to the pet window and rebuilds 
 existing snapshot publication updates both renderers. A quota-warning patch therefore reaches the
 pet snapshot immediately without adding Settings Window, theme, menu, or scaling responsibilities
 to `RuntimeController`. `WindowManager` now depends on the service's narrow `patch()` interface so
-pet-position writes use the same serialized v2 store instead of a second legacy writer.
+pet-position writes use the same serialized v3 store instead of a second legacy writer.
 
 ### Versioned settings and migration
 
-The canonical file is `settings.v2.json` with `schemaVersion: 2`. The document separates
+The canonical file is `settings.v3.json` with `schemaVersion: 3`. The document separates
 future-syncable `preferences` from device-local `device` fields:
 
-| Legacy flat field                                                    | v2 destination |
+| Legacy flat field                                                    | v3 destination |
 | -------------------------------------------------------------------- | -------------- |
 | `alwaysOnTop`, `clickThrough`, `soundEnabled`, `quotaWarningPercent` | `preferences`  |
 | `layoutVersion`, `petPosition`, `hudVisible`, `debugVisible`         | `device`       |
 | `useMockData`, `autoStartAppServer`                                  | `device`       |
 
-On startup, a valid v2 file is authoritative. If it is absent, `MigrationRegistry` reads the legacy
-flat `settings.json`, copies only known valid fields, fills missing or invalid values from safe
-defaults, and writes v2 once. The legacy source is preserved. The prior compact-layout behavior is
+On startup, a valid v3 file is authoritative. If absent, `MigrationRegistry` migrates a valid v2
+file and adds `preferences.petDisplay` defaults (`100`, `false`); otherwise it reads the legacy flat
+file. Known valid fields are preserved and v3 is written once. Sources are preserved. The prior compact-layout behavior is
 also preserved: a legacy file without the current `layoutVersion` resets `hudVisible` and
 `debugVisible` to `false`.
 
 `SettingsStore` writes a complete, newline-terminated temporary file in the destination directory
-with mode `0o600`, then atomically renames it over the v2 path. Writes are serialized by
+with mode `0o600`, then atomically renames it over the v3 path. Writes are serialized by
 `SettingsService`, preventing concurrent pet-position and UI patches from losing fields. A failed
 rename leaves the previous canonical file intact and triggers best-effort cleanup of only the
 temporary file.
 
-Malformed JSON or a structurally invalid v2 document starts with safe defaults and a protected
+Malformed JSON or a structurally invalid v3 document starts with safe defaults and a protected
 diagnostic state; the original file is not deleted or automatically overwritten. A numeric
-`schemaVersion` greater than `2` is treated as a protected future version and is likewise never
+`schemaVersion` greater than `3` is treated as a protected future version and is likewise never
 overwritten. Explicit changes can still apply in memory for the current process so the pet remains
 usable, but persistence stays disabled until the protected file is repaired or upgraded by a
 compatible release.
@@ -186,10 +188,27 @@ to a temporary directory under user-data `pets/`, validates the copy, and atomic
 Duplicates and invalid sources never replace installed packages, and failed temporary copies are
 removed.
 
-`ExternalPetAdapter<TSource>` is a format-neutral future conversion seam. It grants no download or
+`ExternalPetAdapter<TSource>` remains a format-neutral conversion seam. It grants no download or
 validation bypass and does not bind the application to Clawd, Pokémon-like packs, or another
 project. M3.1 does not implement cloud synchronization, mobile clients, an online marketplace,
 automatic updates or release automation.
+
+### M3.4 local adapter, presentation, and native-menu boundary
+
+`CodexPokePetsProvider` discovers only local immediate children and returns sanitized source
+labels. `CodexPokePetsAdapter` validates the fixed WebP atlas and copies one explicitly chosen
+source into managed user data through a temporary directory. Its manifest preserves third-party
+source and non-redistribution metadata and never claims the asset is MIT. No download or upload is
+introduced.
+
+The renderer keeps sprite and `PetStateOverlay` separate; all 12 states have original CSS/text
+markers with `pointer-events: none` and reduced-motion handling. Ctrl+wheel emits only a bounded
+integer step over `adjustPetScale`; the main process applies five-percent changes through the
+existing settings service.
+
+`buildPetMenuViewModel` is shared by the desktop context menu and tray. It owns checked pet/scale,
+current status, request/active-turn presence, and interaction flags. The native menu exposes only
+implemented actions. Tray always retains click-through recovery, default size, Settings, and Exit.
 
 ### M3.2 packaged resource and verification boundary
 

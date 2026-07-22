@@ -308,6 +308,26 @@ dd {
   accent-color: #cf6941;
 }
 
+.pet-size-setting {
+  margin-top: 14px;
+}
+
+.pet-size-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 12px 0 8px;
+}
+
+.pet-size-shortcuts button {
+  padding: 6px 9px;
+}
+
+.pet-size-shortcuts button.active {
+  color: #f7f0d6;
+  background: #4f8a55;
+}
+
 .quota-summary,
 .diagnostic-list {
   display: grid;
@@ -377,6 +397,20 @@ dd {
   image-rendering: pixelated;
 }
 
+.pet-atlas-preview {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.pet-atlas-preview > span {
+  flex: none;
+  transform-origin: center;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+}
+
 .current-pet-copy h3 {
   margin: 0 0 13px;
   font-size: 26px;
@@ -439,12 +473,70 @@ dd {
   background: #e6edd9;
 }
 
-.pet-card img {
+.pet-card > img,
+.pet-card > .pet-atlas-preview {
   grid-row: 1 / span 2;
   width: 54px;
   height: 54px;
   object-fit: contain;
   image-rendering: pixelated;
+}
+
+.codex-pokepets-discovery {
+  display: grid;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid #c9c4b7;
+}
+
+.codex-pokepets-discovery .pet-list-heading > div,
+.codex-source-card > div {
+  display: grid;
+  gap: 4px;
+}
+
+.third-party-notice {
+  margin: 0;
+  color: #59636c;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.third-party-badge {
+  color: #8e3425;
+  font:
+    800 9px/1.2 ui-monospace,
+    monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.codex-source-list {
+  display: grid;
+  gap: 8px;
+}
+
+.codex-source-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 11px;
+  border: 1px solid #c7c0b2;
+  border-radius: 6px;
+  background: #f0ecdf;
+  font-size: 11px;
+}
+
+.codex-source-card small {
+  color: #687078;
+}
+
+.codex-source-card > p {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #8e3425;
+  font-size: 11px;
 }
 
 .pet-card > div {

@@ -12,14 +12,16 @@ const SECTIONS = [
   ["about", "About"],
 ] as const;
 
+const PET_SCALE_SHORTCUTS = [50, 75, 100, 125, 150, 175, 200] as const;
+
 function formatCount(value: number | null | undefined): string {
   return value === null || value === undefined ? "Unavailable" : value.toLocaleString();
 }
 
 function loadStateLabel(snapshot: SettingsWindowSnapshot): string {
   const state = snapshot.loadState;
-  if (state.kind === "loaded") return "Loaded v2 settings";
-  if (state.kind === "migrated") return "Migrated legacy v1 settings";
+  if (state.kind === "loaded") return "Loaded v3 settings";
+  if (state.kind === "migrated") return `Migrated v${state.sourceVersion} settings to v3`;
   if (state.kind === "future-version") return `Protected future schema v${state.schemaVersion}`;
   if (state.kind === "corrupt") return "Protected damaged settings file; using safe defaults";
   return "Using defaults; settings file not created yet";
@@ -73,9 +75,14 @@ export function SettingsApp() {
     const unsubscribe = window.codexPetSettings.subscribe((value) => {
       if (active) setSnapshot(value);
     });
+    const unsubscribeNavigation = window.codexPetSettings.subscribeNavigation((section) => {
+      window.location.hash = section;
+      document.getElementById(section)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
     return () => {
       active = false;
       unsubscribe();
+      unsubscribeNavigation();
     };
   }, []);
 
@@ -141,7 +148,7 @@ export function SettingsApp() {
       <div className="settings-content">
         <div className="settings-heading">
           <div>
-            <p className="eyebrow">M3.1</p>
+            <p className="eyebrow">M3.4</p>
             <h1>Settings Center</h1>
           </div>
           <span className={`status-pill status-pill--${snapshot.status.connectionStatus}`}>
@@ -194,6 +201,17 @@ export function SettingsApp() {
             onChange={(alwaysOnTop) => void patch({ preferences: { alwaysOnTop } })}
           />
           <Toggle
+            checked={device.launchAtLogin}
+            disabled={pending || !snapshot.app.isPackaged}
+            label="Launch at Windows sign-in"
+            detail={
+              snapshot.app.isPackaged
+                ? "Start the pet in the background after you sign in."
+                : "Available in the installed or packaged app."
+            }
+            onChange={(launchAtLogin) => void patch({ device: { launchAtLogin } })}
+          />
+          <Toggle
             checked={preferences.clickThrough}
             disabled={pending}
             label="Click-through"
@@ -207,6 +225,58 @@ export function SettingsApp() {
             detail="Reserve sound feedback for supported original themes."
             onChange={(soundEnabled) => void patch({ preferences: { soundEnabled } })}
           />
+          <label className="range-setting pet-size-setting">
+            <span>
+              <strong>Pet size</strong>
+              <small>Adjust the pet and its window together from 50% to 200%.</small>
+            </span>
+            <output data-testid="pet-scale-value">{preferences.petDisplay.scalePercent}%</output>
+            <input
+              type="range"
+              min="50"
+              max="200"
+              step="5"
+              value={preferences.petDisplay.scalePercent}
+              disabled={pending}
+              onChange={(event) =>
+                void patch({
+                  preferences: {
+                    petDisplay: { scalePercent: Number(event.currentTarget.value) },
+                  },
+                })
+              }
+            />
+          </label>
+          <div className="pet-size-shortcuts" aria-label="Pet size shortcuts">
+            {PET_SCALE_SHORTCUTS.map((scalePercent) => (
+              <button
+                type="button"
+                key={scalePercent}
+                data-testid={`pet-scale-${scalePercent}`}
+                className={preferences.petDisplay.scalePercent === scalePercent ? "active" : ""}
+                disabled={pending}
+                onClick={() => void patch({ preferences: { petDisplay: { scalePercent } } })}
+              >
+                {scalePercent}%
+              </button>
+            ))}
+            <button
+              type="button"
+              disabled={pending || preferences.petDisplay.scalePercent === 100}
+              onClick={() => void patch({ preferences: { petDisplay: { scalePercent: 100 } } })}
+            >
+              Restore default size
+            </button>
+          </div>
+          <Toggle
+            checked={preferences.petDisplay.lockPhysicalSizeAcrossDisplays}
+            disabled={pending}
+            label="Keep physical size across displays"
+            detail="Compensate for different display scale factors when the pet moves between monitors."
+            onChange={(lockPhysicalSizeAcrossDisplays) =>
+              void patch({ preferences: { petDisplay: { lockPhysicalSizeAcrossDisplays } } })
+            }
+          />
         </section>
 
         <section id="pets" className="settings-card">
@@ -219,12 +289,24 @@ export function SettingsApp() {
           </div>
           <PetSelector
             pets={snapshot.pets}
+            codexPokePets={snapshot.codexPokePets}
             pending={petPending}
             onSelect={(id) =>
               void runPetAction(`select:${id}`, () => window.codexPetSettings.setActivePet(id))
             }
             onImport={() =>
               void runPetAction("import", () => window.codexPetSettings.importPetPackage())
+            }
+            onImportCodexPokePet={() =>
+              void runPetAction("import-codex", () => window.codexPetSettings.importCodexPokePet())
+            }
+            onScanCodexPokePets={() =>
+              void runPetAction("scan-codex", () => window.codexPetSettings.scanCodexPokePets())
+            }
+            onImportDiscovered={(sourcePetId) =>
+              void runPetAction(`import-codex:${sourcePetId}`, () =>
+                window.codexPetSettings.importDiscoveredCodexPokePet(sourcePetId),
+              )
             }
             onOpenDirectory={() =>
               void runPetAction("open", () => window.codexPetSettings.openPetsDirectory())
@@ -245,7 +327,7 @@ export function SettingsApp() {
             checked={device.autoStartAppServer}
             disabled={pending}
             label="Start App Server automatically"
-            detail="Enable the optional local control path at app startup."
+            detail="Automatically connect quota and local Codex controls when the pet starts."
             onChange={(autoStartAppServer) => void patch({ device: { autoStartAppServer } })}
           />
           <Toggle
@@ -335,6 +417,16 @@ export function SettingsApp() {
             {snapshot.app.name} <strong>v{snapshot.app.version}</strong>
           </p>
           <p>MIT-licensed desktop companion. No cloud settings sync or telemetry is included.</p>
+          <ul className="asset-policy-summary">
+            <li>This project does not bundle Pokémon character assets.</li>
+            <li>
+              Locally imported third-party assets are not covered by this project's MIT license.
+            </li>
+            <li>
+              You are responsible for confirming that you have the right to use imported assets.
+            </li>
+            <li>This application has no official affiliation with Pokémon rights holders.</li>
+          </ul>
         </section>
       </div>
     </main>
