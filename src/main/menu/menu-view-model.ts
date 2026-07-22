@@ -41,6 +41,37 @@ export interface PetMenuViewModel {
   hasApproval: boolean;
   hasUserInput: boolean;
   activeTurn?: { threadId: string; turnId: string };
+  sessions: Array<{
+    title: string;
+    state: string;
+    activeWorkMs: number;
+    requiresAttention: boolean;
+  }>;
+  todayActiveMs: number;
+}
+
+function shortState(state: string): string {
+  return (
+    (
+      {
+        working: "Work",
+        thinking: "Think",
+        approval: "Approval",
+        waiting_input: "Input",
+        error: "Error",
+        idle: "Idle",
+      } as Record<string, string>
+    )[state] ?? "Idle"
+  );
+}
+
+function duration(milliseconds: number): string {
+  const minutes = Math.floor(Math.max(0, milliseconds) / 60_000);
+  return minutes < 1
+    ? "<1m"
+    : minutes < 60
+      ? `${minutes}m`
+      : `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
 }
 
 const STATE_LABELS: Record<PetState, string> = {
@@ -74,6 +105,20 @@ export function buildPetMenuViewModel(snapshot: DesktopSnapshot): PetMenuViewMod
     hasApproval: snapshot.approvals.length > 0,
     hasUserInput: snapshot.userInputs.length > 0,
     activeTurn: activeThread,
+    sessions: [...(snapshot.sessionOverview?.sessions ?? [])]
+      .sort(
+        (left, right) =>
+          Number(right.requiresAttention) - Number(left.requiresAttention) ||
+          right.lastActivityAt - left.lastActivityAt,
+      )
+      .slice(0, 5)
+      .map((session) => ({
+        title: session.title.slice(0, 28),
+        state: session.state,
+        activeWorkMs: session.activeWorkMs,
+        requiresAttention: session.requiresAttention,
+      })),
+    todayActiveMs: snapshot.sessionOverview?.todayActiveMs ?? 0,
   };
 }
 
@@ -111,6 +156,17 @@ export function buildPetMenuTemplate(
 
   const template: PetMenuItem[] = [
     { label: viewModel.statusLabel, enabled: false },
+    ...(viewModel.sessions.length
+      ? [
+          { label: `Today: ${duration(viewModel.todayActiveMs)}`, enabled: false },
+          { type: "separator" as const },
+          { label: "Sessions", enabled: false },
+          ...viewModel.sessions.map((session) => ({
+            label: `${session.requiresAttention ? "!" : "•"} ${session.title} · ${shortState(session.state)} · ${duration(session.activeWorkMs)}`,
+            enabled: false,
+          })),
+        ]
+      : []),
     { type: "separator" },
     ...(host === "tray"
       ? [{ label: "Show / hide pet", action: { type: "show-or-hide" } as const }]

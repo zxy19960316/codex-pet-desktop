@@ -68,6 +68,22 @@ export interface SessionRegistrySnapshot {
   generatedAt: number;
 }
 
+export interface SessionAttentionSnapshot {
+  primarySessionId?: string;
+  primaryState: Exclude<AgentSessionState, "closed" | "interrupted">;
+  concurrencyLevel: number;
+  presentationHint: "idle" | "single-session" | "multi-session" | "needs-attention";
+  secondarySessions: Array<{ sessionId: string; state: AgentSessionState }>;
+  counts: {
+    active: number;
+    thinking: number;
+    working: number;
+    approvals: number;
+    waitingInputs: number;
+    errors: number;
+  };
+}
+
 export const ACTIVE_SESSION_STATES: ReadonlySet<AgentSessionState> = new Set([
   "thinking",
   "working",

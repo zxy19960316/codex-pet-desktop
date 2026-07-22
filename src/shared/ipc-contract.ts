@@ -4,6 +4,7 @@ import type { DailyUsage, RateLimitBucket } from "../core/codex/usage-provider";
 import type { ThreadTokenUsage } from "../core/codex/usage-provider";
 import type { UserInputAnswers, UserInputRequest } from "../core/input/input-types";
 import type { PetState, PetStateChange } from "../core/pet/pet-state";
+import type { AgentSessionState, SessionAttentionSnapshot } from "../core/sessions/session-types";
 import type { PetRegistrySnapshot } from "../core/pet/pet-manifest";
 import type { LocalSettings } from "./settings";
 import type {
@@ -70,12 +71,38 @@ export type DesktopThreadSnapshot = Omit<CodexThreadSnapshot, "cwd"> & {
   cwdLabel: CwdLabel;
 };
 
+export interface DesktopSessionSummary {
+  sessionId: string;
+  title: string;
+  projectLabel?: string;
+  state: AgentSessionState;
+  startedAt: number;
+  lastActivityAt: number;
+  sessionElapsedMs: number;
+  turnElapsedMs?: number;
+  activeWorkMs: number;
+  requiresAttention: boolean;
+  canSelect: boolean;
+  canInterrupt: boolean;
+  canSteer: boolean;
+  canReviewApproval: boolean;
+  canReply: boolean;
+  activeTurnId?: string;
+}
+
+export interface DesktopSessionOverview {
+  sessions: DesktopSessionSummary[];
+  attention: SessionAttentionSnapshot;
+  todayActiveMs: number;
+}
+
 export interface DesktopSnapshot {
   connectionStatus: AppServerStatus;
   connectionDetail?: string;
   petState: PetState;
   threadStates: PetStateChange[];
   activeThreadCount: number;
+  sessionOverview?: DesktopSessionOverview;
   currentCwdLabel: CwdLabel;
   approvals: ApprovalRequest[];
   userInputs: UserInputRequest[];

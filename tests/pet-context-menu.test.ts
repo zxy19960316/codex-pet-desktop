@@ -18,6 +18,8 @@ function viewModel(overrides: Partial<PetMenuViewModel> = {}): PetMenuViewModel 
     clickThrough: false,
     hasApproval: false,
     hasUserInput: false,
+    sessions: [],
+    todayActiveMs: 0,
     ...overrides,
   };
 }

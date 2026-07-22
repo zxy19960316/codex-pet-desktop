@@ -7,6 +7,7 @@ import {
   type SessionRegistrySnapshot,
 } from "./session-types";
 import { resolveSessionTitle, sanitizeSessionTitle } from "./session-title";
+import { accumulateActiveWork } from "./session-clock";
 
 interface StoredSession extends AgentSessionRecord {
   lastStateAt: number;
@@ -109,8 +110,15 @@ export class SessionRegistry {
       record.sources.push(observation.source);
       record.sources.sort();
     }
-    if (observation.timestamp >= record.lastActivityAt)
+    if (observation.timestamp >= record.lastActivityAt) {
+      record.activeWorkMs = accumulateActiveWork(
+        record.activeWorkMs,
+        record.state,
+        record.lastActivityAt,
+        observation.timestamp,
+      );
       record.lastActivityAt = observation.timestamp;
+    }
     const projectLabel = sanitizeSessionTitle(observation.projectLabel ?? "");
     if (projectLabel && observation.timestamp >= record.lastStateAt)
       record.projectLabel = projectLabel;

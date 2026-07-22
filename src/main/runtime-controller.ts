@@ -40,6 +40,14 @@ import { type DesktopSnapshot } from "../shared/ipc-contract";
 import { DEFAULT_SETTINGS, type LocalSettings } from "../shared/settings";
 import { SnapshotAssembler } from "./snapshot-assembler";
 import type { AgentTelemetry } from "../core/codex/session-telemetry";
+import { arbitrateSessionAttention } from "../core/sessions/attention-arbiter";
+import {
+  observationFromHook,
+  observationFromPetState,
+} from "../core/sessions/codex-session-observation";
+import { sessionElapsedMs, turnElapsedMs } from "../core/sessions/session-clock";
+import { SessionRegistry } from "../core/sessions/session-registry";
+import type { AgentSessionState } from "../core/sessions/session-types";
 
 export interface RuntimeControllerOptions {
   logger: SafeLogger;
@@ -91,6 +99,17 @@ function modeForVerification(kind: E2EVerificationKind): StartTurnRequest["mode"
   return "interrupt-test";
 }
 
+function petStateFromSession(state: AgentSessionState): PetState {
+  if (state === "working") return "working";
+  if (state === "thinking") return "thinking";
+  if (state === "approval") return "approval";
+  if (state === "waiting_input") return "waiting_input";
+  if (state === "success") return "success";
+  if (state === "error") return "error";
+  if (state === "offline") return "offline";
+  return "idle";
+}
+
 export class RuntimeController {
   readonly #logger: SafeLogger;
   readonly #publishSnapshot: RuntimeControllerOptions["publish"];
@@ -108,6 +127,7 @@ export class RuntimeController {
   readonly #turnController = new TurnController(this.#threadController);
   readonly #e2eStore = new E2EVerificationStore();
   readonly #snapshotAssembler = new SnapshotAssembler();
+  readonly #sessionRegistry = new SessionRegistry();
   readonly #testTurns = new Map<string, VerificationTurn>();
   #settings: LocalSettings;
   #usageProvider?: UsageProvider;
@@ -183,6 +203,32 @@ export class RuntimeController {
   }
 
   getSnapshot(): DesktopSnapshot {
+    const now = Date.now();
+    this.#sessionRegistry.prune(now);
+    const sessionSnapshot = this.#sessionRegistry.getSnapshot(now);
+    const attention = arbitrateSessionAttention(sessionSnapshot);
+    const sessionOverview = {
+      sessions: sessionSnapshot.sessions.map((session) => ({
+        sessionId: session.sessionId,
+        title: session.safeTitle,
+        projectLabel: session.projectLabel,
+        state: session.state,
+        startedAt: session.startedAt,
+        lastActivityAt: session.lastActivityAt,
+        sessionElapsedMs: sessionElapsedMs(session.startedAt, now),
+        turnElapsedMs: turnElapsedMs(session.startedAt, session.currentTurnStartedAt, now),
+        activeWorkMs: session.activeWorkMs,
+        requiresAttention: session.requiresAttention,
+        canSelect: session.canSelect,
+        canInterrupt: session.canInterrupt,
+        canSteer: session.canSteer,
+        canReviewApproval: session.canReviewApproval,
+        canReply: session.canReply,
+        activeTurnId: session.activeTurnId,
+      })),
+      attention,
+      todayActiveMs: 0,
+    };
     const selected = this.#threadController.selectedThreadId ?? this.#lastActiveThreadId;
     const current = selected ? (this.#threadTokenUsage.get(selected)?.totalTokens ?? null) : null;
     return this.#snapshotAssembler.build({
@@ -191,9 +237,12 @@ export class RuntimeController {
       currentCwd: this.#threadController.currentCwd,
       connectionStatus: this.#connectionStatus,
       connectionDetail: this.#connectionDetail,
-      petState: this.#petStateMachine.getGlobalState(),
+      petState: sessionSnapshot.sessions.length
+        ? petStateFromSession(attention.primaryState)
+        : this.#petStateMachine.getGlobalState(),
       threadStates: this.#petStateMachine.snapshot(),
-      activeThreadCount: this.#petStateMachine.getActiveThreadCount(),
+      activeThreadCount: attention.concurrencyLevel,
+      sessionOverview,
       approvals: this.#approvalRouter.getQueue(),
       userInputs: this.#inputRouter.snapshot(),
       rateLimits: this.#agentTelemetry?.rateLimits ?? this.#rateLimits,
@@ -292,6 +341,7 @@ export class RuntimeController {
   applyHookEvent(event: CodexHookEvent): void {
     if (this.#settings.useMockData) return;
     const change = hookEventToPetState(event);
+    this.#sessionRegistry.observe(observationFromHook(event));
     this.#actualStates.set(change.threadId, change);
     this.#lastActiveThreadId = change.threadId;
     this.#connectionStatus = "connected";
@@ -522,6 +572,7 @@ export class RuntimeController {
     this.#e2eStore.failRunning("transport-unavailable", ["transport-unavailable"]);
     this.#testTurns.clear();
     this.#actualStates.clear();
+    this.#sessionRegistry.reset();
     for (const state of this.#petStateMachine.snapshot())
       this.#petStateMachine.remove(state.threadId);
     this.#petStateMachine.update({
@@ -542,6 +593,7 @@ export class RuntimeController {
 
   #applyEvent(event: DomainEvent): void {
     if (event.type === "pet-state") {
+      this.#sessionRegistry.observe(observationFromPetState(event));
       this.#threadController.touch(event.threadId);
       this.#actualStates.set(event.threadId, event);
       this.#lastActiveThreadId = event.threadId;
@@ -636,6 +688,15 @@ export class RuntimeController {
       source: approval ? "approval-router" : input ? "input-router" : (actual?.source ?? "runtime"),
       timestamp: Date.now(),
       transientReturnState: actual?.transientReturnState,
+    });
+    this.#sessionRegistry.observe({
+      providerId: "codex",
+      sessionId: threadId,
+      source: "codex-app-server",
+      timestamp: Date.now(),
+      turnId: actual?.turnId,
+      event: approval ? "approval_required" : input ? "input_required" : "state_changed",
+      state: approval ? "approval" : input ? "waiting_input" : undefined,
     });
     if (approval || input) this.#threadController.markWaiting(threadId);
     else if (actual?.state === "error") this.#threadController.markError(threadId);
