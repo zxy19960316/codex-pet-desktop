@@ -56,6 +56,8 @@ export interface RuntimeControllerOptions {
   persistSettings?: (patch: Partial<LocalSettings>) => Promise<LocalSettings>;
   onSettingsChanged?: (settings: LocalSettings) => void;
   createAppServer?: (options: AppServerProcessOptions) => AppServerProcess;
+  onActiveInterval?: (milliseconds: number, timestamp: number) => void;
+  todayActiveMs?: () => number;
 }
 
 const BOOLEAN_SETTINGS = [
@@ -115,6 +117,8 @@ export class RuntimeController {
   readonly #publishSnapshot: RuntimeControllerOptions["publish"];
   readonly #persistSettings?: RuntimeControllerOptions["persistSettings"];
   readonly #onSettingsChanged?: RuntimeControllerOptions["onSettingsChanged"];
+  readonly #onActiveInterval?: RuntimeControllerOptions["onActiveInterval"];
+  readonly #todayActiveMs: NonNullable<RuntimeControllerOptions["todayActiveMs"]>;
   readonly #normalizer = new EventNormalizer();
   readonly #actualStates = new Map<string, PetStateChange>();
   readonly #threadTokenUsage = new Map<string, ThreadTokenUsage>();
@@ -139,6 +143,8 @@ export class RuntimeController {
   #lastActiveThreadId?: string;
   #mockInputIndex = 0;
   #agentTelemetry: AgentTelemetry | null = null;
+  #lastActivitySampleAt?: number;
+  #wasSessionActive = false;
 
   constructor(options: RuntimeControllerOptions) {
     this.#logger = options.logger;
@@ -146,6 +152,8 @@ export class RuntimeController {
     this.#publishSnapshot = options.publish;
     this.#persistSettings = options.persistSettings;
     this.#onSettingsChanged = options.onSettingsChanged;
+    this.#onActiveInterval = options.onActiveInterval;
+    this.#todayActiveMs = options.todayActiveMs ?? (() => 0);
     this.#petStateMachine = new PetStateMachine({ onChange: () => this.#emit() });
     this.#approvalRouter = new ApprovalRouter({
       onChange: () => this.#reconcileRequestStates(),
@@ -227,7 +235,7 @@ export class RuntimeController {
         activeTurnId: session.activeTurnId,
       })),
       attention,
-      todayActiveMs: 0,
+      todayActiveMs: this.#todayActiveMs(),
     };
     const selected = this.#threadController.selectedThreadId ?? this.#lastActiveThreadId;
     const current = selected ? (this.#threadTokenUsage.get(selected)?.totalTokens ?? null) : null;
@@ -801,6 +809,14 @@ export class RuntimeController {
   }
 
   #emit(): void {
+    const now = Date.now();
+    if (this.#lastActivitySampleAt !== undefined && this.#wasSessionActive) {
+      const elapsed = Math.max(0, Math.min(90_000, now - this.#lastActivitySampleAt));
+      if (elapsed) this.#onActiveInterval?.(elapsed, now);
+    }
+    this.#lastActivitySampleAt = now;
+    this.#wasSessionActive =
+      arbitrateSessionAttention(this.#sessionRegistry.getSnapshot(now)).concurrencyLevel > 0;
     this.#publishSnapshot(this.getSnapshot());
   }
 }

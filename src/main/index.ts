@@ -29,6 +29,7 @@ import { PetContextMenu } from "./menu/pet-context-menu";
 import { LaunchAtLoginController } from "./launch-at-login";
 import { resolveHookReceiverPath } from "./hook-resource-path";
 import { CodexSessionMonitor } from "./codex-session-monitor";
+import { SessionActivityStore } from "./session-activity-store";
 import { resolveTrayIconPath } from "./app-icon-path";
 
 const logger = new SafeLogger();
@@ -46,6 +47,8 @@ let codexPokePetsAdapter: CodexPokePetsAdapter;
 let codexPokePetsProvider: CodexPokePetsProvider;
 let launchAtLoginController: LaunchAtLoginController;
 let sessionMonitor: CodexSessionMonitor;
+let sessionActivityStore: SessionActivityStore;
+let sessionActivityFlush: ReturnType<typeof setTimeout> | undefined;
 const petContextMenu = new PetContextMenu();
 
 function hookReceiverPath(): string {
@@ -216,6 +219,9 @@ function executePetMenuAction(action: PetMenuAction): void {
 
 async function startApplication(): Promise<void> {
   const userData = app.getPath("userData");
+  const today = () => new Date().toLocaleDateString("en-CA");
+  sessionActivityStore = new SessionActivityStore(join(userData, "session-activity.json"), today());
+  await sessionActivityStore.load(today());
   petRegistry = new PetRegistry({
     builtinDirectory: resolveBuiltinPetsDirectory({
       appPath: app.getAppPath(),
@@ -296,6 +302,17 @@ async function startApplication(): Promise<void> {
   runtime = new RuntimeController({
     logger,
     initialSettings: settings,
+    todayActiveMs: () => sessionActivityStore.snapshot.activeMs,
+    onActiveInterval: (milliseconds, timestamp) => {
+      sessionActivityStore.add(milliseconds, new Date(timestamp).toLocaleDateString("en-CA"));
+      if (sessionActivityFlush) return;
+      sessionActivityFlush = setTimeout(() => {
+        sessionActivityFlush = undefined;
+        void sessionActivityStore
+          .flush()
+          .catch(() => logger.write("debug", "session-activity-flush-failed"));
+      }, 10_000);
+    },
     publish: (snapshot) => {
       const publicSnapshot = withPetSnapshot(snapshot);
       windowManager.setMode(windowModeForSnapshot(publicSnapshot));
@@ -522,13 +539,19 @@ else {
     disposeSettingsIpc?.();
     hookBridge?.stop();
     sessionMonitor?.stop();
+    if (sessionActivityFlush) clearTimeout(sessionActivityFlush);
     trayManager?.destroy();
     void runtime
       ?.stop()
       .catch(() => undefined)
       .finally(() => {
-        cleanupComplete = true;
-        app.quit();
+        void sessionActivityStore
+          ?.flush()
+          .catch(() => undefined)
+          .finally(() => {
+            cleanupComplete = true;
+            app.quit();
+          });
       });
   });
 }
