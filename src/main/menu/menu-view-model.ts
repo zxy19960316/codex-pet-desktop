@@ -14,6 +14,7 @@ export type PetMenuAction =
   | { type: "toggle-always-on-top" }
   | { type: "toggle-click-through" }
   | { type: "new-thread" }
+  | { type: "select-thread"; threadId: string }
   | { type: "interrupt-turn"; threadId: string; turnId: string }
   | { type: "open-approval" }
   | { type: "open-reply" }
@@ -42,10 +43,14 @@ export interface PetMenuViewModel {
   hasUserInput: boolean;
   activeTurn?: { threadId: string; turnId: string };
   sessions: Array<{
+    sessionId: string;
     title: string;
     state: string;
     activeWorkMs: number;
     requiresAttention: boolean;
+    canSelect: boolean;
+    canInterrupt: boolean;
+    activeTurnId?: string;
   }>;
   todayActiveMs: number;
 }
@@ -113,10 +118,14 @@ export function buildPetMenuViewModel(snapshot: DesktopSnapshot): PetMenuViewMod
       )
       .slice(0, 5)
       .map((session) => ({
+        sessionId: session.sessionId,
         title: session.title.slice(0, 28),
         state: session.state,
         activeWorkMs: session.activeWorkMs,
         requiresAttention: session.requiresAttention,
+        canSelect: session.canSelect,
+        canInterrupt: session.canInterrupt,
+        activeTurnId: session.activeTurnId,
       })),
     todayActiveMs: snapshot.sessionOverview?.todayActiveMs ?? 0,
   };
@@ -163,7 +172,23 @@ export function buildPetMenuTemplate(
           { label: "Sessions", enabled: false },
           ...viewModel.sessions.map((session) => ({
             label: `${session.requiresAttention ? "!" : "•"} ${session.title} · ${shortState(session.state)} · ${duration(session.activeWorkMs)}`,
-            enabled: false,
+            enabled: session.canSelect,
+            action: session.canSelect
+              ? { type: "select-thread" as const, threadId: session.sessionId }
+              : undefined,
+            submenu:
+              session.canInterrupt && session.activeTurnId
+                ? [
+                    {
+                      label: "Interrupt",
+                      action: {
+                        type: "interrupt-turn" as const,
+                        threadId: session.sessionId,
+                        turnId: session.activeTurnId,
+                      },
+                    },
+                  ]
+                : undefined,
           })),
         ]
       : []),

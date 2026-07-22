@@ -189,6 +189,9 @@ function executePetMenuAction(action: PetMenuAction): void {
       case "new-thread":
         await runtime.createThread({ cwd: { kind: "project-root" } });
         break;
+      case "select-thread":
+        runtime.selectThread(action.threadId);
+        break;
       case "interrupt-turn":
         await runtime.interruptTurn(action);
         break;
