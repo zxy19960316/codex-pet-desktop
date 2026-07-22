@@ -27,6 +27,7 @@ function applyPatch(current: LocalSettings, patch: Partial<LocalSettings>): Loca
     "debugVisible",
     "useMockData",
     "autoStartAppServer",
+    "launchAtLogin",
     "soundEnabled",
     "lockPhysicalSizeAcrossDisplays",
   ] as const;

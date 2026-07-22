@@ -22,7 +22,7 @@ export interface ComputePetWindowBoundsInput {
 
 const EDGE_TOLERANCE = 48;
 const CHROME = {
-  compact: { minimumWidth: 300, minimumHeight: 360, extraWidth: 108, extraHeight: 168 },
+  compact: { minimumWidth: 168, minimumHeight: 220, extraWidth: 48, extraHeight: 124 },
   expanded: { minimumWidth: 420, minimumHeight: 700, extraWidth: 228, extraHeight: 508 },
 } as const;
 

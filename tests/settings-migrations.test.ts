@@ -40,6 +40,7 @@ describe("settings migrations", () => {
         debugVisible: true,
         useMockData: true,
         autoStartAppServer: true,
+        launchAtLogin: false,
       },
     });
     expect(JSON.stringify(migrated)).not.toContain("ignoredLegacyField");
@@ -87,6 +88,25 @@ describe("settings migrations", () => {
         petDisplay: { scalePercent: 100, lockPhysicalSizeAcrossDisplays: false },
       },
       device: v2.device,
+    });
+  });
+
+  it("upgrades an older v3 device document to automatic Codex detection", () => {
+    const legacyV3 = {
+      ...DEFAULT_SETTINGS_DOCUMENT,
+      device: {
+        layoutVersion: 1,
+        hudVisible: false,
+        debugVisible: false,
+        useMockData: false,
+        autoStartAppServer: false,
+      },
+    };
+
+    expect(new MigrationRegistry().migrate(legacyV3).device).toEqual({
+      ...legacyV3.device,
+      autoStartAppServer: true,
+      launchAtLogin: false,
     });
   });
 

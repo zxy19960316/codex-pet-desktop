@@ -2,7 +2,12 @@ import { app, ipcMain } from "electron";
 import type { ApprovalDecision } from "../core/codex/approval-router";
 import type { UserInputAnswers } from "../core/input/input-types";
 import { isPetState } from "../core/pet/pet-state";
-import { IPC_CHANNELS, type DesktopSnapshot } from "../shared/ipc-contract";
+import {
+  IPC_CHANNELS,
+  type DesktopSnapshot,
+  type WindowShapeRectangle,
+  type WindowShapeRequest,
+} from "../shared/ipc-contract";
 import type { LocalSettings } from "../shared/settings";
 import type {
   CreateThreadRequest,
@@ -37,6 +42,7 @@ export interface IpcActions {
   runUserInputTest(): Promise<string>;
   startVerification(): void;
   runVerification(kind: E2EVerificationKind): Promise<string>;
+  updateWindowShape(request: WindowShapeRequest): void;
 }
 
 const DECISIONS = new Set<ApprovalDecision>(["accept", "acceptForSession", "decline", "cancel"]);
@@ -142,8 +148,12 @@ export function registerIpcHandlers(actions: IpcActions): () => void {
     return actions.runVerification(parseVerificationKind(kind));
   });
   ipcMain.handle(IPC_CHANNELS.quit, () => app.quit());
+  const shapeListener = (_event: Electron.IpcMainEvent, value: unknown) =>
+    actions.updateWindowShape(parseWindowShapeRequest(value));
+  ipcMain.on(IPC_CHANNELS.updateWindowShape, shapeListener);
   return () => {
     for (const channel of Object.values(IPC_CHANNELS)) ipcMain.removeHandler(channel);
+    ipcMain.removeListener(IPC_CHANNELS.updateWindowShape, shapeListener);
   };
 }
 
@@ -151,4 +161,42 @@ export function parsePetScaleDelta(value: unknown): number {
   if (typeof value !== "number" || !Number.isInteger(value) || value === 0 || Math.abs(value) > 10)
     throw new Error("Invalid pet scale delta");
   return value;
+}
+
+function parseShapeRectangle(value: unknown): WindowShapeRectangle {
+  if (!isRecord(value)) throw new Error("Invalid window shape rectangle");
+  const numbers = [value.x, value.y, value.width, value.height];
+  if (!numbers.every((entry) => typeof entry === "number" && Number.isFinite(entry)))
+    throw new Error("Invalid window shape rectangle");
+  const rectangle = value as unknown as WindowShapeRectangle;
+  if (
+    rectangle.x < -4096 ||
+    rectangle.y < -4096 ||
+    rectangle.x > 16_384 ||
+    rectangle.y > 16_384 ||
+    rectangle.width <= 0 ||
+    rectangle.height <= 0 ||
+    rectangle.width > 8192 ||
+    rectangle.height > 8192
+  )
+    throw new Error("Invalid window shape rectangle");
+  return { ...rectangle };
+}
+
+export function parseWindowShapeRequest(value: unknown): WindowShapeRequest {
+  if (!isRecord(value)) throw new Error("Invalid window shape request");
+  if (
+    typeof value.frameIndex !== "number" ||
+    !Number.isInteger(value.frameIndex) ||
+    value.frameIndex < 0 ||
+    value.frameIndex > 255
+  )
+    throw new Error("Invalid animation frame");
+  if (!Array.isArray(value.uiRects) || value.uiRects.length > 32)
+    throw new Error("Invalid window shape rectangles");
+  return {
+    frameIndex: value.frameIndex,
+    spriteRect: parseShapeRectangle(value.spriteRect),
+    uiRects: value.uiRects.map(parseShapeRectangle),
+  };
 }

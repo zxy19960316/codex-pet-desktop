@@ -53,7 +53,7 @@ describe("settings IPC validation", () => {
         quotaWarningPercent: 25,
         petDisplay: { scalePercent: 125, lockPhysicalSizeAcrossDisplays: true },
       },
-      device: { useMockData: false, autoStartAppServer: true },
+      device: { useMockData: false, autoStartAppServer: true, launchAtLogin: true },
     });
 
     expect(settingsPatchToLocalSettings(patch)).toEqual({
@@ -65,6 +65,7 @@ describe("settings IPC validation", () => {
       lockPhysicalSizeAcrossDisplays: true,
       useMockData: false,
       autoStartAppServer: true,
+      launchAtLogin: true,
     });
   });
 

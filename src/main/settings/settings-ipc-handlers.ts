@@ -104,7 +104,7 @@ export function parseSettingsPatch(value: unknown): SettingsPatch {
 
   if (Object.hasOwn(value, "device")) {
     if (!isRecord(value.device)) throw new Error("Invalid device settings");
-    const allowed = new Set(["useMockData", "autoStartAppServer"]);
+    const allowed = new Set(["useMockData", "autoStartAppServer", "launchAtLogin"]);
     if (unknownKeys(value.device, allowed).length) throw new Error("Unknown settings field");
     const device: NonNullable<SettingsPatch["device"]> = {};
     if (Object.hasOwn(value.device, "useMockData"))
@@ -114,6 +114,8 @@ export function parseSettingsPatch(value: unknown): SettingsPatch {
         value.device.autoStartAppServer,
         "autoStartAppServer",
       );
+    if (Object.hasOwn(value.device, "launchAtLogin"))
+      device.launchAtLogin = booleanField(value.device.launchAtLogin, "launchAtLogin");
     patch.device = device;
   }
 

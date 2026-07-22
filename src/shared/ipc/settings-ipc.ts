@@ -34,7 +34,7 @@ export interface SettingsPatch {
       "alwaysOnTop" | "clickThrough" | "soundEnabled" | "quotaWarningPercent"
     >
   > & { petDisplay?: Partial<PetDisplaySettings> };
-  device?: Partial<Pick<DeviceSettings, "useMockData" | "autoStartAppServer">>;
+  device?: Partial<Pick<DeviceSettings, "useMockData" | "autoStartAppServer" | "launchAtLogin">>;
 }
 
 export interface SettingsWindowSnapshot {
@@ -54,6 +54,7 @@ export interface SettingsWindowSnapshot {
   app: {
     name: string;
     version: string;
+    isPackaged: boolean;
   };
   pets: PetRegistrySnapshot;
   codexPokePets: CodexPokePetsDiscoverySnapshot;

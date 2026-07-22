@@ -201,6 +201,17 @@ export function SettingsApp() {
             onChange={(alwaysOnTop) => void patch({ preferences: { alwaysOnTop } })}
           />
           <Toggle
+            checked={device.launchAtLogin}
+            disabled={pending || !snapshot.app.isPackaged}
+            label="Launch at Windows sign-in"
+            detail={
+              snapshot.app.isPackaged
+                ? "Start the pet in the background after you sign in."
+                : "Available in the installed or packaged app."
+            }
+            onChange={(launchAtLogin) => void patch({ device: { launchAtLogin } })}
+          />
+          <Toggle
             checked={preferences.clickThrough}
             disabled={pending}
             label="Click-through"
@@ -316,7 +327,7 @@ export function SettingsApp() {
             checked={device.autoStartAppServer}
             disabled={pending}
             label="Start App Server automatically"
-            detail="Enable the optional local control path at app startup."
+            detail="Automatically connect quota and local Codex controls when the pet starts."
             onChange={(autoStartAppServer) => void patch({ device: { autoStartAppServer } })}
           />
           <Toggle

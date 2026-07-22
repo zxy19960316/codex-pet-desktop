@@ -28,7 +28,7 @@ function snapshot(overrides: Partial<DesktopSnapshot> = {}): DesktopSnapshot {
 describe("desktop window layout", () => {
   it("starts as a compact pet when details are closed", () => {
     expect(initialWindowMode({ ...DEFAULT_SETTINGS, hudVisible: false })).toBe("compact");
-    expect(WINDOW_SIZES.compact).toEqual({ width: 300, height: 360 });
+    expect(WINDOW_SIZES.compact).toEqual({ width: 240, height: 316 });
   });
 
   it("expands for details and requests that need a response", () => {

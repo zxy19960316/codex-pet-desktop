@@ -50,12 +50,12 @@ export function App() {
 
   return (
     <main className={`shell ${expanded ? "shell--expanded" : ""}`} data-state={snapshot.petState}>
-      <CompactHud snapshot={snapshot} />
       <Pet
         state={snapshot.petState}
         pet={snapshot.pet?.active}
         scalePercent={snapshot.settings.scalePercent}
         physicalScaleFactor={snapshot.petPhysicalScaleFactor}
+        resourceHud={<CompactHud snapshot={snapshot} />}
       />
       {snapshot.approvals[0] && (
         <ApprovalCard

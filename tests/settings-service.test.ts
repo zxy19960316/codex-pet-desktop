@@ -230,4 +230,17 @@ describe("settings service", () => {
       },
     });
   });
+
+  it("persists the packaged-app launch-at-login preference", async () => {
+    const paths = await temporarySettings();
+    const service = new SettingsService(new SettingsStore(paths));
+    await service.initialize();
+
+    await service.patch({ launchAtLogin: true });
+
+    expect(service.getSettings().launchAtLogin).toBe(true);
+    expect(JSON.parse(await readFile(paths.v3Path, "utf8"))).toMatchObject({
+      device: { launchAtLogin: true },
+    });
+  });
 });

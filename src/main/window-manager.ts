@@ -1,8 +1,10 @@
-import { BrowserWindow, screen } from "electron";
+import { BrowserWindow, screen, type Rectangle } from "electron";
 import { join } from "node:path";
 import type { PetPackage } from "../core/pet/pet-manifest";
 import type { LocalSettings } from "../shared/settings";
+import type { WindowShapeRequest } from "../shared/ipc-contract";
 import { computePetWindowBounds } from "./pet-window-layout";
+import { buildRenderedWindowShape } from "./pet-window-shape";
 import { initialWindowMode, type WindowMode } from "./window-layout";
 
 export interface PositionSettingsStore {
@@ -15,6 +17,24 @@ interface PetFrame {
 }
 
 const DEFAULT_FRAME: PetFrame = { width: 64, height: 64 };
+const CAPTURE_MARGIN = 8;
+
+function captureRectangle(
+  rectangle: WindowShapeRequest["spriteRect"],
+  contentBounds: Pick<Rectangle, "width" | "height">,
+): Rectangle {
+  const left = Math.max(0, Math.floor(rectangle.x - CAPTURE_MARGIN));
+  const top = Math.max(0, Math.floor(rectangle.y - CAPTURE_MARGIN));
+  const right = Math.min(
+    contentBounds.width,
+    Math.ceil(rectangle.x + rectangle.width + CAPTURE_MARGIN),
+  );
+  const bottom = Math.min(
+    contentBounds.height,
+    Math.ceil(rectangle.y + rectangle.height + CAPTURE_MARGIN),
+  );
+  return { x: left, y: top, width: Math.max(1, right - left), height: Math.max(1, bottom - top) };
+}
 
 function activeFrame(pet: PetPackage | undefined): PetFrame {
   const animation = pet?.animations.idle ?? Object.values(pet?.animations ?? {})[0];
@@ -31,6 +51,8 @@ export class WindowManager {
   #frame: PetFrame = { ...DEFAULT_FRAME };
   #physicalScaleFactor = 1;
   #applyingBounds = false;
+  #shapeGeneration = 0;
+  #hasSpriteShape = false;
 
   constructor(settingsStore: PositionSettingsStore) {
     this.#settingsStore = settingsStore;
@@ -173,6 +195,45 @@ export class WindowManager {
 
   setClickThrough(value: boolean): void {
     this.#window?.setIgnoreMouseEvents(value, { forward: true });
+  }
+
+  updateWindowShape(request: WindowShapeRequest): void {
+    const window = this.#window;
+    if (!window || window.isDestroyed() || !["win32", "linux"].includes(process.platform)) return;
+    const generation = ++this.#shapeGeneration;
+    const fallbackShape = [request.spriteRect, ...request.uiRects].map((rectangle) => ({
+      x: Math.floor(rectangle.x),
+      y: Math.floor(rectangle.y),
+      width: Math.max(1, Math.ceil(rectangle.x + rectangle.width) - Math.floor(rectangle.x)),
+      height: Math.max(1, Math.ceil(rectangle.y + rectangle.height) - Math.floor(rectangle.y)),
+    }));
+    if (!this.#hasSpriteShape) {
+      window.setShape(fallbackShape);
+      this.#hasSpriteShape = true;
+    }
+    const captureRect = captureRectangle(request.spriteRect, window.getContentBounds());
+    void window.webContents
+      .capturePage(captureRect)
+      .then((image) => {
+        if (generation !== this.#shapeGeneration || window.isDestroyed()) return;
+        const size = image.getSize();
+        if (image.isEmpty() || size.width <= 0 || size.height <= 0) {
+          window.setShape(fallbackShape);
+          return;
+        }
+        window.setShape(
+          buildRenderedWindowShape({
+            bitmap: { width: size.width, height: size.height, pixels: image.toBitmap() },
+            captureRect,
+            spriteFallbackRect: request.spriteRect,
+            uiRects: request.uiRects,
+          }),
+        );
+      })
+      .catch(() => {
+        if (generation === this.#shapeGeneration && !window.isDestroyed())
+          window.setShape(fallbackShape);
+      });
   }
 
   focus(): void {

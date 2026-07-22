@@ -34,6 +34,7 @@ const api: DesktopApi = {
   startVerification: () => ipcRenderer.invoke(IPC_CHANNELS.startVerification),
   runVerification: (kind) => ipcRenderer.invoke(IPC_CHANNELS.runVerification, kind),
   quit: () => ipcRenderer.invoke(IPC_CHANNELS.quit),
+  updateWindowShape: (request) => ipcRenderer.send(IPC_CHANNELS.updateWindowShape, request),
 };
 
 contextBridge.exposeInMainWorld("codexPet", Object.freeze(api));

@@ -26,6 +26,10 @@ import { resolveBuiltinPetsDirectory } from "./pet-resource-path";
 import { parseM32E2EConfiguration, runM32SettingsVerification } from "./m3-2-settings-verifier";
 import { buildPetMenuViewModel, type PetMenuAction } from "./menu/menu-view-model";
 import { PetContextMenu } from "./menu/pet-context-menu";
+import { LaunchAtLoginController } from "./launch-at-login";
+import { resolveHookReceiverPath } from "./hook-resource-path";
+import { CodexSessionMonitor } from "./codex-session-monitor";
+import { resolveTrayIconPath } from "./app-icon-path";
 
 const logger = new SafeLogger();
 const m32E2E = parseM32E2EConfiguration(process.argv, process.env);
@@ -40,7 +44,17 @@ let hookEventsPath: string;
 let petRegistry: PetRegistry;
 let codexPokePetsAdapter: CodexPokePetsAdapter;
 let codexPokePetsProvider: CodexPokePetsProvider;
+let launchAtLoginController: LaunchAtLoginController;
+let sessionMonitor: CodexSessionMonitor;
 const petContextMenu = new PetContextMenu();
+
+function hookReceiverPath(): string {
+  return resolveHookReceiverPath({
+    isPackaged: app.isPackaged,
+    resourcesPath: process.resourcesPath,
+    mainDirectory: __dirname,
+  });
+}
 
 async function confirmThirdPartyImport(sourcePath?: string): Promise<boolean> {
   if (
@@ -69,7 +83,7 @@ async function connectCodexHook(): Promise<void> {
   try {
     await installCodexPetHooks({
       hooksPath: join(app.getPath("home"), ".codex", "hooks.json"),
-      receiverPath: join(__dirname, "../hook/codex-pet-hook.cjs"),
+      receiverPath: hookReceiverPath(),
       eventPath: hookEventsPath,
     });
     await dialog.showMessageBox({
@@ -109,6 +123,7 @@ function buildSettingsSnapshot(snapshot: DesktopSnapshot): SettingsWindowSnapsho
     app: {
       name: app.getName(),
       version: app.getVersion(),
+      isPackaged: app.isPackaged,
     },
     pets: snapshot.pet ?? petRegistry.getSnapshot(),
     codexPokePets: codexPokePetsProvider.getSnapshot(),
@@ -226,6 +241,12 @@ async function startApplication(): Promise<void> {
     }),
   );
   let settings = await settingsService.initialize();
+  launchAtLoginController = new LaunchAtLoginController({
+    isPackaged: app.isPackaged,
+    executablePath: process.execPath,
+    setLoginItemSettings: (loginSettings) => app.setLoginItemSettings(loginSettings),
+  });
+  launchAtLoginController.sync(settings.launchAtLogin);
   const smokeOutput = process.env.CODEX_PET_SMOKE_OUTPUT;
   const smokeReal = process.env.CODEX_PET_SMOKE_REAL === "1";
   const smokeInputOnly = process.env.CODEX_PET_SMOKE_INPUT === "1";
@@ -265,7 +286,13 @@ async function startApplication(): Promise<void> {
     htmlPath: join(__dirname, "../renderer/settings.html"),
     createWindow: (options) => new BrowserWindow(options),
   });
-  trayManager = new TrayManager();
+  trayManager = new TrayManager(
+    resolveTrayIconPath({
+      isPackaged: app.isPackaged,
+      resourcesPath: process.resourcesPath,
+      projectDirectory: process.cwd(),
+    }),
+  );
   runtime = new RuntimeController({
     logger,
     initialSettings: settings,
@@ -293,6 +320,7 @@ async function startApplication(): Promise<void> {
       windowManager.updatePetDisplay(next);
       windowManager.setAlwaysOnTop(next.alwaysOnTop);
       windowManager.setClickThrough(next.clickThrough);
+      launchAtLoginController.sync(next.launchAtLogin);
     },
     createAppServer: guidedE2E
       ? (options) => new AppServerProcess({ ...options, safeVerificationDefaults: true })
@@ -300,6 +328,23 @@ async function startApplication(): Promise<void> {
   });
   hookEventsPath = join(app.getPath("userData"), "hook-events.jsonl");
   hookBridge = new HookEventBridge(hookEventsPath, (event) => runtime.applyHookEvent(event));
+  sessionMonitor = new CodexSessionMonitor({
+    sessionsRoot: join(app.getPath("home"), ".codex", "sessions"),
+    onTelemetry: (telemetry) => runtime.applyAgentTelemetry(telemetry),
+    onDiagnostic: (code) => logger.write("debug", code),
+  });
+  try {
+    const hookInstall = await installCodexPetHooks({
+      hooksPath: join(app.getPath("home"), ".codex", "hooks.json"),
+      receiverPath: hookReceiverPath(),
+      eventPath: hookEventsPath,
+    });
+    if (hookInstall === "installed") logger.write("info", "codex-hook-auto-installed");
+  } catch (error) {
+    logger.write("warn", "codex-hook-auto-install-failed", {
+      errorName: error instanceof Error ? error.name : "unknown",
+    });
+  }
   windowManager.setPetPackage(petRegistry.getActivePet());
   const petWindow = await windowManager.create(settings);
   petContextMenu.attach(
@@ -308,6 +353,7 @@ async function startApplication(): Promise<void> {
     executePetMenuAction,
   );
   hookBridge.start();
+  sessionMonitor.start();
   rebuildTray(withPetSnapshot(runtime.getSnapshot()));
   disposeIpc = registerIpcHandlers({
     getSnapshot: () => withPetSnapshot(runtime.getSnapshot()),
@@ -340,6 +386,7 @@ async function startApplication(): Promise<void> {
     runUserInputTest: () => runtime.runUserInputTest(),
     startVerification: () => runtime.startVerification(),
     runVerification: (kind) => runtime.runVerification(kind),
+    updateWindowShape: (request) => windowManager.updateWindowShape(request),
   });
   disposeSettingsIpc = registerSettingsIpcHandlers(
     {
@@ -450,7 +497,7 @@ else {
   app.setName("Codex Pet Desktop");
   app.setAboutPanelOptions({
     applicationName: "Codex Pet Desktop",
-    applicationVersion: "0.1.0",
+    applicationVersion: app.getVersion(),
     copyright: "MIT licensed independent project",
   });
   app.on("second-instance", () => windowManager?.focus());
@@ -474,6 +521,7 @@ else {
     disposeIpc?.();
     disposeSettingsIpc?.();
     hookBridge?.stop();
+    sessionMonitor?.stop();
     trayManager?.destroy();
     void runtime
       ?.stop()

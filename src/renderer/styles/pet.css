@@ -2,19 +2,163 @@
   position: relative;
   width: 240px;
   min-height: 230px;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   flex: none;
+}
+
+.pet-resources {
+  position: relative;
+  z-index: 6;
+  flex: none;
+  width: min(var(--pet-hud-width, 180px), calc(100% - 8px));
+  min-height: 48px;
+  padding: 5px 7px 6px;
+  border: 3px solid #314232;
+  border-radius: 10px 8px 12px 9px;
+  color: #273229;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(232, 232, 195, 0.98) 0,
+    rgba(232, 232, 195, 0.98) 2px,
+    rgba(217, 221, 181, 0.98) 3px,
+    rgba(217, 221, 181, 0.98) 4px
+  );
+  box-shadow:
+    3px 4px 0 rgba(31, 48, 35, 0.45),
+    inset 0 0 0 1px rgba(250, 250, 220, 0.75);
+  -webkit-app-region: drag;
+}
+
+.pet-resources__header {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 5px;
+  font:
+    900 9px/1 ui-monospace,
+    "Cascadia Mono",
+    monospace;
+  text-shadow: 1px 1px 0 rgba(255, 255, 225, 0.85);
+}
+
+.pet-resources__header strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pet-resources__header span {
+  flex: none;
+  font-size: 8px;
+}
+
+.pet-resources__bars {
+  display: grid;
+  gap: 3px;
+  margin-top: 4px;
+}
+
+.pet-resource {
+  display: grid;
+  grid-template-columns: 39px 1fr;
+  align-items: center;
+  gap: 3px;
+  font:
+    900 8px/1 ui-monospace,
+    "Cascadia Mono",
+    monospace;
+  letter-spacing: -0.02em;
+}
+
+.pet-resource__label {
+  overflow: hidden;
+  color: #ae761a;
+  text-overflow: clip;
+  text-shadow: 1px 1px 0 #f7e6a8;
+}
+
+.pet-resource__track {
+  height: 9px;
+  overflow: hidden;
+  border: 2px solid #344338;
+  border-radius: 5px;
+  background: #fffde4;
+  box-shadow: inset 0 1px 0 rgba(20, 41, 26, 0.28);
+}
+
+.pet-resource__track > span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  transition: width 240ms ease;
+}
+
+.pet-resource--five-hour .pet-resource__track > span {
+  background: linear-gradient(180deg, #92ebc1 0 45%, #48b98a 46% 100%);
+}
+
+.pet-resource--weekly .pet-resource__track > span {
+  background: linear-gradient(180deg, #9bdbfa 0 45%, #579bc7 46% 100%);
+}
+
+.pet-resources__footer {
+  margin-top: 3px;
+  padding-right: 13px;
+  text-align: right;
+  font:
+    900 9px/1 ui-monospace,
+    "Cascadia Mono",
+    monospace;
+  letter-spacing: -0.05em;
+}
+
+.pet-resources__toggle {
+  position: absolute;
+  right: 5px;
+  bottom: 3px;
+  width: 13px;
+  height: 13px;
+  border: 0;
+  padding: 0;
+  color: #354437;
+  background: transparent;
+  cursor: pointer;
+  font:
+    900 12px/10px ui-monospace,
+    monospace;
+  -webkit-app-region: no-drag;
+}
+
+.pet-resources__toggle > span {
+  display: block;
+  transform: translateY(-1px);
+}
+
+.pet-resources__toggle--open > span {
+  transform: translateY(1px) rotate(180deg);
 }
 
 .shell--expanded .pet-stage {
   min-height: 164px;
 }
 
-.pet-sprite {
+.pet-sprite-slot {
   position: relative;
   z-index: 1;
   flex: none;
+  margin-top: 2px;
+}
+
+.pet-sprite {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 1;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
   transform-origin: center;
@@ -43,12 +187,15 @@
 
 .pet-shadow {
   position: absolute;
-  bottom: 27px;
+  left: 50%;
+  bottom: 7px;
+  z-index: 0;
   width: 118px;
   height: 17px;
   border-radius: 50%;
   background: rgba(15, 24, 40, 0.2);
   filter: blur(2px);
+  transform: translateX(-50%);
 }
 
 .visually-hidden {

@@ -43,7 +43,26 @@ export const IPC_CHANNELS = {
   startVerification: "desktop:start-verification",
   runVerification: "desktop:run-verification",
   quit: "desktop:quit",
+  updateWindowShape: "desktop:update-window-shape",
 } as const;
+
+export interface WindowShapeRectangle {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface WindowShapeRequest {
+  frameIndex: number;
+  spriteRect: WindowShapeRectangle;
+  uiRects: WindowShapeRectangle[];
+}
+
+export interface DesktopAgentSnapshot {
+  model: string | null;
+  reasoningEffort: string | null;
+}
 
 export type CwdLabel = "Project root" | "Disposable tmp/e2e" | "Project-relative folder";
 
@@ -69,6 +88,8 @@ export interface DesktopSnapshot {
   e2eRecords: E2EVerificationRecord[];
   e2eSteps: E2EVerificationStep[];
   currentThreadTokens: number | null;
+  contextWindowTokens?: number | null;
+  agent?: DesktopAgentSnapshot;
   settings: LocalSettings;
   protocolSource: "codex-hooks" | "codex-app-server" | "mock" | "unavailable";
   pet?: PetRegistrySnapshot;
@@ -101,4 +122,5 @@ export interface DesktopApi {
   startVerification(): Promise<void>;
   runVerification(kind: E2EVerificationKind): Promise<string>;
   quit(): Promise<void>;
+  updateWindowShape(request: WindowShapeRequest): void;
 }

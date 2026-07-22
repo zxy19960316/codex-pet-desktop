@@ -76,6 +76,7 @@ function parsePreferencesV2(value: unknown): SettingsPreferencesV2 {
 
 function parseDevice(value: unknown): DeviceSettings {
   if (!isRecord(value)) throw new InvalidSettingsDocumentError("Invalid device settings");
+  const isLegacyDevice = !Object.hasOwn(value, "launchAtLogin");
   if (
     !hasExactKeys(value, [
       "layoutVersion",
@@ -84,13 +85,15 @@ function parseDevice(value: unknown): DeviceSettings {
       "debugVisible",
       "useMockData",
       "autoStartAppServer",
+      ...(Object.hasOwn(value, "launchAtLogin") ? ["launchAtLogin"] : []),
     ]) ||
     !Number.isInteger(value.layoutVersion) ||
     (Object.hasOwn(value, "petPosition") && !validPosition(value.petPosition)) ||
     typeof value.hudVisible !== "boolean" ||
     typeof value.debugVisible !== "boolean" ||
     typeof value.useMockData !== "boolean" ||
-    typeof value.autoStartAppServer !== "boolean"
+    typeof value.autoStartAppServer !== "boolean" ||
+    (!isLegacyDevice && typeof value.launchAtLogin !== "boolean")
   )
     throw new InvalidSettingsDocumentError("Invalid device settings");
   return {
@@ -99,7 +102,8 @@ function parseDevice(value: unknown): DeviceSettings {
     hudVisible: value.hudVisible,
     debugVisible: value.debugVisible,
     useMockData: value.useMockData,
-    autoStartAppServer: value.autoStartAppServer,
+    autoStartAppServer: isLegacyDevice ? true : value.autoStartAppServer,
+    launchAtLogin: isLegacyDevice ? false : (value.launchAtLogin as boolean),
   };
 }
 
@@ -181,6 +185,7 @@ function migrateLegacy(input: Record<string, unknown>): SettingsDocumentV3 {
       : DEFAULT_SETTINGS.debugVisible,
     useMockData: legacyBoolean(input, "useMockData"),
     autoStartAppServer: legacyBoolean(input, "autoStartAppServer"),
+    launchAtLogin: legacyBoolean(input, "launchAtLogin"),
     soundEnabled: legacyBoolean(input, "soundEnabled"),
     quotaWarningPercent: validQuota(input.quotaWarningPercent)
       ? input.quotaWarningPercent

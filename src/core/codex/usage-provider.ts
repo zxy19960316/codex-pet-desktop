@@ -5,7 +5,7 @@ export interface RateLimitBucket {
   remainingPercent: number;
   windowDurationMins: number;
   resetsAt: number;
-  source: "codex-app-server" | "mock";
+  source: "codex-app-server" | "codex-session" | "mock";
 }
 
 export interface DailyUsage {

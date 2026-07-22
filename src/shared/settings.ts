@@ -17,6 +17,7 @@ export interface LocalSettings {
   debugVisible: boolean;
   useMockData: boolean;
   autoStartAppServer: boolean;
+  launchAtLogin: boolean;
   soundEnabled: boolean;
   quotaWarningPercent: number;
   scalePercent: number;
@@ -41,6 +42,7 @@ export interface DeviceSettings {
   debugVisible: boolean;
   useMockData: boolean;
   autoStartAppServer: boolean;
+  launchAtLogin: boolean;
 }
 
 export interface SettingsDocumentV2 {
@@ -78,7 +80,8 @@ export const DEFAULT_SETTINGS: Readonly<LocalSettings> = {
   hudVisible: false,
   debugVisible: false,
   useMockData: false,
-  autoStartAppServer: false,
+  autoStartAppServer: true,
+  launchAtLogin: false,
   soundEnabled: false,
   quotaWarningPercent: 20,
   scalePercent: 100,
@@ -103,6 +106,7 @@ export const DEFAULT_SETTINGS_DOCUMENT: Readonly<SettingsDocumentV3> = {
     debugVisible: DEFAULT_SETTINGS.debugVisible,
     useMockData: DEFAULT_SETTINGS.useMockData,
     autoStartAppServer: DEFAULT_SETTINGS.autoStartAppServer,
+    launchAtLogin: DEFAULT_SETTINGS.launchAtLogin,
   },
 };
 
@@ -155,6 +159,7 @@ export function settingsDocumentFromLocalSettings(settings: LocalSettings): Sett
       debugVisible: settings.debugVisible,
       useMockData: settings.useMockData,
       autoStartAppServer: settings.autoStartAppServer,
+      launchAtLogin: settings.launchAtLogin,
     },
   };
 }
