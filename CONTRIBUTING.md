@@ -13,10 +13,11 @@ public Windows desktop application.
 
 ## Development
 
-Requirements: Windows 10/11, Node.js 24 LTS, npm 11, and Git.
+Requirements: Windows 10/11, Node.js 24 LTS, npm 11, Python 3.13, and Git.
 
 ```powershell
 npm ci
+python -m pip install --requirement requirements-image-tools.txt
 npm run dev
 ```
 

@@ -121,12 +121,13 @@ a bug report. Security reports should follow [SECURITY.md](SECURITY.md).
 
 ## Build from source
 
-Requirements: Windows 10/11, Node.js 24 LTS, npm 11, and Git.
+Requirements: Windows 10/11, Node.js 24 LTS, npm 11, Python 3.13, and Git.
 
 ```powershell
 git clone https://github.com/zxy19960316/codex-pet-desktop.git
 cd codex-pet-desktop
 npm ci
+python -m pip install --requirement requirements-image-tools.txt
 npm run dev
 ```
 

@@ -114,12 +114,13 @@ PokéPets 可按[本地导入指南](docs/guides/CODEX_POKEPETS_IMPORT.md)逐个
 
 ## 从源码运行与构建
 
-要求：Windows 10/11、Node.js 24 LTS、npm 11 和 Git。
+要求：Windows 10/11、Node.js 24 LTS、npm 11、Python 3.13 和 Git。
 
 ```powershell
 git clone https://github.com/zxy19960316/codex-pet-desktop.git
 cd codex-pet-desktop
 npm ci
+python -m pip install --requirement requirements-image-tools.txt
 npm run dev
 ```
 
