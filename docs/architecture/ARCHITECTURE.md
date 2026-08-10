@@ -198,8 +198,8 @@ automatic updates or release automation.
 `CodexPokePetsProvider` discovers only local immediate children and returns sanitized source
 labels. `CodexPokePetsAdapter` validates the fixed WebP atlas and copies one explicitly chosen
 source into managed user data through a temporary directory. Its manifest preserves third-party
-source and non-redistribution metadata and never claims the asset is MIT. No download or upload is
-introduced.
+source and non-redistribution metadata and never claims the asset is covered by the project
+license. No download or upload is introduced.
 
 The renderer keeps sprite and `PetStateOverlay` separate; all 12 states have original CSS/text
 markers with `pointer-events: none` and reduced-motion handling. Ctrl+wheel emits only a bounded

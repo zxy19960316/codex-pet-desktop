@@ -175,7 +175,7 @@ export function PetSelector({
           </button>
         </div>
         <p className="third-party-notice">
-          第三方角色素材仍受其原有权利约束，不受本应用 MIT 许可证覆盖。扫描仅在本地进行，
+          第三方角色素材仍受其原有权利约束，不受本应用许可证覆盖。扫描仅在本地进行，
           不会自动导入任何素材。
         </p>
         {!codexPokePets.rootAvailable ? (

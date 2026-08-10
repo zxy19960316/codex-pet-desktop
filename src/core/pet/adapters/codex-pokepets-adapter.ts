@@ -175,7 +175,7 @@ export class CodexPokePetsAdapter implements ExternalPetAdapter<CodexPokePetSour
       name: verified.displayName,
       version: "local-import",
       author: "Third-party local asset",
-      license: "Third-party fan asset; see upstream source notice; not covered by project MIT",
+      license: "Third-party fan asset; see upstream source notice; not covered by project license",
       preview: CANONICAL_SPRITE,
       assets: { sprites: [CANONICAL_SPRITE] },
       animations: canonicalAnimations(),

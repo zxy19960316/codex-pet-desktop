@@ -173,12 +173,13 @@ source ID, name, compatibility, and imported state—never the home path.
 
 The adapter does not grant network access or redistribution rights. Generated manifests record
 the source project, source ID, `redistributionAllowed=false`, `locallyImported=true`, and license
-text explicitly outside this project's MIT license. See
+text explicitly outside this project's license. See
 [`CODEX_POKEPETS_IMPORT.md`](CODEX_POKEPETS_IMPORT.md).
 
 ## Original example assets
 
-Pixel Sprout is procedural original artwork under MIT. Its committed PNGs can be reproduced with:
+Pixel Sprout is procedural original artwork licensed under PolyForm Noncommercial 1.0.0 in v1.1.0.
+Its committed PNGs can be reproduced with:
 
 ```bash
 node scripts/generate-original-pet-assets.mjs

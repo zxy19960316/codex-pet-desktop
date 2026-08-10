@@ -1,12 +1,14 @@
 # Asset policy
 
-The source code in this repository is licensed under MIT. Third-party pet assets do not
-automatically receive that license, and users are responsible for confirming that they have the
-right to use any locally imported asset.
+The v1.1.0 source code and bundled original assets are licensed under
+`PolyForm-Noncommercial-1.0.0`. Third-party pet assets do not automatically receive that license,
+and users are responsible for confirming that they have the right to use any locally imported
+asset. The previously published v1.0.0 release retains its original MIT terms.
 
 This project does not bundle Pokémon artwork, official sounds, logos, fonts, or game resources.
 Pokémon and its character assets are not distributed with this project. The only bundled package,
-Pixel Sprout, is original procedural artwork covered by the repository's MIT license.
+Pixel Sprout, is original procedural artwork covered by the repository's PolyForm Noncommercial
+License 1.0.0 in v1.1.0.
 
 The M3.1 importer validates a folder selected by the user and copies it into Electron's local
 user-data `pets/` directory. That directory is outside the repository and is never committed or
@@ -17,9 +19,14 @@ license terms of every imported asset.
 `CodexPokePetsAdapter` may convert one already-installed or explicitly selected local Codex
 PokéPets package into the canonical format. It reads only local files, copies only into Electron
 `userData/pets`, preserves source metadata, records `redistributionAllowed=false`, and labels the
-result as outside the project's MIT license. It never modifies the source directory, imports all
+result as outside the project's license. It never modifies the source directory, imports all
 discovered packages automatically, downloads assets, uploads them, or copies them into an
 installer.
+
+Local editing, format conversion, animation changes, or adding a noncommercial notice does not
+create redistribution rights in third-party character art. Such assets must remain local unless
+the rights holder has explicitly granted redistribution permission covering the intended public
+release. The repository and public installer therefore include only reviewed original assets.
 
 The project has no official relationship with Nintendo, Game Freak, Creatures Inc., The Pokémon
 Company, or other Pokémon rights holders, and it uses none of their logos. See the

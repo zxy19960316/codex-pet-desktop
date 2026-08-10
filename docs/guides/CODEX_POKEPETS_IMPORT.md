@@ -46,11 +46,13 @@ the managed user-data directory.
 ## Rights and repository safety
 
 - Pixel Sprout is the only character package distributed by this project and its installers.
-- Locally imported third-party character assets are not covered by this project's MIT license.
+- Locally imported third-party character assets are not covered by this project's license.
 - You are responsible for confirming that you have the right to use the selected files.
 - Generated manifests retain a third-party source notice and `redistributionAllowed=false`.
 - This project is not affiliated with or endorsed by Pokémon rights holders.
 - Never add `.codex/pets`, Electron user data, imported WebP files, or generated local manifests to
   Git. The application does not make them distributable merely by adapting them.
+- Local modifications and a noncommercial label do not grant permission to redistribute the
+  underlying character artwork.
 
 No Nintendo, Pokémon, Game Freak, Creatures Inc., or other company logo is used by the import UI.

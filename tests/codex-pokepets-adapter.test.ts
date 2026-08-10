@@ -95,14 +95,14 @@ describe("CodexPokePetsAdapter", () => {
     expect(await adapter.canAdapt(directory)).toBe(false);
   });
 
-  it("imports atomically, records non-MIT rights metadata, selects, and rejects duplicates", async () => {
+  it("imports atomically, records separate third-party rights metadata, selects, and rejects duplicates", async () => {
     const directory = await sourcePet("geo-bot", { displayName: "Geo Bot" });
     const adapter = new CodexPokePetsAdapter(registry);
     const source = await adapter.inspect(directory);
 
     const imported = await adapter.import(source);
     expect(imported.manifest.id).toBe("codex-pokepets-geo-bot");
-    expect(imported.manifest.license).not.toBe("MIT");
+    expect(imported.manifest.license).not.toBe("PolyForm-Noncommercial-1.0.0");
     expect(imported.manifest.metadata).toMatchObject({
       sourceProject: "dnnyngyen/codex-pokepets",
       sourcePetId: "geo-bot",
@@ -119,7 +119,9 @@ describe("CodexPokePetsAdapter", () => {
     expect(registry.getActivePet()?.manifest.id).toBe("codex-pokepets-geo-bot");
     expect(
       JSON.parse(await readFile(join(users, "codex-pokepets-geo-bot", "manifest.json"), "utf8")),
-    ).toMatchObject({ license: expect.not.stringMatching(/^MIT$/i) });
+    ).toMatchObject({
+      license: expect.not.stringMatching(/^PolyForm-Noncommercial-1\.0\.0$/i),
+    });
     await expect(adapter.import(source)).rejects.toThrow("already installed");
     expect((await readdir(users)).filter((name) => name.startsWith(".adapt-"))).toEqual([]);
   });

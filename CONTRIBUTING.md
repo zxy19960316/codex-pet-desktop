@@ -45,6 +45,14 @@ Packaging changes should also run `npm run package:dir`; installer changes shoul
   output.
 - Follow [VERSIONING.md](VERSIONING.md) for public release changes.
 
+## Contribution license
+
+By submitting a contribution, you confirm that you have the right to provide it and agree that it
+may be distributed as part of this project under the
+[PolyForm Noncommercial License 1.0.0](LICENSE). This license permits covered noncommercial uses
+but does not grant general commercial-use permission. Dependencies and separately identified
+third-party material keep their own licenses.
+
 ## Assets and private data
 
 Pull requests must not contain credentials, tokens, cookies, Codex session JSONL, prompts,

@@ -1,8 +1,8 @@
 {
   "name": "codex-pet-desktop",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
-  "description": "Open-source Codex desktop pet with approvals, usage HUD, and local pet packs",
+  "description": "Noncommercial source-available Codex desktop pet with local session intelligence and pet packs",
   "productName": "Codex Pet Desktop",
   "author": "Codex Pet Desktop contributors",
   "homepage": "https://github.com/zxy19960316/codex-pet-desktop",
@@ -10,7 +10,7 @@
     "type": "git",
     "url": "https://github.com/zxy19960316/codex-pet-desktop.git"
   },
-  "license": "MIT",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "type": "module",
   "main": "dist/main/index.cjs",
   "scripts": {

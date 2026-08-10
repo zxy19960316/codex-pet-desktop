@@ -70,7 +70,7 @@ async function confirmThirdPartyImport(sourcePath?: string): Promise<boolean> {
   const result = await dialog.showMessageBox({
     type: "warning",
     title: "导入第三方角色素材",
-    message: "第三方角色素材仍受其原有权利约束，不受本应用 MIT 许可证覆盖。",
+    message: "第三方角色素材仍受其原有权利约束，不受本应用许可证覆盖。",
     detail: "所选本地文件只会复制到本应用管理的用户数据宠物目录，不会上传，也不会加入应用安装包。",
     buttons: ["导入", "取消"],
     defaultId: 1,
@@ -516,7 +516,7 @@ else {
   app.setAboutPanelOptions({
     applicationName: "Codex Pet Desktop",
     applicationVersion: app.getVersion(),
-    copyright: "MIT licensed independent project",
+    copyright: "PolyForm Noncommercial licensed independent project",
   });
   app.on("second-instance", () => windowManager?.focus());
   app

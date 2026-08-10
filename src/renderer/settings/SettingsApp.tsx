@@ -407,10 +407,12 @@ export function SettingsApp() {
           <p>
             {snapshot.app.name} <strong>v{snapshot.app.version}</strong>
           </p>
-          <p>采用 MIT 许可证的桌面伴侣应用，不包含云端设置同步或遥测功能。</p>
+          <p>
+            源码公开、仅限非商业用途（PolyForm Noncommercial 1.0.0），不包含云端设置同步或遥测功能。
+          </p>
           <ul className="asset-policy-summary">
             <li>本项目不内置 Pokémon 角色素材。</li>
-            <li>本地导入的第三方素材不受本项目 MIT 许可证覆盖。</li>
+            <li>本地导入的第三方素材不受本项目许可证覆盖。</li>
             <li>你需要自行确认拥有使用所导入素材的权利。</li>
             <li>本应用与 Pokémon 权利方不存在官方关联。</li>
           </ul>
