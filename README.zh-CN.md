@@ -79,12 +79,12 @@ v1.1.0 安装包暂未进行代码签名，因此 Microsoft Defender SmartScreen
 
 ## 宠物素材与打包边界
 
-公开安装包只包含原创程序化像素宠物 **Pixel Sprout** 和仓库内原创品牌素材，不包含本机的
-Pokémon、Codex PokéPets 或其他第三方角色素材。
+公开安装包只包含原创程序化像素宠物 **Pixel Sprout** 和仓库内原创品牌素材，包含本机的
+Pokémon，但不得做商用。
 
 导入自己有权使用的本地素材：
 
-1. 创建包含 `manifest.json`、PNG/WebP 预览图和 PNG/WebP 精灵图的文件夹。
+1. 创建包含 `manifest.json`、PNG/WebP 预览图和 PNG/WebP 图的文件夹。
 2. 至少提供 `idle` 动画；可补齐全部 12 种状态以获得完整效果。
 3. 打开 **设置中心 → 宠物管理 → 导入宠物包**，选择该文件夹。
 4. 检查导入结果并设为当前宠物。文件只会复制到应用的本机用户数据目录，不会进入 Git
