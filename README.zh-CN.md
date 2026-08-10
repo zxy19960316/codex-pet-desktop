@@ -153,5 +153,4 @@ v1.1.0 的源码与安装包内原创素材采用 `PolyForm-Noncommercial-1.0.0`
 [VERSIONING.md](VERSIONING.md)，贡献流程见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 本项目与 OpenAI、Nintendo、Game Freak、Creatures Inc.、The Pokémon Company、Clawd on
-Desk、AgentPet 或 Codex PokéPets 均无隶属或背书关系；公开仓库和安装包不包含这些项目的
-源代码或角色素材。
+Desk、AgentPet 或 Codex PokéPets 均无隶属或背书关系；形象版权归版权方所有，此项目仅用于fan-use，若版权方有疑问，可以即刻下架。
