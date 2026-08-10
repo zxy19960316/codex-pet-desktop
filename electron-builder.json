@@ -23,6 +23,14 @@
     {
       "from": "build/generated/tray-icon.png",
       "to": "tray-icon.png"
+    },
+    {
+      "from": "LICENSE",
+      "to": "LICENSE"
+    },
+    {
+      "from": "THIRD_PARTY_NOTICES.md",
+      "to": "THIRD_PARTY_NOTICES.md"
     }
   ],
   "publish": null,

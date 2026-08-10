@@ -19,6 +19,8 @@ describe("Windows installer configuration", () => {
         { from: "pets", to: "pets", filter: ["**/*"] },
         { from: "dist/hook/codex-pet-hook.cjs", to: "codex-pet-hook.cjs" },
         { from: "build/generated/tray-icon.png", to: "tray-icon.png" },
+        { from: "LICENSE", to: "LICENSE" },
+        { from: "THIRD_PARTY_NOTICES.md", to: "THIRD_PARTY_NOTICES.md" },
       ],
       publish: null,
       win: {
@@ -37,6 +39,15 @@ describe("Windows installer configuration", () => {
         runAfterFinish: false,
       },
     });
+  });
+
+  it("keeps license notices in the unpacked application as well", async () => {
+    const script = await readFile(join(process.cwd(), "scripts", "package-app.mjs"), "utf8");
+
+    expect(script).toContain('const licensePath = join(root, "LICENSE")');
+    expect(script).toContain('const thirdPartyNoticesPath = join(root, "THIRD_PARTY_NOTICES.md")');
+    expect(script).toContain('join(resourcesDirectory, "LICENSE")');
+    expect(script).toContain('join(resourcesDirectory, "THIRD_PARTY_NOTICES.md")');
   });
 
   it("requires both signing secrets without printing either value", async () => {

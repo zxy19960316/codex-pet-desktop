@@ -11,6 +11,8 @@ const petsDirectory = join(root, "pets");
 const iconPath = join(root, "build", "generated", "icon.ico");
 const trayIconPath = join(root, "build", "generated", "tray-icon.png");
 const hookReceiverPath = join(root, "dist", "hook", "codex-pet-hook.cjs");
+const licensePath = join(root, "LICENSE");
+const thirdPartyNoticesPath = join(root, "THIRD_PARTY_NOTICES.md");
 const rootPackage = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
 const targetPlatform = platform();
 const targetArch = arch();
@@ -31,6 +33,8 @@ await Promise.all([
   requirePath(iconPath, "Generated application icon"),
   requirePath(trayIconPath, "Generated tray icon"),
   requirePath(hookReceiverPath, "Built hook receiver"),
+  requirePath(licensePath, "Project license"),
+  requirePath(thirdPartyNoticesPath, "Third-party notices"),
 ]);
 
 await rm(stagingDirectory, { recursive: true, force: true });
@@ -66,7 +70,13 @@ try {
     icon: iconPath,
     asar: true,
     prune: true,
-    extraResource: [petsDirectory, hookReceiverPath, trayIconPath],
+    extraResource: [
+      petsDirectory,
+      hookReceiverPath,
+      trayIconPath,
+      licensePath,
+      thirdPartyNoticesPath,
+    ],
     electronVersion: rootPackage.devDependencies.electron,
     appVersion: rootPackage.version,
     buildVersion: rootPackage.version,
@@ -98,6 +108,8 @@ try {
     requirePath(join(resourcesDirectory, "app.asar"), "Packaged app.asar"),
     requirePath(join(resourcesDirectory, "codex-pet-hook.cjs"), "Packaged hook receiver"),
     requirePath(join(resourcesDirectory, "tray-icon.png"), "Packaged tray icon"),
+    requirePath(join(resourcesDirectory, "LICENSE"), "Packaged project license"),
+    requirePath(join(resourcesDirectory, "THIRD_PARTY_NOTICES.md"), "Packaged third-party notices"),
     requirePath(
       join(resourcesDirectory, "pets", "example-original-pet", "manifest.json"),
       "Packaged built-in pet",
