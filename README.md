@@ -84,8 +84,7 @@ Closing a terminal does not close an installed app; choose **Quit** from the tra
 ## Pet packages and asset integration
 
 The installer includes only **Pixel Sprout**, an original procedural pet licensed with this
-repository for noncommercial use. No local Pokémon, Codex PokéPets, or other third-party character
-art is bundled. To use artwork that you have the right to use locally:
+repository for noncommercial use. local Pokémon is bundled. To use artwork that you have the right to use locally:
 
 1. Create a directory containing `manifest.json`, a PNG/WebP preview, and one or more PNG/WebP
    sprite sheets.
@@ -165,6 +164,5 @@ Because commercial use is restricted, v1.1.0 is accurately described as **source
 OSI-approved open source. The restriction applies to v1.1.0 and later releases carrying this
 license; it does not revoke the MIT license already granted with v1.0.0.
 
-This project is not affiliated with or endorsed by OpenAI, Nintendo, Game Freak, Creatures Inc.,
-The Pokémon Company, Clawd on Desk, AgentPet, or Codex PokéPets. No source code or artwork from
-those projects is copied into this repository or public installer.
+This project is not affiliated with, nor endorsed by, OpenAI, Nintendo, Game Freak, Creatures Inc., The Pokémon Company, Clawd on Desk, AgentPet, or Codex PokéPets. All character artworks belong to their respective copyright holders. This project is created for fan-use purposes only. If there are any concerns from the copyright holders, the project will be taken down immediately.
+
