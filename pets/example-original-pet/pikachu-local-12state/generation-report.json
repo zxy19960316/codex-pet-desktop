@@ -1,0 +1,93 @@
+{
+  "pet": "pikachu",
+  "states": {
+    "idle": {
+      "classification": "source-original",
+      "sprite": "idle.webp",
+      "frames": 6,
+      "fps": 5,
+      "input": "source-atlas.webp row 0"
+    },
+    "thinking": {
+      "classification": "source-original",
+      "sprite": "thinking.webp",
+      "frames": 6,
+      "fps": 5,
+      "input": "source-atlas.webp row 8"
+    },
+    "typing": {
+      "classification": "source-original",
+      "sprite": "typing.webp",
+      "frames": 8,
+      "fps": 10,
+      "input": "source-atlas.webp row 7"
+    },
+    "working": {
+      "classification": "source-original",
+      "sprite": "working.webp",
+      "frames": 8,
+      "fps": 8,
+      "input": "source-atlas.webp row 3"
+    },
+    "approval": {
+      "classification": "source-original",
+      "sprite": "approval.webp",
+      "frames": 6,
+      "fps": 6,
+      "input": "source-atlas.webp row 6"
+    },
+    "success": {
+      "classification": "source-original",
+      "sprite": "success.webp",
+      "frames": 8,
+      "fps": 8,
+      "input": "source-atlas.webp row 4"
+    },
+    "error": {
+      "classification": "source-original",
+      "sprite": "error.webp",
+      "frames": 6,
+      "fps": 6,
+      "input": "source-atlas.webp row 5"
+    },
+    "sleep": {
+      "classification": "source-original",
+      "sprite": "sleep.webp",
+      "frames": 6,
+      "fps": 3,
+      "input": "source-atlas.webp row 1"
+    },
+    "waiting_input": {
+      "classification": "derived-variant",
+      "sprite": "waiting-input.webp",
+      "frames": 6,
+      "fps": 4,
+      "input": "approval.webp",
+      "sourceState": "approval"
+    },
+    "quota_low": {
+      "classification": "derived-variant",
+      "sprite": "quota-low.webp",
+      "frames": 6,
+      "fps": 5,
+      "input": "thinking.webp",
+      "sourceState": "thinking"
+    },
+    "quota_empty": {
+      "classification": "derived-variant",
+      "sprite": "quota-empty.webp",
+      "frames": 6,
+      "fps": 4,
+      "input": "error.webp",
+      "sourceState": "error"
+    },
+    "offline": {
+      "classification": "derived-variant",
+      "sprite": "offline.webp",
+      "frames": 4,
+      "fps": 3,
+      "input": "error.webp",
+      "sourceState": "quota_empty"
+    }
+  }
+}

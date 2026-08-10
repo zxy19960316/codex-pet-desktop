@@ -1,0 +1,174 @@
+{
+  "id": "mew-local-12state",
+  "name": "Mew Local 12-State",
+  "version": "1.0.0-local",
+  "author": "Local personal derivative",
+  "license": "Third-party fan asset; personal local use only; redistribution prohibited",
+  "preview": "preview.webp",
+  "assets": {
+    "sprites": [
+      "source-atlas.webp",
+      "idle.webp",
+      "thinking.webp",
+      "typing.webp",
+      "working.webp",
+      "approval.webp",
+      "success.webp",
+      "error.webp",
+      "sleep.webp",
+      "waiting-input.webp",
+      "quota-low.webp",
+      "quota-empty.webp",
+      "offline.webp"
+    ]
+  },
+  "animations": {
+    "idle": {
+      "name": "idle",
+      "sprite": "idle.webp",
+      "format": "webp",
+      "frameWidth": 192,
+      "frameHeight": 208,
+      "frameRow": 0,
+      "frames": 6,
+      "fps": 5,
+      "loop": true
+    },
+    "thinking": {
+      "name": "thinking",
+      "sprite": "thinking.webp",
+      "format": "webp",
+      "frameWidth": 192,
+      "frameHeight": 208,
+      "frameRow": 0,
+      "frames": 6,
+      "fps": 5,
+      "loop": true
+    },
+    "typing": {
+      "name": "typing",
+      "sprite": "typing.webp",
+      "format": "webp",
+      "frameWidth": 192,
+      "frameHeight": 208,
+      "frameRow": 0,
+      "frames": 8,
+      "fps": 10,
+      "loop": true
+    },
+    "working": {
+      "name": "working",
+      "sprite": "working.webp",
+      "format": "webp",
+      "frameWidth": 192,
+      "frameHeight": 208,
+      "frameRow": 0,
+      "frames": 8,
+      "fps": 8,
+      "loop": true
+    },
+    "approval": {
+      "name": "approval",
+      "sprite": "approval.webp",
+      "format": "webp",
+      "frameWidth": 192,
+      "frameHeight": 208,
+      "frameRow": 0,
+      "frames": 6,
+      "fps": 6,
+      "loop": true
+    },
+    "success": {
+      "name": "success",
+      "sprite": "success.webp",
+      "format": "webp",
+      "frameWidth": 192,
+      "frameHeight": 208,
+      "frameRow": 0,
+      "frames": 8,
+      "fps": 8,
+      "loop": true
+    },
+    "error": {
+      "name": "error",
+      "sprite": "error.webp",
+      "format": "webp",
+      "frameWidth": 192,
+      "frameHeight": 208,
+      "frameRow": 0,
+      "frames": 6,
+      "fps": 6,
+      "loop": true
+    },
+    "sleep": {
+      "name": "sleep",
+      "sprite": "sleep.webp",
+      "format": "webp",
+      "frameWidth": 192,
+      "frameHeight": 208,
+      "frameRow": 0,
+      "frames": 6,
+      "fps": 3,
+      "loop": true
+    },
+    "waiting_input": {
+      "name": "waiting_input",
+      "sprite": "waiting-input.webp",
+      "format": "webp",
+      "frameWidth": 192,
+      "frameHeight": 208,
+      "frameRow": 0,
+      "frames": 6,
+      "fps": 4,
+      "loop": true
+    },
+    "quota_low": {
+      "name": "quota_low",
+      "sprite": "quota-low.webp",
+      "format": "webp",
+      "frameWidth": 192,
+      "frameHeight": 208,
+      "frameRow": 0,
+      "frames": 6,
+      "fps": 5,
+      "loop": true
+    },
+    "quota_empty": {
+      "name": "quota_empty",
+      "sprite": "quota-empty.webp",
+      "format": "webp",
+      "frameWidth": 192,
+      "frameHeight": 208,
+      "frameRow": 0,
+      "frames": 6,
+      "fps": 4,
+      "loop": true
+    },
+    "offline": {
+      "name": "offline",
+      "sprite": "offline.webp",
+      "format": "webp",
+      "frameWidth": 192,
+      "frameHeight": 208,
+      "frameRow": 0,
+      "frames": 4,
+      "fps": 3,
+      "loop": true
+    }
+  },
+  "capabilities": {
+    "spriteSheet": true,
+    "sounds": false
+  },
+  "metadata": {
+    "sourceProject": "dnnyngyen/codex-pokepets",
+    "sourcePetId": "mew",
+    "locallyDerived": true,
+    "redistributionAllowed": false,
+    "localPersonalUseOnly": true,
+    "independentGeneratedStates": "idle,thinking,typing,waiting_input,success,error,offline,sleep",
+    "derivedVariantStates": "quota_low,quota_empty",
+    "sourceOriginalStates": "working,approval",
+    "sharedStates": ""
+  }
+}

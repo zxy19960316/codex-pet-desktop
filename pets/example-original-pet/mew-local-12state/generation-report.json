@@ -1,0 +1,141 @@
+{
+  "pet": "mew",
+  "states": {
+    "idle": {
+      "classification": "independent-generated",
+      "sprite": "idle.webp",
+      "frames": 6,
+      "fps": 5,
+      "input": "idle-sleep.png",
+      "sourceState": "image2-idle",
+      "keyframeGrid": {
+        "columns": 4,
+        "rows": 2,
+        "row": 0,
+        "fitScale": 0.74
+      }
+    },
+    "thinking": {
+      "classification": "independent-generated",
+      "sprite": "thinking.webp",
+      "frames": 6,
+      "fps": 5,
+      "input": "thinking.png",
+      "sourceState": "image2-v3-thinking",
+      "keyframeGrid": {
+        "columns": 2,
+        "rows": 2,
+        "fitScale": 1
+      }
+    },
+    "typing": {
+      "classification": "independent-generated",
+      "sprite": "typing.webp",
+      "frames": 8,
+      "fps": 10,
+      "input": "typing.png",
+      "sourceState": "image2-v3-typing",
+      "keyframeGrid": {
+        "columns": 2,
+        "rows": 2,
+        "fitScale": 1
+      }
+    },
+    "working": {
+      "classification": "source-original",
+      "sprite": "working.webp",
+      "frames": 8,
+      "fps": 8,
+      "input": "source-atlas.webp row 3"
+    },
+    "approval": {
+      "classification": "source-original",
+      "sprite": "approval.webp",
+      "frames": 6,
+      "fps": 6,
+      "input": "source-atlas.webp row 6"
+    },
+    "success": {
+      "classification": "independent-generated",
+      "sprite": "success.webp",
+      "frames": 8,
+      "fps": 8,
+      "input": "success.png",
+      "sourceState": "image2-v3-success",
+      "keyframeGrid": {
+        "columns": 2,
+        "rows": 2,
+        "fitScale": 1
+      }
+    },
+    "error": {
+      "classification": "independent-generated",
+      "sprite": "error.webp",
+      "frames": 6,
+      "fps": 6,
+      "input": "error.png",
+      "sourceState": "image2-v3-error",
+      "keyframeGrid": {
+        "columns": 2,
+        "rows": 2,
+        "fitScale": 1
+      }
+    },
+    "sleep": {
+      "classification": "independent-generated",
+      "sprite": "sleep.webp",
+      "frames": 6,
+      "fps": 3,
+      "input": "idle-sleep.png",
+      "sourceState": "image2-sleep",
+      "keyframeGrid": {
+        "columns": 4,
+        "rows": 2,
+        "row": 1,
+        "fitScale": 0.74
+      }
+    },
+    "waiting_input": {
+      "classification": "independent-generated",
+      "sprite": "waiting-input.webp",
+      "frames": 6,
+      "fps": 4,
+      "input": "waiting-input.png",
+      "sourceState": "image2-v3-waiting_input",
+      "keyframeGrid": {
+        "columns": 2,
+        "rows": 2,
+        "fitScale": 1
+      }
+    },
+    "quota_low": {
+      "classification": "derived-variant",
+      "sprite": "quota-low.webp",
+      "frames": 6,
+      "fps": 5,
+      "input": "thinking.webp",
+      "sourceState": "thinking"
+    },
+    "quota_empty": {
+      "classification": "derived-variant",
+      "sprite": "quota-empty.webp",
+      "frames": 6,
+      "fps": 4,
+      "input": "error.webp",
+      "sourceState": "error"
+    },
+    "offline": {
+      "classification": "independent-generated",
+      "sprite": "offline.webp",
+      "frames": 4,
+      "fps": 3,
+      "input": "offline.png",
+      "sourceState": "image2-v3-offline",
+      "keyframeGrid": {
+        "columns": 2,
+        "rows": 2,
+        "fitScale": 1
+      }
+    }
+  }
+}
