@@ -154,6 +154,137 @@
   margin-top: 2px;
 }
 
+.pet-primary-action {
+  display: block;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+.pet-primary-action:focus-visible {
+  outline: 3px solid rgba(255, 242, 153, 0.95);
+  outline-offset: 2px;
+  border-radius: 16px;
+}
+
+.pet-primary-action:disabled {
+  cursor: default;
+}
+
+.session-quick-view {
+  position: relative;
+  z-index: 10;
+  flex: none;
+  width: min(220px, calc(100% - 12px));
+  padding: 8px 9px;
+  border: 3px solid #314232;
+  border-radius: 11px 9px 13px 10px;
+  color: #273229;
+  background: rgba(245, 240, 202, 0.98);
+  box-shadow:
+    4px 5px 0 rgba(31, 48, 35, 0.35),
+    inset 0 0 0 1px rgba(255, 255, 234, 0.9);
+  pointer-events: none;
+  -webkit-app-region: no-drag;
+  animation: session-quick-view-in 140ms ease-out;
+  font-family: "Microsoft YaHei UI", "PingFang SC", system-ui, sans-serif;
+}
+
+.session-quick-view header,
+.session-quick-view li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.session-quick-view header {
+  justify-content: space-between;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(49, 66, 50, 0.3);
+  font-size: 11px;
+}
+
+.session-quick-view header span,
+.session-quick-view small,
+.session-quick-view footer,
+.session-quick-view p {
+  color: #65705f;
+  font-size: 9px;
+}
+
+.session-quick-view ul {
+  display: grid;
+  gap: 4px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.session-quick-view li {
+  min-width: 0;
+  font-size: 10px;
+}
+
+.session-quick-view__dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border: 1px solid #314232;
+  border-radius: 50%;
+  background: #a4aa98;
+}
+
+.session-quick-view li[data-session-state="thinking"] .session-quick-view__dot,
+.session-quick-view li[data-session-state="working"] .session-quick-view__dot {
+  background: #58a4d2;
+}
+
+.session-quick-view li[data-session-state="approval"] .session-quick-view__dot,
+.session-quick-view li[data-session-state="waiting_input"] .session-quick-view__dot {
+  background: #efb444;
+}
+
+.session-quick-view li[data-session-state="error"] .session-quick-view__dot {
+  background: #d7655d;
+}
+
+.session-quick-view__title {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+.session-quick-view small {
+  flex: none;
+}
+
+.session-quick-view p {
+  margin: 7px 0 1px;
+  text-align: center;
+}
+
+.session-quick-view footer {
+  margin-top: 5px;
+  text-align: right;
+}
+
+@keyframes session-quick-view-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .pet-sprite {
   position: absolute;
   top: 50%;
@@ -218,7 +349,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pet-sprite {
+  .pet-sprite,
+  .session-quick-view {
     animation: none;
   }
 }

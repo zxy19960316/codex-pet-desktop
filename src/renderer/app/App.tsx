@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { ApprovalCard } from "../approval/ApprovalCard";
 import { CodexControlPanel } from "../control/CodexControlPanel";
 import { DebugPanel } from "../debug/DebugPanel";
@@ -6,10 +7,12 @@ import { Hud } from "../hud/Hud";
 import { Pet } from "../pet/Pet";
 import { wheelScaleStep } from "../pet/pet-scale-wheel";
 import { ReplyCard } from "../reply/ReplyCard";
+import { SessionQuickView } from "../sessions/SessionQuickView";
 import { useDesktopApi } from "./use-desktop-api";
 
 export function App() {
   const snapshot = useDesktopApi();
+  const [quickViewVisible, setQuickViewVisible] = useState(false);
   useEffect(() => {
     let pendingSteps = 0;
     let timer: number | undefined;
@@ -32,6 +35,10 @@ export function App() {
       if (timer !== undefined) window.clearTimeout(timer);
     };
   }, []);
+  const hubVisible = snapshot?.settings.hudVisible ?? false;
+  useEffect(() => {
+    if (hubVisible) setQuickViewVisible(false);
+  }, [hubVisible]);
   if (!snapshot) return <main className="shell loading">Waking up...</main>;
   const waitingStep = snapshot.e2eSteps.find((step) => step.state === "waiting-for-user");
   const approvalVerificationLabel =
@@ -55,7 +62,21 @@ export function App() {
         pet={snapshot.pet?.active}
         scalePercent={snapshot.settings.scalePercent}
         physicalScaleFactor={snapshot.petPhysicalScaleFactor}
-        resourceHud={<CompactHud snapshot={snapshot} />}
+        resourceHud={
+          quickViewVisible ? (
+            <SessionQuickView snapshot={snapshot} />
+          ) : (
+            <CompactHud snapshot={snapshot} />
+          )
+        }
+        onPrimaryAction={() => {
+          if (snapshot.settings.hudVisible) {
+            void window.codexPet.toggleHud().then(() => setQuickViewVisible(true));
+            return;
+          }
+          setQuickViewVisible((visible) => !visible);
+        }}
+        primaryActionExpanded={quickViewVisible}
       />
       {snapshot.approvals[0] && (
         <ApprovalCard
@@ -81,4 +102,3 @@ export function App() {
     </main>
   );
 }
-import { useEffect } from "react";

@@ -47,7 +47,11 @@ import {
 } from "../core/sessions/codex-session-observation";
 import { sessionElapsedMs, turnElapsedMs } from "../core/sessions/session-clock";
 import { SessionRegistry } from "../core/sessions/session-registry";
-import type { AgentSessionState } from "../core/sessions/session-types";
+import type {
+  AgentSessionState,
+  SessionObservation,
+  SessionRegistrySnapshot,
+} from "../core/sessions/session-types";
 
 export interface RuntimeControllerOptions {
   logger: SafeLogger;
@@ -71,6 +75,44 @@ const BOOLEAN_SETTINGS = [
   "soundEnabled",
   "lockPhysicalSizeAcrossDisplays",
 ] as const;
+
+export const TERMINAL_PET_STATE_MS = 2_500;
+export const LOCAL_SESSION_ACTIVITY_TIMEOUT_MS = 15 * 60_000;
+
+const LOCAL_ACTIVE_STATES: ReadonlySet<AgentSessionState> = new Set([
+  "thinking",
+  "working",
+  "approval",
+  "waiting_input",
+]);
+
+function presentationSnapshot(
+  snapshot: SessionRegistrySnapshot,
+  now: number,
+): SessionRegistrySnapshot {
+  return {
+    ...snapshot,
+    sessions: snapshot.sessions.map((session) => {
+      const localSessionOnly =
+        session.sources.length === 1 && session.sources[0] === "codex-session-file";
+      if (
+        localSessionOnly &&
+        LOCAL_ACTIVE_STATES.has(session.state) &&
+        now - session.lastActivityAt >= LOCAL_SESSION_ACTIVITY_TIMEOUT_MS
+      )
+        return { ...session, state: "idle", requiresAttention: false };
+      if (
+        (session.state === "success" ||
+          session.state === "error" ||
+          session.state === "interrupted") &&
+        session.completedAt !== undefined &&
+        now - session.completedAt >= TERMINAL_PET_STATE_MS
+      )
+        return { ...session, state: "idle", requiresAttention: false };
+      return session;
+    }),
+  };
+}
 
 function safeSettingsPatch(patch: Partial<LocalSettings>): Partial<LocalSettings> {
   const safe: Partial<LocalSettings> = {};
@@ -145,6 +187,7 @@ export class RuntimeController {
   #agentTelemetry: AgentTelemetry | null = null;
   #lastActivitySampleAt?: number;
   #wasSessionActive = false;
+  #terminalPetStateTimer?: ReturnType<typeof setTimeout>;
 
   constructor(options: RuntimeControllerOptions) {
     this.#logger = options.logger;
@@ -214,7 +257,7 @@ export class RuntimeController {
     const now = Date.now();
     this.#sessionRegistry.prune(now);
     const sessionSnapshot = this.#sessionRegistry.getSnapshot(now);
-    const attention = arbitrateSessionAttention(sessionSnapshot);
+    const attention = arbitrateSessionAttention(presentationSnapshot(sessionSnapshot, now));
     const sessionOverview = {
       sessions: sessionSnapshot.sessions.map((session) => ({
         sessionId: session.sessionId,
@@ -292,6 +335,24 @@ export class RuntimeController {
     this.#emit();
   }
 
+  applySessionObservations(observations: readonly SessionObservation[]): void {
+    if (this.#settings.useMockData) return;
+    let accepted = false;
+    let latest: SessionObservation | undefined;
+    for (const observation of observations) {
+      if (observation.providerId !== "codex" || observation.source !== "codex-session-file")
+        continue;
+      this.#sessionRegistry.observe(observation);
+      accepted = true;
+      if (!latest || observation.timestamp >= latest.timestamp) latest = observation;
+    }
+    if (!accepted) return;
+    if (latest) this.#lastActiveThreadId = latest.sessionId;
+    if (this.#protocolSource === "unavailable") this.#protocolSource = "codex-session-file";
+    this.#schedulePetStateRefresh();
+    this.#emit();
+  }
+
   async respondApproval(requestId: string, decision: ApprovalDecision): Promise<void> {
     const request = this.#approvalRouter.getQueue().find((item) => item.requestId === requestId);
     await this.#approvalRouter.respond(requestId, decision);
@@ -350,10 +411,11 @@ export class RuntimeController {
     if (this.#settings.useMockData) return;
     const change = hookEventToPetState(event);
     this.#sessionRegistry.observe(observationFromHook(event));
+    this.#schedulePetStateRefresh();
     this.#actualStates.set(change.threadId, change);
     this.#lastActiveThreadId = change.threadId;
     this.#connectionStatus = "connected";
-    this.#connectionDetail = "Codex Hook active";
+    this.#connectionDetail = "Codex Hook 已启用";
     this.#protocolSource = "codex-hooks";
     this.#applyRequestState(change.threadId);
   }
@@ -537,7 +599,7 @@ export class RuntimeController {
       this.#usageProvider = new MockUsageProvider();
       this.#protocolSource = "mock";
       this.#connectionStatus = "stopped";
-      this.#connectionDetail = "Mock data enabled";
+      this.#connectionDetail = "已启用模拟数据";
       await this.#refreshUsage(this.#usageProvider);
       return;
     }
@@ -551,7 +613,7 @@ export class RuntimeController {
       this.#logger.write("warn", "app-server-connect-failed", {
         errorName: error instanceof Error ? error.name : "unknown",
       });
-      this.#connectionDetail = "App Server unavailable; enable Mock data in debug controls";
+      this.#connectionDetail = "App Server 不可用；可在调试设置中启用模拟数据";
       this.#emit();
     }
   }
@@ -580,6 +642,8 @@ export class RuntimeController {
     this.#e2eStore.failRunning("transport-unavailable", ["transport-unavailable"]);
     this.#testTurns.clear();
     this.#actualStates.clear();
+    if (this.#terminalPetStateTimer) clearTimeout(this.#terminalPetStateTimer);
+    this.#terminalPetStateTimer = undefined;
     this.#sessionRegistry.reset();
     for (const state of this.#petStateMachine.snapshot())
       this.#petStateMachine.remove(state.threadId);
@@ -602,6 +666,7 @@ export class RuntimeController {
   #applyEvent(event: DomainEvent): void {
     if (event.type === "pet-state") {
       this.#sessionRegistry.observe(observationFromPetState(event));
+      this.#schedulePetStateRefresh();
       this.#threadController.touch(event.threadId);
       this.#actualStates.set(event.threadId, event);
       this.#lastActiveThreadId = event.threadId;
@@ -806,6 +871,41 @@ export class RuntimeController {
     this.#e2eStore.fail(verification.recordId, failureCode, evidence);
     this.#testTurns.delete(turnId);
     this.#emit();
+  }
+
+  #schedulePetStateRefresh(): void {
+    if (this.#terminalPetStateTimer) clearTimeout(this.#terminalPetStateTimer);
+    this.#terminalPetStateTimer = undefined;
+    const now = Date.now();
+    const nextExpiry = this.#sessionRegistry
+      .getSnapshot(now)
+      .sessions.flatMap((session) => {
+        if (
+          (session.state === "success" ||
+            session.state === "error" ||
+            session.state === "interrupted") &&
+          session.completedAt !== undefined
+        )
+          return [session.completedAt + TERMINAL_PET_STATE_MS];
+        if (
+          session.sources.length === 1 &&
+          session.sources[0] === "codex-session-file" &&
+          LOCAL_ACTIVE_STATES.has(session.state)
+        )
+          return [session.lastActivityAt + LOCAL_SESSION_ACTIVITY_TIMEOUT_MS];
+        return [];
+      })
+      .filter((expiry) => expiry > now)
+      .sort((left, right) => left - right)[0];
+    if (nextExpiry === undefined) return;
+    this.#terminalPetStateTimer = setTimeout(
+      () => {
+        this.#terminalPetStateTimer = undefined;
+        this.#emit();
+        this.#schedulePetStateRefresh();
+      },
+      Math.max(1, nextExpiry - now + 1),
+    );
   }
 
   #emit(): void {

@@ -69,12 +69,10 @@ async function confirmThirdPartyImport(sourcePath?: string): Promise<boolean> {
     return true;
   const result = await dialog.showMessageBox({
     type: "warning",
-    title: "Import third-party character asset",
-    message:
-      "Third-party character assets remain subject to their original rights and are not covered by this application's MIT license.",
-    detail:
-      "The selected local files will be copied only into this application's managed user-data pet directory. They will not be uploaded or added to the application installer.",
-    buttons: ["Import", "Cancel"],
+    title: "导入第三方角色素材",
+    message: "第三方角色素材仍受其原有权利约束，不受本应用 MIT 许可证覆盖。",
+    detail: "所选本地文件只会复制到本应用管理的用户数据宠物目录，不会上传，也不会加入应用安装包。",
+    buttons: ["导入", "取消"],
     defaultId: 1,
     cancelId: 1,
     noLink: true,
@@ -91,17 +89,17 @@ async function connectCodexHook(): Promise<void> {
     });
     await dialog.showMessageBox({
       type: "info",
-      title: "Codex Hook installed",
-      message: "Review is required before activity is connected.",
+      title: "Codex Hook 已安装",
+      message: "连接活动状态前需要完成审核。",
       detail:
-        "Open /hooks in Codex, review this hook, and choose Trust. Codex requires that final trust step before the pet can receive activity.",
+        "请在 Codex 中打开 /hooks，审核此 Hook 并选择“信任”。完成这一步后，桌宠才能接收活动状态。",
     });
   } catch (error) {
     await dialog.showMessageBox({
       type: "error",
-      title: "Could not connect Codex activity",
-      message: "The hook configuration was not changed.",
-      detail: error instanceof Error ? error.message : "Unknown error",
+      title: "无法连接 Codex 活动状态",
+      message: "Hook 配置未发生更改。",
+      detail: error instanceof Error ? error.message : "未知错误",
     });
   }
 }
@@ -351,6 +349,7 @@ async function startApplication(): Promise<void> {
   sessionMonitor = new CodexSessionMonitor({
     sessionsRoot: join(app.getPath("home"), ".codex", "sessions"),
     onTelemetry: (telemetry) => runtime.applyAgentTelemetry(telemetry),
+    onObservations: (observations) => runtime.applySessionObservations(observations),
     onDiagnostic: (code) => logger.write("debug", code),
   });
   try {
@@ -367,11 +366,7 @@ async function startApplication(): Promise<void> {
   }
   windowManager.setPetPackage(petRegistry.getActivePet());
   const petWindow = await windowManager.create(settings);
-  petContextMenu.attach(
-    petWindow,
-    () => buildPetMenuViewModel(withPetSnapshot(runtime.getSnapshot())),
-    executePetMenuAction,
-  );
+  petContextMenu.attach(petWindow, executePetMenuAction);
   hookBridge.start();
   sessionMonitor.start();
   rebuildTray(withPetSnapshot(runtime.getSnapshot()));
@@ -389,6 +384,9 @@ async function startApplication(): Promise<void> {
       runtime.patchSettings({ alwaysOnTop: !runtime.getSnapshot().settings.alwaysOnTop }),
     toggleClickThrough: () =>
       runtime.patchSettings({ clickThrough: !runtime.getSnapshot().settings.clickThrough }),
+    openSettings: async () => {
+      await settingsWindowManager.open();
+    },
     reconnectCodex: () => runtime.reconnect(),
     patchSettings: (patch) => runtime.patchSettings(patch),
     adjustPetScale: (deltaSteps) =>
@@ -428,7 +426,7 @@ async function startApplication(): Promise<void> {
           m32E2E?.phase === "import" && m32E2E.importSource
             ? { canceled: false, filePaths: [m32E2E.importSource] }
             : await dialog.showOpenDialog({
-                title: "Import Pet Package",
+                title: "导入宠物包",
                 properties: ["openDirectory"],
               });
         if (selection.canceled || !selection.filePaths[0]) return;
@@ -442,7 +440,7 @@ async function startApplication(): Promise<void> {
           m32E2E?.phase === "import" && m32E2E.codexImportSource
             ? { canceled: false, filePaths: [m32E2E.codexImportSource] }
             : await dialog.showOpenDialog({
-                title: "Import Codex PokéPet",
+                title: "导入 Codex PokéPet",
                 properties: ["openDirectory"],
               });
         if (selection.canceled || !selection.filePaths[0]) return;
@@ -471,7 +469,7 @@ async function startApplication(): Promise<void> {
       },
       openPetsDirectory: async () => {
         const error = await shell.openPath(petRegistry.userDirectory);
-        if (error) throw new Error(`Could not open the pet directory: ${error}`);
+        if (error) throw new Error(`无法打开宠物素材目录：${error}`);
       },
     },
   );

@@ -26,12 +26,16 @@ export function Pet({
   scalePercent = 100,
   physicalScaleFactor = 1,
   resourceHud,
+  onPrimaryAction,
+  primaryActionExpanded = false,
 }: {
   state: PetState;
   pet?: PetPackage;
   scalePercent?: number;
   physicalScaleFactor?: number;
   resourceHud?: ReactNode;
+  onPrimaryAction?: () => void;
+  primaryActionExpanded?: boolean;
 }) {
   const resolved = pet ? resolvePetAnimation(pet, state) : undefined;
   const metrics = computePetVisualMetrics(
@@ -61,20 +65,29 @@ export function Pet({
       }
     >
       {resourceHud}
-      <div
-        className="pet-sprite-slot"
+      <button
+        type="button"
+        className="pet-sprite-slot pet-primary-action"
         style={{ width: metrics.width, height: metrics.height }}
-        aria-hidden="true"
+        aria-label="查看当前会话速览"
+        aria-expanded={primaryActionExpanded}
+        disabled={!onPrimaryAction}
+        onClick={onPrimaryAction}
       >
-        <div className="pet-shadow" style={{ width: Math.max(72, metrics.width * 0.62) }} />
+        <div
+          className="pet-shadow"
+          style={{ width: Math.max(72, metrics.width * 0.62) }}
+          aria-hidden="true"
+        />
         <div
           ref={spriteRef}
           className="pet-sprite"
           data-pet-state={state}
           data-animation-state={resolved?.resolvedState ?? "unavailable"}
           style={style}
+          aria-hidden="true"
         />
-      </div>
+      </button>
       <span className="visually-hidden">{STATE_LABELS[state]}</span>
     </section>
   );

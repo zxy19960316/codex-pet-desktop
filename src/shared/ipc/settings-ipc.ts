@@ -43,7 +43,8 @@ export interface SettingsWindowSnapshot {
   status: {
     connectionStatus: AppServerStatus;
     connectionDetail?: string;
-    protocolSource: "codex-hooks" | "codex-app-server" | "mock" | "unavailable";
+    protocolSource:
+      "codex-hooks" | "codex-app-server" | "codex-session-file" | "mock" | "unavailable";
     activeThreadCount: number;
   };
   quota: {

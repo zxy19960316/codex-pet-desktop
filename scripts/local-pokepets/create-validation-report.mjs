@@ -1,4 +1,4 @@
-import { mkdir, rename, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { fileURLToPath, URL } from "node:url";
 import { join, resolve } from "node:path";
@@ -32,6 +32,9 @@ const managed = resolve(process.env.APPDATA ?? "", "Codex Pet Desktop", "pets");
 const imageTools = fileURLToPath(new URL("./image-tools.py", import.meta.url));
 const source = [];
 const derived = [];
+function stateList(value) {
+  return typeof value === "string" ? value.split(",").filter(Boolean) : [];
+}
 for (const pet of ALLOWED_PETS) {
   const sourceDirectory = join(workspace, "source", pet);
   source.push({
@@ -40,6 +43,12 @@ for (const pet of ALLOWED_PETS) {
   });
   const directory = join(workspace, "derived", `${pet}-local-12state`);
   const validation = await validateDerivedPetDirectory(directory);
+  const manifest = JSON.parse(await readFile(join(directory, "manifest.json"), "utf8"));
+  const provenance = {
+    independentGeneratedStates: stateList(manifest.metadata?.independentGeneratedStates),
+    sourceOriginalStates: stateList(manifest.metadata?.sourceOriginalStates),
+    derivedVariantStates: stateList(manifest.metadata?.derivedVariantStates),
+  };
   const animationQuality = JSON.parse(
     await run("python", [imageTools, "analyze-package", "--directory", directory]),
   );
@@ -50,24 +59,45 @@ for (const pet of ALLOWED_PETS) {
     managedDirectory: join(managed, validation.id),
     installed: installed.id === validation.id,
     animationQuality,
+    provenance,
     qaDirectory: join(workspace, "qa", validation.id),
   });
 }
 const ignoreProbe = join("tmp", "local-pokepets", "source", "pikachu", "spritesheet.webp");
 const ignoredBy = await run("git", ["check-ignore", "-v", ignoreProbe], { cwd: process.cwd() });
 const gitStatus = await run("git", ["status", "--short"], { cwd: process.cwd() });
+const independentGeneratedStateCount = derived.reduce(
+  (count, pet) => count + pet.provenance.independentGeneratedStates.length,
+  0,
+);
+const sourceOriginalStateCount = derived.reduce(
+  (count, pet) => count + pet.provenance.sourceOriginalStates.length,
+  0,
+);
+const derivedVariantStateCount = derived.reduce(
+  (count, pet) => count + pet.provenance.derivedVariantStates.length,
+  0,
+);
+const completeImageGeneration = independentGeneratedStateCount === ALLOWED_PETS.length * 12;
 const report = {
   generatedAt: new Date().toISOString(),
   overall: {
     sourcePetsValidated: source.length,
     derivedPetsValidated: derived.length,
     managedPetsValidated: derived.filter((pet) => pet.installed).length,
-    independentGeneratedStateCount: 0,
-    sourceOriginalStateCount: 24,
-    derivedVariantStateCount: 12,
-    imageGenerationStatus: "built-in image generation timed out without output",
+    independentGeneratedStateCount,
+    sourceOriginalStateCount,
+    derivedVariantStateCount,
+    imageGenerationStatus: completeImageGeneration
+      ? "complete: all 36 state strips use image-generated keyframes"
+      : independentGeneratedStateCount
+        ? `partial: ${independentGeneratedStateCount} of ${ALLOWED_PETS.length * 12} states use image-generated keyframes`
+        : "not completed: no state uses an accepted image-generated keyframe sheet",
     functionalIntegration: "passed",
-    completionStatus: "partial-visual-fallback",
+    completionStatus:
+      completeImageGeneration && derived.every((pet) => pet.installed)
+        ? "complete-local-visual"
+        : "partial-visual-fallback",
   },
   source,
   derived,

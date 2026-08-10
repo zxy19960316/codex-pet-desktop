@@ -1,31 +1,24 @@
 import { useEffect, useState } from "react";
 import type { SettingsPatch, SettingsWindowSnapshot } from "../../shared/ipc/settings-ipc";
 import { PetSelector } from "./PetSelector";
+import {
+  connectionStatusLabel,
+  formatCount,
+  loadStateLabel,
+  protocolSourceLabel,
+} from "./settings-copy";
 
 const SECTIONS = [
-  ["status", "Status"],
-  ["general", "General"],
-  ["pets", "Pets"],
-  ["codex", "Codex connection"],
-  ["quota", "Quota"],
-  ["diagnostics", "Diagnostics"],
-  ["about", "About"],
+  ["status", "运行状态"],
+  ["general", "通用设置"],
+  ["pets", "宠物管理"],
+  ["codex", "Codex 连接"],
+  ["quota", "额度与用量"],
+  ["diagnostics", "诊断信息"],
+  ["about", "关于"],
 ] as const;
 
 const PET_SCALE_SHORTCUTS = [50, 75, 100, 125, 150, 175, 200] as const;
-
-function formatCount(value: number | null | undefined): string {
-  return value === null || value === undefined ? "Unavailable" : value.toLocaleString();
-}
-
-function loadStateLabel(snapshot: SettingsWindowSnapshot): string {
-  const state = snapshot.loadState;
-  if (state.kind === "loaded") return "Loaded v3 settings";
-  if (state.kind === "migrated") return `Migrated v${state.sourceVersion} settings to v3`;
-  if (state.kind === "future-version") return `Protected future schema v${state.schemaVersion}`;
-  if (state.kind === "corrupt") return "Protected damaged settings file; using safe defaults";
-  return "Using defaults; settings file not created yet";
-}
 
 function Toggle({
   checked,
@@ -70,7 +63,7 @@ export function SettingsApp() {
         if (active) setSnapshot(value);
       })
       .catch(() => {
-        if (active) setError("Settings could not be loaded.");
+        if (active) setError("无法加载设置。");
       });
     const unsubscribe = window.codexPetSettings.subscribe((value) => {
       if (active) setSnapshot(value);
@@ -92,7 +85,7 @@ export function SettingsApp() {
     try {
       await window.codexPetSettings.patch(value);
     } catch {
-      setError("The settings change was rejected and was not applied.");
+      setError("设置修改被拒绝，未能应用。");
     } finally {
       setPending(false);
     }
@@ -105,9 +98,7 @@ export function SettingsApp() {
       await action();
     } catch (actionError) {
       setError(
-        actionError instanceof Error
-          ? actionError.message
-          : "The pet operation failed without a diagnostic message.",
+        actionError instanceof Error ? actionError.message : "宠物操作失败，且没有可用的诊断信息。",
       );
     } finally {
       setPetPending(undefined);
@@ -118,7 +109,7 @@ export function SettingsApp() {
     return (
       <main className="settings-loading">
         <span className="pet-mark" aria-hidden="true" />
-        <p>{error ?? "Opening Settings Center..."}</p>
+        <p>{error ?? "正在打开设置中心…"}</p>
       </main>
     );
 
@@ -132,27 +123,27 @@ export function SettingsApp() {
           <span className="pet-mark" aria-hidden="true" />
           <div>
             <strong>Codex Pet</strong>
-            <small>Settings Center</small>
+            <small>设置中心</small>
           </div>
         </header>
-        <nav aria-label="Settings sections">
+        <nav aria-label="设置中心分区">
           {SECTIONS.map(([id, label]) => (
             <a href={`#${id}`} key={id}>
               {label}
             </a>
           ))}
         </nav>
-        <footer>Schema v{snapshot.settings.schemaVersion}</footer>
+        <footer>设置架构 v{snapshot.settings.schemaVersion}</footer>
       </aside>
 
       <div className="settings-content">
         <div className="settings-heading">
           <div>
             <p className="eyebrow">M3.4</p>
-            <h1>Settings Center</h1>
+            <h1>设置中心</h1>
           </div>
           <span className={`status-pill status-pill--${snapshot.status.connectionStatus}`}>
-            {snapshot.status.connectionStatus}
+            {connectionStatusLabel(snapshot.status.connectionStatus)}
           </span>
         </div>
         {error && <p className="settings-error">{error}</p>}
@@ -160,26 +151,26 @@ export function SettingsApp() {
         <section id="status" className="settings-card">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">Runtime</p>
-              <h2>Status</h2>
+              <p className="eyebrow">运行时</p>
+              <h2>运行状态</h2>
             </div>
             <span className="section-number">01</span>
           </div>
           <dl className="status-grid">
             <div>
-              <dt>Connection</dt>
-              <dd>{snapshot.status.connectionStatus}</dd>
+              <dt>连接状态</dt>
+              <dd>{connectionStatusLabel(snapshot.status.connectionStatus)}</dd>
             </div>
             <div>
-              <dt>Observation source</dt>
-              <dd>{snapshot.status.protocolSource}</dd>
+              <dt>状态来源</dt>
+              <dd>{protocolSourceLabel(snapshot.status.protocolSource)}</dd>
             </div>
             <div>
-              <dt>Active threads</dt>
+              <dt>活跃任务</dt>
               <dd>{snapshot.status.activeThreadCount}</dd>
             </div>
             <div>
-              <dt>Current thread tokens</dt>
+              <dt>当前任务 Token</dt>
               <dd>{formatCount(snapshot.quota.currentThreadTokens)}</dd>
             </div>
           </dl>
@@ -188,47 +179,47 @@ export function SettingsApp() {
         <section id="general" className="settings-card">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">Pet window</p>
-              <h2>General</h2>
+              <p className="eyebrow">宠物窗口</p>
+              <h2>通用设置</h2>
             </div>
             <span className="section-number">02</span>
           </div>
           <Toggle
             checked={preferences.alwaysOnTop}
             disabled={pending}
-            label="Always on top"
-            detail="Keep the pet above normal application windows."
+            label="窗口置顶"
+            detail="让宠物始终显示在普通应用窗口上方。"
             onChange={(alwaysOnTop) => void patch({ preferences: { alwaysOnTop } })}
           />
           <Toggle
             checked={device.launchAtLogin}
             disabled={pending || !snapshot.app.isPackaged}
-            label="Launch at Windows sign-in"
+            label="登录 Windows 时启动"
             detail={
               snapshot.app.isPackaged
-                ? "Start the pet in the background after you sign in."
-                : "Available in the installed or packaged app."
+                ? "登录系统后在后台启动桌宠。"
+                : "仅在已安装或已打包的应用中可用。"
             }
             onChange={(launchAtLogin) => void patch({ device: { launchAtLogin } })}
           />
           <Toggle
             checked={preferences.clickThrough}
             disabled={pending}
-            label="Click-through"
-            detail="Let pointer input pass through the pet window."
+            label="鼠标穿透"
+            detail="让鼠标操作穿过宠物窗口，不影响下方应用。"
             onChange={(clickThrough) => void patch({ preferences: { clickThrough } })}
           />
           <Toggle
             checked={preferences.soundEnabled}
             disabled={pending}
-            label="Sound"
-            detail="Reserve sound feedback for supported original themes."
+            label="声音"
+            detail="为支持声音的原创主题启用反馈音效。"
             onChange={(soundEnabled) => void patch({ preferences: { soundEnabled } })}
           />
           <label className="range-setting pet-size-setting">
             <span>
-              <strong>Pet size</strong>
-              <small>Adjust the pet and its window together from 50% to 200%.</small>
+              <strong>宠物大小</strong>
+              <small>同时缩放宠物和窗口，可在 50% 至 200% 之间调整。</small>
             </span>
             <output data-testid="pet-scale-value">{preferences.petDisplay.scalePercent}%</output>
             <input
@@ -247,7 +238,7 @@ export function SettingsApp() {
               }
             />
           </label>
-          <div className="pet-size-shortcuts" aria-label="Pet size shortcuts">
+          <div className="pet-size-shortcuts" aria-label="宠物大小快捷选项">
             {PET_SCALE_SHORTCUTS.map((scalePercent) => (
               <button
                 type="button"
@@ -265,14 +256,14 @@ export function SettingsApp() {
               disabled={pending || preferences.petDisplay.scalePercent === 100}
               onClick={() => void patch({ preferences: { petDisplay: { scalePercent: 100 } } })}
             >
-              Restore default size
+              恢复默认大小
             </button>
           </div>
           <Toggle
             checked={preferences.petDisplay.lockPhysicalSizeAcrossDisplays}
             disabled={pending}
-            label="Keep physical size across displays"
-            detail="Compensate for different display scale factors when the pet moves between monitors."
+            label="跨屏保持实际大小"
+            detail="宠物在不同显示器之间移动时，自动补偿显示缩放比例差异。"
             onChange={(lockPhysicalSizeAcrossDisplays) =>
               void patch({ preferences: { petDisplay: { lockPhysicalSizeAcrossDisplays } } })
             }
@@ -282,8 +273,8 @@ export function SettingsApp() {
         <section id="pets" className="settings-card">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">2D assets</p>
-              <h2>Pets</h2>
+              <p className="eyebrow">2D 素材</p>
+              <h2>宠物管理</h2>
             </div>
             <span className="section-number">03</span>
           </div>
@@ -318,23 +309,23 @@ export function SettingsApp() {
         <section id="codex" className="settings-card">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">Local bridge</p>
-              <h2>Codex connection</h2>
+              <p className="eyebrow">本地桥接</p>
+              <h2>Codex 连接</h2>
             </div>
             <span className="section-number">04</span>
           </div>
           <Toggle
             checked={device.autoStartAppServer}
             disabled={pending}
-            label="Start App Server automatically"
-            detail="Automatically connect quota and local Codex controls when the pet starts."
+            label="自动启动 App Server"
+            detail="桌宠启动时自动连接额度信息和本地 Codex 控制功能。"
             onChange={(autoStartAppServer) => void patch({ device: { autoStartAppServer } })}
           />
           <Toggle
             checked={device.useMockData}
             disabled={pending}
-            label="Use mock data"
-            detail="Show deterministic local development data instead of a real connection."
+            label="使用模拟数据"
+            detail="显示固定的本地开发数据，不连接真实服务。"
             onChange={(useMockData) => void patch({ device: { useMockData } })}
           />
         </section>
@@ -342,15 +333,15 @@ export function SettingsApp() {
         <section id="quota" className="settings-card">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">Usage guardrail</p>
-              <h2>Quota</h2>
+              <p className="eyebrow">用量保护</p>
+              <h2>额度与用量</h2>
             </div>
             <span className="section-number">05</span>
           </div>
           <label className="range-setting">
             <span>
-              <strong>Warning threshold</strong>
-              <small>Warn when remaining quota reaches this percentage.</small>
+              <strong>预警阈值</strong>
+              <small>剩余额度达到该百分比时发出提醒。</small>
             </span>
             <output>{preferences.quotaWarningPercent}%</output>
             <input
@@ -372,14 +363,14 @@ export function SettingsApp() {
               snapshot.quota.rateLimits.map((bucket) => (
                 <div key={bucket.id}>
                   <span>{bucket.label ?? bucket.id}</span>
-                  <strong>{Math.round(bucket.remainingPercent)}% remaining</strong>
+                  <strong>剩余 {Math.round(bucket.remainingPercent)}%</strong>
                 </div>
               ))
             ) : (
-              <p>Live quota data is unavailable.</p>
+              <p>暂时无法获取实时额度数据。</p>
             )}
             <div>
-              <span>Tokens today</span>
+              <span>今日 Token</span>
               <strong>{formatCount(snapshot.quota.dailyUsage?.tokens)}</strong>
             </div>
           </div>
@@ -388,19 +379,19 @@ export function SettingsApp() {
         <section id="diagnostics" className="settings-card">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">Read-only</p>
-              <h2>Diagnostics</h2>
+              <p className="eyebrow">只读信息</p>
+              <h2>诊断信息</h2>
             </div>
             <span className="section-number">06</span>
           </div>
           <dl className="diagnostic-list">
             <div>
-              <dt>Settings storage</dt>
-              <dd>{loadStateLabel(snapshot)}</dd>
+              <dt>设置存储</dt>
+              <dd>{loadStateLabel(snapshot.loadState)}</dd>
             </div>
             <div>
-              <dt>Connection detail</dt>
-              <dd>{snapshot.status.connectionDetail ?? "No diagnostic detail reported."}</dd>
+              <dt>连接详情</dt>
+              <dd>{snapshot.status.connectionDetail ?? "暂无诊断详情。"}</dd>
             </div>
           </dl>
         </section>
@@ -408,24 +399,20 @@ export function SettingsApp() {
         <section id="about" className="settings-card about-card">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">Independent project</p>
-              <h2>About</h2>
+              <p className="eyebrow">独立项目</p>
+              <h2>关于</h2>
             </div>
             <span className="section-number">07</span>
           </div>
           <p>
             {snapshot.app.name} <strong>v{snapshot.app.version}</strong>
           </p>
-          <p>MIT-licensed desktop companion. No cloud settings sync or telemetry is included.</p>
+          <p>采用 MIT 许可证的桌面伴侣应用，不包含云端设置同步或遥测功能。</p>
           <ul className="asset-policy-summary">
-            <li>This project does not bundle Pokémon character assets.</li>
-            <li>
-              Locally imported third-party assets are not covered by this project's MIT license.
-            </li>
-            <li>
-              You are responsible for confirming that you have the right to use imported assets.
-            </li>
-            <li>This application has no official affiliation with Pokémon rights holders.</li>
+            <li>本项目不内置 Pokémon 角色素材。</li>
+            <li>本地导入的第三方素材不受本项目 MIT 许可证覆盖。</li>
+            <li>你需要自行确认拥有使用所导入素材的权利。</li>
+            <li>本应用与 Pokémon 权利方不存在官方关联。</li>
           </ul>
         </section>
       </div>

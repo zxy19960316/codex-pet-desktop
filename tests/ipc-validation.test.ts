@@ -1,8 +1,24 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseDeveloperCwdSelection, parseVerificationKind } from "../src/main/ipc-validation";
 import { parsePetScaleDelta, parseWindowShapeRequest } from "../src/main/ipc-handlers";
+import { IPC_CHANNELS } from "../src/shared/ipc-contract";
 
 describe("IPC validation", () => {
+  it("exposes a parameter-free main-process Settings action to the sandboxed desktop preload", async () => {
+    expect(IPC_CHANNELS.openSettings).toBe("desktop:open-settings");
+    const [preload, handlers, main] = await Promise.all([
+      readFile(join(process.cwd(), "src", "preload", "index.ts"), "utf8"),
+      readFile(join(process.cwd(), "src", "main", "ipc-handlers.ts"), "utf8"),
+      readFile(join(process.cwd(), "src", "main", "index.ts"), "utf8"),
+    ]);
+    expect(preload).toContain("openSettings: () => ipcRenderer.invoke(IPC_CHANNELS.openSettings)");
+    expect(handlers).toContain("ipcMain.handle(IPC_CHANNELS.openSettings");
+    expect(main).toContain("openSettings: async () => {");
+    expect(main).toContain("await settingsWindowManager.open()");
+  });
+
   it("accepts only opaque cwd selections and rejects absolute renderer paths", () => {
     expect(parseDeveloperCwdSelection({ kind: "project-root" })).toEqual({
       kind: "project-root",

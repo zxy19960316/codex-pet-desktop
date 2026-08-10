@@ -1,12 +1,8 @@
-import { Menu, type BrowserWindow, type MenuItemConstructorOptions } from "electron";
-import {
-  buildPetMenuTemplate,
-  type PetMenuAction,
-  type PetMenuItem,
-  type PetMenuViewModel,
-} from "./menu-view-model";
+import type { BrowserWindow, MenuItemConstructorOptions } from "electron";
+import { type PetMenuAction, type PetMenuItem } from "./menu-view-model";
 
 export type PetMenuExecutor = (action: PetMenuAction) => void;
+export const PET_CONTEXT_ACTION: PetMenuAction = { type: "open-status" };
 
 export function toElectronMenuTemplate(
   items: PetMenuItem[],
@@ -23,14 +19,7 @@ export function toElectronMenuTemplate(
 }
 
 export class PetContextMenu {
-  attach(
-    window: BrowserWindow,
-    getViewModel: () => PetMenuViewModel,
-    execute: PetMenuExecutor,
-  ): void {
-    window.webContents.on("context-menu", () => {
-      const template = buildPetMenuTemplate(getViewModel(), "pet");
-      Menu.buildFromTemplate(toElectronMenuTemplate(template, execute)).popup({ window });
-    });
+  attach(window: BrowserWindow, execute: PetMenuExecutor): void {
+    window.webContents.on("context-menu", () => execute(PET_CONTEXT_ACTION));
   }
 }

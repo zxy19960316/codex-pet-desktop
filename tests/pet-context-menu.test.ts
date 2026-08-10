@@ -4,6 +4,7 @@ import {
   type PetMenuItem,
   type PetMenuViewModel,
 } from "../src/main/menu/menu-view-model";
+import { PET_CONTEXT_ACTION } from "../src/main/menu/pet-context-menu";
 
 function viewModel(overrides: Partial<PetMenuViewModel> = {}): PetMenuViewModel {
   return {
@@ -38,6 +39,10 @@ function labels(items: PetMenuItem[]): string[] {
 }
 
 describe("dynamic pet menu", () => {
+  it("routes a pet-window right click directly to the detailed Hub", () => {
+    expect(PET_CONTEXT_ACTION).toEqual({ type: "open-status" });
+  });
+
   it("checks the active pet and current preset without duplicating selection logic", () => {
     const menu = buildPetMenuTemplate(viewModel(), "pet");
     expect(menu[0]).toMatchObject({ label: "Current: Working · 2 threads", enabled: false });

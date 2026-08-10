@@ -27,6 +27,7 @@ export interface IpcActions {
   toggleAlwaysOnTop(): Promise<void>;
   toggleClickThrough(): Promise<void>;
   reconnectCodex(): Promise<void>;
+  openSettings(): Promise<void>;
   patchSettings(patch: Partial<LocalSettings>): Promise<void>;
   adjustPetScale(deltaSteps: number): Promise<void>;
   enqueueMockApproval(): void;
@@ -86,6 +87,7 @@ export function registerIpcHandlers(actions: IpcActions): () => void {
   ipcMain.handle(IPC_CHANNELS.toggleAlwaysOnTop, () => actions.toggleAlwaysOnTop());
   ipcMain.handle(IPC_CHANNELS.toggleClickThrough, () => actions.toggleClickThrough());
   ipcMain.handle(IPC_CHANNELS.reconnectCodex, () => actions.reconnectCodex());
+  ipcMain.handle(IPC_CHANNELS.openSettings, () => actions.openSettings());
   ipcMain.handle(IPC_CHANNELS.patchSettings, (_event, patch: Partial<LocalSettings>) =>
     actions.patchSettings(patch),
   );

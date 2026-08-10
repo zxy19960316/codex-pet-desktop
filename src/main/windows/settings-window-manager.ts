@@ -46,7 +46,7 @@ export class SettingsWindowManager {
       minWidth: 720,
       minHeight: 520,
       show: false,
-      title: "Codex Pet Settings",
+      title: "Codex Pet 设置中心",
       backgroundColor: "#f4f1e8",
       autoHideMenuBar: true,
       webPreferences: {

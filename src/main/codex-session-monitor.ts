@@ -1,6 +1,11 @@
 import { open, readdir, stat } from "node:fs/promises";
-import { join } from "node:path";
+import { basename, join } from "node:path";
+import {
+  parseSessionLifecycle,
+  type SessionLifecycleCursor,
+} from "../core/codex/session-lifecycle";
 import { parseSessionTelemetry, type AgentTelemetry } from "../core/codex/session-telemetry";
+import type { SessionObservation } from "../core/sessions/session-types";
 
 export const MAX_MONITORED_SESSION_FILES = 10;
 const INITIAL_TAIL_BYTES = 512 * 1024;
@@ -15,8 +20,16 @@ interface FileCursor {
   offset: number;
   partial: string;
   telemetry: AgentTelemetry | null;
+  lifecycle: SessionLifecycleCursor;
   published: string;
   dropLeadingPartial: boolean;
+}
+
+export function sessionIdFromPath(path: string): string | undefined {
+  const match = basename(path).match(
+    /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.jsonl$/i,
+  );
+  return match?.[1];
 }
 
 function dateDirectory(root: string, date: Date): string {
@@ -72,6 +85,7 @@ async function readRange(path: string, start: number, end: number): Promise<stri
 export class CodexSessionMonitor {
   readonly #root: string;
   readonly #onTelemetry: (telemetry: AgentTelemetry) => void;
+  readonly #onObservations?: (observations: readonly SessionObservation[]) => void;
   readonly #onDiagnostic?: (code: string) => void;
   readonly #cursors = new Map<string, FileCursor>();
   #timer?: ReturnType<typeof setInterval>;
@@ -80,10 +94,12 @@ export class CodexSessionMonitor {
   constructor(options: {
     sessionsRoot: string;
     onTelemetry(telemetry: AgentTelemetry): void;
+    onObservations?(observations: readonly SessionObservation[]): void;
     onDiagnostic?(code: string): void;
   }) {
     this.#root = options.sessionsRoot;
     this.#onTelemetry = options.onTelemetry;
+    this.#onObservations = options.onObservations;
     this.#onDiagnostic = options.onDiagnostic;
   }
 
@@ -122,6 +138,10 @@ export class CodexSessionMonitor {
         offset: Math.max(0, size - INITIAL_TAIL_BYTES),
         partial: "",
         telemetry: null,
+        lifecycle: {
+          sessionId: sessionIdFromPath(path),
+          sessionStarted: false,
+        },
         published: "",
         dropLeadingPartial: size > INITIAL_TAIL_BYTES,
       };
@@ -142,7 +162,15 @@ export class CodexSessionMonitor {
       return;
     }
     cursor.partial = complete.slice(lastBreak + 1).slice(-MAX_PARTIAL_BYTES);
-    cursor.telemetry = parseSessionTelemetry(complete.slice(0, lastBreak), cursor.telemetry);
+    const completeLines = complete.slice(0, lastBreak);
+    const lifecycle = parseSessionLifecycle(
+      completeLines,
+      cursor.lifecycle,
+      sessionIdFromPath(path),
+    );
+    cursor.lifecycle = lifecycle.cursor;
+    if (lifecycle.observations.length) this.#onObservations?.(lifecycle.observations);
+    cursor.telemetry = parseSessionTelemetry(completeLines, cursor.telemetry);
     if (!cursor.telemetry) return;
     const serialized = JSON.stringify(cursor.telemetry);
     if (serialized === cursor.published) return;

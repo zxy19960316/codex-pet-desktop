@@ -233,6 +233,7 @@ describe("settings window manager", () => {
     expect(windows[0].loadFile).toHaveBeenCalledWith("C:/app/settings.html");
     expect(options[0]).toMatchObject({
       show: false,
+      title: "Codex Pet 设置中心",
       webPreferences: {
         preload: "C:/app/settings-preload.cjs",
         contextIsolation: true,

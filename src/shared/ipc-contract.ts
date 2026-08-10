@@ -28,6 +28,7 @@ export const IPC_CHANNELS = {
   toggleAlwaysOnTop: "desktop:toggle-always-on-top",
   toggleClickThrough: "desktop:toggle-click-through",
   reconnectCodex: "desktop:reconnect-codex",
+  openSettings: "desktop:open-settings",
   patchSettings: "desktop:patch-settings",
   adjustPetScale: "desktop:adjust-pet-scale",
   enqueueMockApproval: "desktop:enqueue-mock-approval",
@@ -118,7 +119,8 @@ export interface DesktopSnapshot {
   contextWindowTokens?: number | null;
   agent?: DesktopAgentSnapshot;
   settings: LocalSettings;
-  protocolSource: "codex-hooks" | "codex-app-server" | "mock" | "unavailable";
+  protocolSource:
+    "codex-hooks" | "codex-app-server" | "codex-session-file" | "mock" | "unavailable";
   pet?: PetRegistrySnapshot;
   petPhysicalScaleFactor?: number;
 }
@@ -133,6 +135,7 @@ export interface DesktopApi {
   toggleAlwaysOnTop(): Promise<void>;
   toggleClickThrough(): Promise<void>;
   reconnectCodex(): Promise<void>;
+  openSettings(): Promise<void>;
   patchSettings(patch: Partial<LocalSettings>): Promise<void>;
   adjustPetScale(deltaSteps: number): Promise<void>;
   enqueueMockApproval(): Promise<void>;

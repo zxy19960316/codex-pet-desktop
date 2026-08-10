@@ -122,6 +122,13 @@ if (finalize) {
     "--out",
     join(qa, "preview.webp"),
   ]);
+  await runPython([
+    "animated-board",
+    "--directory",
+    directory,
+    "--out",
+    join(qa, "animated-board.webp"),
+  ]);
   process.stdout.write(`${JSON.stringify({ ...validation, qa }, null, 2)}\n`);
   process.exit(0);
 }
@@ -129,6 +136,7 @@ if (finalize) {
 const state = option(options, "state", "");
 if (!REQUIRED_STATES.includes(state))
   throw new Error(`--state must be one of ${REQUIRED_STATES.join(", ")}`);
+const spec = STATE_SPECS[state];
 const classification = option(options, "classification", "");
 if (!CLASSIFICATIONS.has(classification))
   throw new Error(
@@ -137,12 +145,46 @@ if (!CLASSIFICATIONS.has(classification))
 const sourceAtlas = resolve(option(options, "source-atlas", ""));
 if (!sourceAtlas) throw new Error("--source-atlas is required");
 const input = option(options, "input", undefined);
+const inputIsStrip = options.get("input-is-strip") === true;
+const gridColumnsValue = option(options, "grid-columns", undefined);
+const gridRowsValue = option(options, "grid-rows", undefined);
+const gridRowValue = option(options, "grid-row", undefined);
+const gridDimensions = [gridColumnsValue, gridRowsValue];
+if (
+  gridDimensions.some((value) => value !== undefined) &&
+  gridDimensions.some((value) => value === undefined)
+)
+  throw new Error("--grid-columns and --grid-rows must be supplied together");
+if (gridRowValue !== undefined && gridColumnsValue === undefined)
+  throw new Error("--grid-row requires --grid-columns and --grid-rows");
+if (inputIsStrip && gridColumnsValue !== undefined)
+  throw new Error("--input-is-strip cannot be combined with keyframe-grid options");
+const gridColumns = gridColumnsValue === undefined ? undefined : Number(gridColumnsValue);
+const gridRows = gridRowsValue === undefined ? undefined : Number(gridRowsValue);
+const gridRow = gridRowValue === undefined ? undefined : Number(gridRowValue);
+const fitScale = Number(option(options, "fit-scale", "1"));
+if (!Number.isFinite(fitScale) || fitScale <= 0 || fitScale > 1)
+  throw new Error("--fit-scale must be greater than 0 and no greater than 1");
+if (gridColumns !== undefined) {
+  if (!Number.isInteger(gridColumns) || !Number.isInteger(gridRows))
+    throw new Error("Generated action sheet grid dimensions must be integers");
+  const keyframeCount = gridColumns * gridRows;
+  if (gridRow === undefined && keyframeCount !== 4 && keyframeCount !== spec.frames)
+    throw new Error(
+      `Single-state action sheets must contain four keyframes or ${spec.frames} full frames`,
+    );
+  if (gridRow !== undefined) {
+    if (gridColumns !== 4 || gridRows !== 2)
+      throw new Error("Paired action sheets must use a 4 column by 2 row grid");
+    if (!Number.isInteger(gridRow) || gridRow < 0 || gridRow >= gridRows)
+      throw new Error("--grid-row must be 0 or 1");
+  }
+}
 const sourceRowValue = option(options, "source-row", undefined);
 const sourceRow = sourceRowValue === undefined ? undefined : Number(sourceRowValue);
 if (sourceRow !== undefined && (!Number.isInteger(sourceRow) || sourceRow < 0 || sourceRow > 8))
   throw new Error("--source-row must be an integer from 0 to 8");
 if (!input && sourceRow === undefined) throw new Error("--input or --source-row is required");
-const spec = STATE_SPECS[state];
 const sprite = `${state.replaceAll("_", "-")}.webp`;
 const output = join(directory, sprite);
 const temporary = `${output}.${process.pid}.${Date.now()}.tmp.webp`;
@@ -182,7 +224,17 @@ try {
       String(spec.frames),
     ]);
   else {
-    await runPython(["alpha-stats", "--input", resolve(input)]);
+    if (gridColumns !== undefined)
+      await runPython([
+        "grid-alpha-stats",
+        "--input",
+        resolve(input),
+        "--columns",
+        String(gridColumns),
+        "--rows",
+        String(gridRows),
+      ]);
+    else await runPython(["alpha-stats", "--input", resolve(input)]);
     const arguments_ = [
       "strip",
       "--input",
@@ -193,8 +245,15 @@ try {
       state,
       "--frames",
       String(spec.frames),
+      "--fit-scale",
+      String(fitScale),
     ];
     if (pet === "mew") arguments_.push("--floating");
+    if (gridColumns !== undefined) {
+      arguments_.push("--grid-columns", String(gridColumns), "--grid-rows", String(gridRows));
+      if (gridRow !== undefined) arguments_.push("--grid-row", String(gridRow));
+    }
+    if (inputIsStrip) arguments_.push("--input-is-strip");
     await runPython(arguments_);
   }
   await rename(temporary, output);
@@ -221,6 +280,17 @@ report.states[state] = {
   fps: spec.fps,
   input: input ? basename(input) : `source-atlas.webp row ${sourceRow}`,
   sourceState: option(options, "source-state", undefined),
+  inputLayout: inputIsStrip
+    ? "animation-strip"
+    : gridColumns === undefined
+      ? "single-pose"
+      : "keyframe-grid",
+  motionProfile: sourceRow === undefined ? "fluid-v4" : undefined,
+  stateAccents: sourceRow === undefined ? true : undefined,
+  keyframeGrid:
+    gridColumns === undefined
+      ? undefined
+      : { columns: gridColumns, rows: gridRows, row: gridRow, fitScale },
 };
 updateClassification(manifest, report);
 if (state === "idle")

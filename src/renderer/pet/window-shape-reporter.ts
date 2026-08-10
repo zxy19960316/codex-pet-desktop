@@ -28,7 +28,7 @@ function shapeRequest(
   if (!spriteRect) return null;
   const uiRects = [
     ...document.querySelectorAll<HTMLElement>(
-      ".pet-resources, .panel, .approval-card, .reply-card",
+      ".pet-resources, .session-quick-view, .panel, .approval-card, .reply-card",
     ),
   ]
     .filter((candidate) => {

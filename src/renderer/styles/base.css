@@ -273,6 +273,143 @@ details {
   margin: 8px 0 0;
   line-height: 1.4;
 }
+
+.session-hub {
+  max-height: 450px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(112, 230, 174, 0.6) rgba(255, 255, 255, 0.06);
+}
+
+.session-hub__title {
+  margin-bottom: 7px;
+}
+
+.session-hub__actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 7px;
+  margin-bottom: 9px;
+}
+
+.session-hub__actions button,
+.session-hub__session button {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 9px;
+  padding: 6px 9px;
+  color: #f2efff;
+  background: rgba(255, 255, 255, 0.07);
+  cursor: pointer;
+  font-size: 10px;
+}
+
+.session-hub__actions button:first-child {
+  border-color: rgba(112, 230, 174, 0.5);
+  color: #10251d;
+  background: #70e6ae;
+  font-weight: 700;
+}
+
+.session-hub__metrics {
+  margin-bottom: 10px;
+}
+
+.session-hub__section-heading,
+.session-hub__session header,
+.session-hub__session-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.session-hub__section-heading {
+  margin-bottom: 6px;
+  color: #d9d5f2;
+  font-size: 11px;
+}
+
+.session-hub__section-heading small {
+  color: #918cae;
+  font-size: 9px;
+}
+
+.session-hub__list {
+  display: grid;
+  gap: 6px;
+}
+
+.session-hub__session {
+  display: grid;
+  gap: 5px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.session-hub__session[data-session-state="working"],
+.session-hub__session[data-session-state="thinking"] {
+  border-color: rgba(87, 155, 199, 0.5);
+}
+
+.session-hub__session[data-session-state="approval"],
+.session-hub__session[data-session-state="waiting_input"] {
+  border-color: rgba(255, 212, 121, 0.6);
+}
+
+.session-hub__session[data-session-state="error"] {
+  border-color: rgba(255, 109, 134, 0.55);
+}
+
+.session-hub__session header strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #f3f1ff;
+  font-size: 11px;
+}
+
+.session-hub__session header span {
+  flex: none;
+  color: #70e6ae;
+  font-size: 9px;
+}
+
+.session-hub__session p {
+  margin: 0;
+  overflow: hidden;
+  color: #aaa5c1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 9px;
+}
+
+.session-hub__session-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  color: #918cae;
+  font-size: 9px;
+}
+
+.session-hub__session-footer small {
+  color: #aaa5c1;
+  font-size: 9px;
+}
+
+.session-hub__session button:disabled {
+  cursor: default;
+  opacity: 0.48;
+}
+
+.session-hub__usage {
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+}
 .approval-card p {
   margin: 5px 0 9px;
   color: #c8c4db;
